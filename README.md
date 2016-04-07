@@ -1,7 +1,7 @@
 ## inner - a MultiObjective Linear Program (MOLP) solver
 
 A MOLP is a linear program with more than one objective function. The linear
-''constraints'' are typically written in a matrix form where the columns
+*constraints* are typically written in a matrix form where the columns
 correspond to (constraint) variables. 
 
 
@@ -16,26 +16,26 @@ of the problem in vlp format. Accepted options are
 
 | Option | meaning |
 |:-------|:--------|
-| -h          | print a short help and quit |
-| --help      | print all options |
-| --help=vlp  | describe the vlp file format |
-| --help=out  | describe the output format |
-| --version   | version and copyright information |
-| --dump     | dump the default config file and quit |
-| --config=\<config-file\> <br> -c \<config-file\>  | read configuration from the given file. <br>  Use '--dump' to show the default config file |
-| -o \<file\>  | save result (both vertices and facets) to <file> |
-| -ov \<file\> | save vertices to <file> |
-| -of \<file\> | save facets to <file> |
-| --name=NAME <br> -n NAME    | specify the problem name |
-| -m[0..3]   | set message level: 0: none, 1: errors, 2: all, 3: verbose |
-| -q         | quiet, same as -m0 |
-| -p T       | progress report in every T seconds (default: T=5) |
-| -p0        | no progress report |
-| -y+        | report vertices immediately when generated (default) |
-| -y-        | do not report vertices when generated |
-| -r N       | recalculate facet equations after N rounds (default: N=100) |
-| -k N       | check numerical consistency after N rounds (default: N=0) |
-| --KEYWORD=value | change value of a config keyword |
+| `-h`          | print a short help and quit |
+| `--help`      | print all options |
+| `--help=vlp`  | describe the vlp file format |
+| `--help=out`  | describe the output format |
+| `--version`   | version and copyright information |
+| `--dump`     | dump the default config file and quit |
+| `--config=\<config-file\>` <br> `-c \<config-file\>`  | read configuration from the given file. <br>  Use `--dump` to show the default config file |
+| `-o \<file\>`  | save result (both vertices and facets) to <file> |
+| `-ov \<file\>` | save vertices to <file> |
+| `-of \<file\>` | save facets to <file> |
+| `--name=NAME` <br> `-n NAME`    | specify the problem name |
+| `-m[0..3]`   | set message level: 0: none, 1: errors, 2: all, 3: verbose |
+| `-q`         | quiet, same as -m0 |
+| `-p T`       | progress report in every T seconds (default: T=5) |
+| `-p0`        | no progress report |
+| `-y+`        | report vertices immediately when generated (default) |
+| `-y-`        | do not report vertices when generated |
+| `-r N`       | recalculate facet equations after N rounds (default: N=100) |
+| `-k N`       | check numerical consistency after N rounds (default: N=0) |
+| `--KEYWORD=value` | change value of a config keyword |
 
 
 
