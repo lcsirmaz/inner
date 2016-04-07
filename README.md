@@ -1,7 +1,7 @@
-## inner - a Multi Objective Linear Program (MOLP) solver
+## inner - a MultiObjective Linear Program (MOLP) solver
 
 A MOLP is a linear program with more than one objective function. The linear
-'constraints' are typically written in a matrix form where the columns
+''constraints'' are typically written in a matrix form where the columns
 correspond to (constraint) variables. 
 
 
@@ -12,14 +12,14 @@ The program is invoked as
     inner [options] <vlp-file>
 
 The only obligatory argument is the file name which contains the descritpion
-of the problem is vlp format. Accepted options are
+of the problem in vlp format. Accepted options are
 
 | Option | meaning |
 |:-------|:--------|
 | -h          | print a short help and quit |
 | --help      | print all options |
 | --help=vlp  | describe the vlp file format |
-| --help=out  | describe output format |
+| --help=out  | describe the output format |
 | --version   | version and copyright information |
 | --dump     | dump the default config file and quit |
 | --config=\<config-file\> <br> -c \<config-file\>  | read configuration from the given file. <br>  Use '--dump' to show the default config file |
@@ -44,8 +44,8 @@ of the problem is vlp format. Accepted options are
 The program uses a patched version of 'glpk', the GNU Linear Program Kit. 
 First, glpk should be compiled after the patch has been applied (Version
 4.57 only). `<GLPK>` is the main directory of the glpk distribution, and 
-`<NAME>` is the complied program's name. To compile it using static version
-of the patched glpk, use the command
+`<NAME>` is the complied program's name. To compile it using the static
+version of the patched glpk, use the command
 
     gcc -O3 -W -I <GLPK>/src -o <NAME> -DPROG=<NAME> *.c <GLPK>/src/.libs/libglpk.a -lm
 
