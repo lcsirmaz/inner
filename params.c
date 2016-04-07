@@ -61,7 +61,10 @@
 #define DEF_SaveVertices	2	/* partial */
 #define DEF_SaveFacets		2	/* partial */
 /* name of this program */
-#define PROGNAME		"inner"
+#ifndef PROG
+  #define PROG			inner
+#endif
+#define PROGNAME		mkstringof(PROG)
 
 struct params_t GlobalParams;
 
