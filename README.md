@@ -2,7 +2,15 @@
 
 A MOLP is a linear program with more than one objective function. The linear
 *constraints* are typically written in a matrix form where the columns
-correspond to (constraint) variables. 
+correspond to (constraint) variables.
+       
+<table border="0" cellsapcing="2" cellpadding="2"><tbody>
+<tr style="margin-bottom: 3px">
+<td>x<sub>1</sub></td><td>x<sub>2</sub></td><td> . . . </td><td>x<sub>c</sub></td></tr>
+<tr><td>a<sub>1,1</sub></td><td>x<sub>1,2</sub></td><td> . . . </td><td>x<sub>1,c</sub></td></tr>
+<tr><td>a<sub>2,1</sub></td><td>x<sub>2,2</sub></td><td> . . . </td><td>x<sub>2,c</sub></td></tr>
+<tr><td>x<sub>r,1</sub></td><td>x<sub>r,2</sub></td><td> . . . </td><td>x<sub>r,c</sub></td></tr>
+</tbody></table>
 
 
 #### USAGE
@@ -22,13 +30,13 @@ of the problem in vlp format. Accepted options are
 | `--help=out`  | describe the output format |
 | `--version`   | version and copyright information |
 | `--dump`     | dump the default config file and quit |
-| `--config=\<config-file\>` <br> `-c \<config-file\>`  | read configuration from the given file. <br>  Use `--dump` to show the default config file |
-| `-o \<file\>`  | save result (both vertices and facets) to <file> |
-| `-ov \<file\>` | save vertices to <file> |
-| `-of \<file\>` | save facets to <file> |
-| `--name=NAME` <br> `-n NAME`    | specify the problem name |
+| `--config=<config-file>` or <br> `-c <config-file>`  | read configuration from the given file. <br>  Use `--dump` to show the default config file |
+| `-o <file>`  | save result (both vertices and facets) to \<file\> |
+| `-ov <file>` | save vertices to \<file\> |
+| `-of <file>` | save facets to \<file\> |
+| `--name=NAME` or <br> `-n NAME`    | specify the problem name |
 | `-m[0..3]`   | set message level: 0: none, 1: errors, 2: all, 3: verbose |
-| `-q`         | quiet, same as -m0 |
+| `-q`         | quiet, same as `-m0` |
 | `-p T`       | progress report in every T seconds (default: T=5) |
 | `-p0`        | no progress report |
 | `-y+`        | report vertices immediately when generated (default) |
@@ -36,7 +44,6 @@ of the problem in vlp format. Accepted options are
 | `-r N`       | recalculate facet equations after N rounds (default: N=100) |
 | `-k N`       | check numerical consistency after N rounds (default: N=0) |
 | `--KEYWORD=value` | change value of a config keyword |
-
 
 
 #### COMPILATION
