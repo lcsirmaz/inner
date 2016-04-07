@@ -5,12 +5,11 @@ A MOLP is a linear program with more than one objective function. The linear
 correspond to (constraint) variables.
        
 <table align="center"><tbody>
-<tr style="margin:0 0 3px 0;">
-    <td>x<sub>1</sub></td><td>x<sub>2</sub></td><td> . . . </td><td>x<sub>c</sub></td>      <td> </td><td> </td></tr>
-<tr><td>a<sub>1,1</sub></td><td>a<sub>1,2</sub></td><td> . . . </td><td>a<sub>1,c</sub></td><td>=</td><td b<sub>1</sub></tr>
-<tr><td>a<sub>2,1</sub></td><td>a<sub>2,2</sub></td><td> . . . </td><td>a<sub>2,c</sub></td><td>=</td><td b<sub>2</sub></tr>
+<tr><td align="center">x<sub>1</sub></td><td>x<sub>2</sub></td><td> . . . </td><td>x<sub>c</sub></td>  <td colspan="2"> </td></tr>
+<tr><td>a<sub>1,1</sub></td><td>a<sub>1,2</sub></td><td> . . . </td><td>a<sub>1,c</sub></td><td>=</td><td> b<sub>1</sub></tr>
+<tr><td>a<sub>2,1</sub></td><td>a<sub>2,2</sub></td><td> . . . </td><td>a<sub>2,c</sub></td><td>=</td><td> b<sub>2</sub></tr>
 <tr><td> . . . </td>        <td> . . .         </td><td>       </td><td> . . .         </td><td> </td><td> . . . </td></tr>
-<tr><td>a<sub>r,1</sub></td><td>a<sub>r,2</sub></td><td> . . . </td><td>a<sub>r,c</sub></td><td>=</td><td b<sub>r</sub></tr>
+<tr><td>a<sub>r,1</sub></td><td>a<sub>r,2</sub></td><td> . . . </td><td>a<sub>r,c</sub></td><td>=</td><td> b<sub>r</sub></tr>
 </tbody></table>
 
 
@@ -20,7 +19,7 @@ The program is invoked as
 
     inner [options] <vlp-file>
 
-The only obligatory argument is the file name which contains the descritpion
+The only obligatory argument is the file name which contains the description
 of the problem in vlp format. Accepted options are
 
 | Option | meaning |
