@@ -1,27 +1,26 @@
 ## inner - a MultiObjective Linear Program (MOLP) solver
 
 A MOLP is a linear program with more than one objective function. The linear
-*constraints* are typically written in a matrix form where the columns
-correspond to (constraint) variables.
+*constraints* are arranged into a matrix form where the columns
+correspond to (constraint) variables x<sub>1</sub>, x<sub>2</sub>, . . . ,
+x<sub>c</sub>.
        
-<table width="100%"><tbody><tr><td align="center">
 <table><tbody>
 <tr><td align="center">x<sub>1</sub></td><td align="center">x<sub>2</sub></td><td> . . . </td>
 <td align="center">x<sub>i</sub></td><td> . . . </td><td align="center">x<sub>c</sub></td>  <td colspan="4"> </td></tr>
-<tr><td>a<sub>1,1</sub></td><td>a<sub>1,2</sub></td><td> . . . </td>
-<td>a<sub>1,i</sub></td><td> . . . </td><td>a<sub>1,c</sub></td><td>=</td><td> b<sub>1</sub></td>
+<tr><td>a<sub>1,1</sub></td><td>a<sub>2,1</sub></td><td> . . . </td>
+<td>a<sub>i,1</sub></td><td> . . . </td><td>a<sub>c,1</sub></td><td>=</td><td> b<sub>1</sub></td>
 <td> &nbsp; </td><td>l<sub>1</sub> &le; b<sub>1</sub> &le; u<sub>1</sub></td></tr>
-<tr><td>a<sub>2,1</sub></td><td>a<sub>2,2</sub></td><td> . . . </td>
-<td>a<sub>2,i</sub></td><td> . . . </td><td>a<sub>2,c</sub></td><td>=</td><td> b<sub>2</sub></td>
+<tr><td>a<sub>1,2</sub></td><td>a<sub>2,2</sub></td><td> . . . </td>
+<td>a<sub>i,2</sub></td><td> . . . </td><td>a<sub>c,2</sub></td><td>=</td><td> b<sub>2</sub></td>
 <td> &nbsp; </td><td>l<sub>2</sub> &le; b<sub>2</sub> &le; u<sub>2</sub></td></tr>
 <tr><td> . . . </td>        <td> . . .         </td><td>       </td>
 <td> . . .         </td><td>       </td><td> . . .         </td><td> </td><td> . . . </td>
 <td> &nbsp; </td><td> . . . </td></tr>
-<tr><td>a<sub>r,1</sub></td><td>a<sub>r,2</sub></td><td> . . . </td>
-<td>a<sub>r,i</sub></td><td> . . . </td><td>a<sub>r,c</sub></td><td>=</td><td> b<sub>r</sub></td>
+<tr><td>a<sub>1,r</sub></td><td>a<sub>2,r</sub></td><td> . . . </td>
+<td>a<sub>i,r</sub></td><td> . . . </td><td>a<sub>c,r</sub></td><td>=</td><td> b<sub>r</sub></td>
 <td> &nbsp; </td><td>l<sub>r</sub> &le; b<sub>r</sub> &le; u<sub>r</sub></td></tr>
 </tbody></table>
-</td></tr></tbody></table>
 
 
 #### USAGE
