@@ -1,0 +1,605 @@
+diff -r -c a/glpapi01.c b/glpapi01.c
+*** a/glpapi01.c	2015-11-08 08:00:00.000000000 +0100
+--- b/glpapi01.c	2015-12-03 14:31:51.078419642 +0100
+***************
+*** 83,88 ****
+--- 83,95 ----
+        lp->row = xcalloc(1+lp->m_max, sizeof(GLPROW *));
+        lp->col = xcalloc(1+lp->n_max, sizeof(GLPCOL *));
+        lp->r_tree = lp->c_tree = NULL;
++ #ifdef CSL
++       /* multi objective part */
++       lp->cobj_num = 0;
++       lp->cobj_max = lp->cobj_end = 0;
++       lp->cobj_idx = NULL;
++       lp->cobj_val = NULL;
++ #endif
+        /* basis factorization */
+        lp->valid = 0;
+        lp->head = xcalloc(1+lp->m_max, sizeof(int));
+***************
+*** 221,226 ****
+--- 228,275 ----
+        return;
+  }
+  
++ #ifdef CSL
++ /***********************************************************************
++ *  NAME
++ *
++ *  glp_set_multiobj_number - set (change) number of additional objectives
++ *
++ *  SYNOPSIS
++ *
++ *  void glp_set_multiobj_number(glp_prob *lp, int nobjs);
++ *
++ *  DESCRIPTION
++ *
++ *  The routine glp_set_obj_number sets (changes) the number of additional
++ *  objectives. When set to zero, no extra objectives are used, or the
++ *  previously set objectives are deleted. New objectives are initially have
++ *  all zero coefficients. */
++ 
++ void glp_set_multiobj_number(glp_prob *lp, int nobjs)
++ {     glp_tree *tree = lp->tree;
++       int idx;
++       if (tree != NULL && tree->reason != 0)
++          xerror("glp_set_multiobj_number: operation not allowed\n");
++       if (nobjs < 0 )
++          xerror("glp_set_multiobj_number: nobjs=%d; invalid number\n", nobjs);
++       if (nobjs > M_MAX)
++          xerror("glp_set_multiobj_number: nobjs=%d; too many objectives\n",nobjs);
++       if (nobjs == 0) /* delete all */
++       {  lp->cobj_num = 0;
++          lp->cobj_end = 0;
++       }
++       else if (nobjs < lp->cobj_num) /* shrink */
++       {  lp->cobj_num = nobjs;
++          for (idx=lp->cobj_idx[nobjs-1];lp->cobj_idx[idx]>=0;idx++);
++          lp->cobj_end = idx+1;
++       }
++       else if (nobjs > lp->cobj_num) /* expand */
++       {  for (idx=lp->cobj_num+1;idx<=nobjs;idx++)
++             glp_set_multiobj_coef(lp,idx,0,0.0);
++       }
++       return;
++ }
++ #endif
+  /***********************************************************************
+  *  NAME
+  *
+***************
+*** 691,696 ****
+--- 740,855 ----
+        return;
+  }
+  
++ #ifdef CSL
++ /***********************************************************************
++ *  NAME
++ *
++ *  glp_set_multiobj_coef - set (change) obj. coefficient or constant term
++ *
++ *  SYNOPSIS
++ *
++ *  void glp_set_multiobj_coef(glp_prob *lp, int objn, int j, double coef);
++ *
++ *  DESCRIPTION
++ *
++ *  The routine glp_set_multiobj_coef sets (changes) the objn'th objective
++ *  coefficient at j-th column (structural variable) of the specified problem
++ *  object.
++ *
++ *  If the parameter j is 0, the routine sets (changes) the constant term
++ *  ("shift") of the objective function. */
++ 
++ 
++ /* Non-zero coefficients of additional objectives are stored in
++ *  cobj_idx[0:cobj_max-1] and cobj_val[0:cobj_max-1]. Objectives are indexed
++ *  from 1 to obj_num. Coefficients for objective objno is stored as follows.
++ *      cobj_val[objno-1]  contains the "shift" (not used)
++ *      cobj_idx[objno-1]  contains a forward index "idx"
++ *      starting from "idx" cobj_idx[idx] is the column number
++ *                          cobj_val[idx] is the objective value
++ *      until cobj_idx[idx]==-1
++ *
++ *  Alternative: cobj_val[objno-1] contains the objective value; the
++ *  "shift" is stored at cobj_val[idx] where cobj_idx[idx]==-1.
++ *
++ *  The routine mk_multiobjs_space(lp,idx) adds an empty slot at index idx
++ *  by shifting cobj_idx and cobj_val by one to the right, and adjusting
++ *  the pointers at 0:cobj_num-1. */
++ static void mk_multiobj_space(glp_prob *lp, int idx)
++ {     int cend =  lp->cobj_end;  /* index of first free slot */
++       int i;
++       xassert(idx <= lp->cobj_end);
++       xassert(lp->cobj_num <= idx);
++       ++ lp-> cobj_end; /* now we have one more used elements */
++       if (cend >= lp->cobj_max)
++       /* no more space, expand both cobj_idx and cobj_val */
++       {  lp->cobj_max += 200;
++          if (lp->cobj_max == 200)
++          {  lp->cobj_idx = talloc(lp->cobj_max, int);
++             lp->cobj_val = talloc(lp->cobj_max, double);
++          }
++          else
++          {  lp->cobj_idx = trealloc(lp->cobj_idx, lp->cobj_max, int);
++             lp->cobj_val = trealloc(lp->cobj_val, lp->cobj_max, double);
++          }
++       }
++       /* shift idx .. cend to the right  by one */
++       for (i=cend;i>idx;i--)
++       {  lp->cobj_idx[i]=lp->cobj_idx[i-1];
++          lp->cobj_val[i]=lp->cobj_val[i-1];
++       }
++       /* adjust pointers at the beginning */
++       for (i=0;i<lp->cobj_num;i++)
++       {  if (lp->cobj_idx[i] >= idx)
++             lp->cobj_idx[i] ++;
++       }
++ }
++ 
++ void glp_set_multiobj_coef(glp_prob *lp, int objn, int j, double coef)
++ {     glp_tree *tree = lp->tree;
++       int idx;
++       if (tree != NULL && tree->reason != 0)
++          xerror("glp_set_multiobj_coef: operation not allowed\n");
++       if (!(0 <= j && j <= lp->n))
++          xerror("glp_set_multiobj_coef: j = %d; column number out of range\n"
++             , j);
++       if (!(0< objn && objn <= lp->cobj_num+1))
++          xerror("glp_set_multiobj_coef: objn = %d; object number out of range\n"
++                 "     use glp_set_multiobj_number() to set the number of objectives\n"
++             , objn);
++       objn--;
++       if(objn == lp->cobj_num)
++       /* next object number, not seen yet */
++       {  mk_multiobj_space(lp,objn); /* add space at the end */
++          lp->cobj_val[objn] = 0.0;
++          idx = lp->cobj_end;
++          lp->cobj_idx[objn] = idx;
++          mk_multiobj_space(lp,idx);
++          lp->cobj_idx[idx]=-1;
++          lp->cobj_num ++;
++       }
++       if (j == 0)
++       {  lp->cobj_val[objn] = coef;
++          return;
++       }
++       for (idx=lp->cobj_idx[objn]; lp->cobj_idx[idx]>=0; idx++)
++       {  if(lp->cobj_idx[idx] == j)
++          {  lp->cobj_val[idx] = coef;
++             return;
++          }
++       }
++       xassert(lp->cobj_idx[idx]==-1);
++       if (coef == 0.0) /* do not store zero coeffs */
++          return;
++       mk_multiobj_space(lp,idx+1);
++       lp->cobj_idx[idx+1]=-1;
++       lp->cobj_val[idx+1] = lp->cobj_val[idx];
++       lp->cobj_idx[idx] = j;
++       lp->cobj_val[idx] = coef;
++       return;
++ }
++ #endif
++ 
+  /***********************************************************************
+  *  NAME
+  *
+***************
+*** 1348,1353 ****
+--- 1507,1516 ----
+        if (!(1 <= ncs && ncs <= lp->n))
+           xerror("glp_del_cols: ncs = %d; invalid number of columns\n",
+              ncs);
++ #ifdef CSL
++       if( lp->cobj_num > 0)
++          xerror("glp_del_cols: multiple objectives defined, cannot delete columns\n");
++ #endif
+        for (k = 1; k <= ncs; k++)
+        {  /* take the number of column to be deleted */
+           j = num[k];
+***************
+*** 1451,1456 ****
+--- 1614,1635 ----
+        dest->pbs_stat = prob->pbs_stat;
+        dest->dbs_stat = prob->dbs_stat;
+        dest->obj_val = prob->obj_val;
++ #ifdef CSL
++       if (prob->cobj_end > 0)
++       {  dest->cobj_num = prob->cobj_num;
++          dest->cobj_max = prob->cobj_max;
++          dest->cobj_end = prob->cobj_end;
++          dest->cobj_idx = talloc(prob->cobj_max,int);
++          dest->cobj_val = talloc(prob->cobj_max,double);
++          memcpy(dest->cobj_idx,prob->cobj_idx,prob->cobj_end*sizeof(int));
++          memcpy(dest->cobj_val,prob->cobj_val,prob->cobj_end*sizeof(double));
++       }
++       else
++       {  dest->cobj_end = 0;
++          dest->cobj_max = 0;
++          dest->cobj_num = 0;
++       }
++ #endif
+        dest->some = prob->some;
+        dest->ipt_stat = prob->ipt_stat;
+        dest->ipt_obj = prob->ipt_obj;
+***************
+*** 1564,1569 ****
+--- 1743,1752 ----
+        if (lp->bfcp != NULL) xfree(lp->bfcp);
+  #endif
+        if (lp->bfd != NULL) bfd_delete_it(lp->bfd);
++ #ifdef CSL
++       if(lp->cobj_idx != NULL) xfree(lp->cobj_idx);
++       if(lp->cobj_val != NULL) xfree(lp->cobj_val);
++ #endif
+        return;
+  }
+  
+diff -r -c a/glpapi02.c b/glpapi02.c
+*** a/glpapi02.c	2015-11-08 08:00:00.000000000 +0100
+--- b/glpapi02.c	2015-12-02 14:33:39.536769618 +0100
+***************
+*** 388,393 ****
+--- 388,429 ----
+        return j == 0 ? lp->c0 : lp->col[j]->coef;
+  }
+  
++ #ifdef CSL
++ /***********************************************************************
++ *  NAME
++ *
++ *  glp_get_multiobj_coef - retrieve obj. coefficient or constant term
++ *
++ *  SYNOPSIS
++ *
++ *  double glp_get_obj_coef(glp_prob *lp, int objno, int j);
++ *
++ *  RETURNS
++ *
++ *  The routine glp_get_multiobj_coef returns the objective coefficient at
++ *  j-th structural variable (column) of the specified problem object.
++ *
++ *  If the parameter j is zero, the routine returns the constant term
++ *  ("shift") of the objective function. */
++ 
++ double glp_get_multiobj_coef(glp_prob *lp, int objno, int j)
++ {     int idx;
++       if (!(0 <= j && j <= lp->n))
++          xerror("glp_get_multiobj_coef: j = %d; column number out of range\n"
++             , j);
++       if (!(0 < objno && objno <= lp->cobj_num))
++          xerror("glp_get_multiobj_coef: objno = %d; object number out of range\n"
++             , objno);
++       if (j == 0)
++          return lp->cobj_val[objno-1];
++       for (idx=lp->cobj_idx[objno-1]; lp->cobj_idx[idx]>=0; idx++)
++       {  if (lp->cobj_idx[idx] == j)
++             return lp->cobj_val[idx];
++       }
++       return 0.0;
++ }
++ #endif
++ 
+  /***********************************************************************
+  *  NAME
+  *
+diff -r -c a/glpapi06.c b/glpapi06.c
+*** a/glpapi06.c	2015-11-08 08:00:00.000000000 +0100
+--- b/glpapi06.c	2015-12-03 16:13:56.155023543 +0100
+***************
+*** 498,503 ****
+--- 498,506 ----
+        parm->out_frq = 500;
+        parm->out_dly = 0;
+        parm->presolve = GLP_OFF;
++ #ifdef CSL
++       parm->mobj = GLP_OFF;
++ #endif
+        return;
+  }
+  
+diff -r -c a/glpk.h b/glpk.h
+*** a/glpk.h	2015-11-08 08:00:00.000000000 +0100
+--- b/glpk.h	2015-12-03 16:12:46.743852966 +0100
+***************
+*** 134,139 ****
+--- 134,142 ----
+        int out_frq;            /* spx.out_frq */
+        int out_dly;            /* spx.out_dly (milliseconds) */
+        int presolve;           /* enable/disable using LP presolver */
++ #ifdef CSL
++       int mobj;               /* flag enable/disable multiobjective */
++ #endif
+        double foo_bar[36];     /* (reserved) */
+  } glp_smcp;
+  
+***************
+*** 299,304 ****
+--- 302,312 ----
+  void glp_set_obj_dir(glp_prob *P, int dir);
+  /* set (change) optimization direction flag */
+  
++ #ifdef CSL
++ void glp_set_multiobj_number(glp_prob *P, int nobjs);
++ /* set the number of extra objectives to the problem object */
++ #endif
++ 
+  int glp_add_rows(glp_prob *P, int nrs);
+  /* add new rows to problem object */
+  
+***************
+*** 322,327 ****
+--- 330,340 ----
+  void glp_set_obj_coef(glp_prob *P, int j, double coef);
+  /* set (change) obj. coefficient or constant term */
+  
++ #ifdef CSL
++ void glp_set_multiobj_coef(glp_prob *P, int objno, int j, double coef);
++ /* set (change) additional object coefficient or constant term */
++ #endif
++ 
+  void glp_set_mat_row(glp_prob *P, int i, int len, const int ind[],
+        const double val[]);
+  /* set (replace) row of the constraint matrix */
+***************
+*** 397,402 ****
+--- 410,420 ----
+  double glp_get_obj_coef(glp_prob *P, int j);
+  /* retrieve obj. coefficient or constant term */
+  
++ #ifdef CSL
++ double glp_get_multiobj_coef(glp_prob *P, int objno, int j);
++ /* retrieve extra obj coefficient of constant term */
++ #endif
++ 
+  int glp_get_num_nz(glp_prob *P);
+  /* retrieve number of constraint coefficients */
+  
+Only in b/: libglpk.la
+Only in b/: Makefile
+diff -r -c a/prob.h b/prob.h
+*** a/prob.h	2015-11-08 08:00:00.000000000 +0100
+--- b/prob.h	2015-11-26 13:27:15.711006623 +0100
+***************
+*** 83,88 ****
+--- 83,102 ----
+        AVL *c_tree;
+        /* column index to find columns by their names; NULL means this
+           index does not exist */
++ #ifdef CSL
++       int cobj_num;
++       /* actual number of extra objectives. Objectives are stored in an
++          index and value list. IDX[i] points to the start of the i'th 
++          extra objective, VAL[i] is the shift (constant tag). Starting at
++          IDX[i] the column indices and objective values are stored; the
++          last item has value -1 */
++       int cobj_max, cobj_end;
++       /* allocated and used number of objective storage */
++       int *cobj_idx;
++       /* index of objective coefficients */
++       double *cobj_val;
++       /* value of the objectives */
++ #endif
+        /*--------------------------------------------------------------*/
+        /* basis factorization (LP) */
+        int valid;
+diff -r -c a/simplex/spxprim.c b/simplex/spxprim.c
+*** a/simplex/spxprim.c	2015-11-08 08:00:00.000000000 +0100
+--- b/simplex/spxprim.c	2015-12-06 15:56:29.339492861 +0100
+***************
+*** 652,657 ****
+--- 652,717 ----
+  skip: return;
+  }
+  
++ #ifdef CSL
++ /***********************************************************************
++ *  next_objective - set up the next objective
++ *
++ *  After restriciting the free variables to the solution space,
++ *  the next objective is computed into the array lp->c */
++ 
++ static void next_objective(glp_prob *P, struct csa *csa, int objno, 
++       int map[/*1+m+n */])
++ {     /* set up next next objective into lp->c */
++       SPXLP *lp = csa->lp;
++       int n = lp->n;
++       int m = lp->m;
++       double *c = lp->c;
++       double *d = csa->d;
++       double *l = lp->l;
++       double *u = lp->u;
++       int *head = lp->head;
++       char *flag = lp->flag;
++       double tol = csa->tol_dj, tol1 = csa->tol_dj1;
++       double eps,dir;
++       int objidx,j,k;
++       /* walk thu the list of non-basic variables */
++       for (j = 1; j <= n-m; j++)
++       {  k = head[m+j]; /* x[k] = xN[j] */
++          if (l[k] == u[k]) /* xN[j] is fixed, skip it */
++             continue;
++          /* determine absolute tolerance eps[j] */
++          eps = tol + tol1 *(c[k] >= 0.0 ? +c[k] : -c[k]);
++          /* check if xN[j] will be fixed */
++          if (d[j] < -0.5*eps)
++          {  /* xN[j] should be able to increase */
++             if (flag[j]) /* but its upper bound is active */
++                l[k] = u[k];
++          }
++          else if (d[j] > +0.5*eps)
++          { /* xN[j] should be able to decrease */
++             if (!flag[j] && l[k] != -DBL_MAX)
++                /* but its lower bound is active */
++                u[k] = l[k];
++          }
++       }
++       /* set up the new objective to lp->c */
++       dir = P->dir == GLP_MIN ? +1.0 : -1.0; /* get direction */
++       memset(c, 0, (n+1)*sizeof(double)); /* set c[] to zero */
++       for (objidx=P->cobj_idx[objno-1]; P->cobj_idx[objidx]>0; objidx++)
++       {  j = P->cobj_idx[objidx];
++          k=map[m+j];
++          if (k == 0)
++             continue;
++          if (k < 0)
++             k = -k;
++          /* xassert(1 <= k && k <= lp->n); */
++          c[k] = dir * P->cobj_val[objidx] * P->col[j]->sjj;
++       }
++       /* and save the objective in csa->c */
++       memcpy(csa->c, c, (n+1)*sizeof(double));
++ }
++ #endif
++ 
+  /***********************************************************************
+  *  spx_primal - driver to primal simplex method
+  *
+***************
+*** 992,997 ****
+--- 1052,1060 ----
+  #endif
+        SPXSE se;
+        int ret, *map, *daeh;
++ #ifdef CSL
++       int objs;
++ #endif
+        /* build working LP and its initial basis */
+        memset(csa, 0, sizeof(struct csa));
+        csa->lp = &lp;
+***************
+*** 1075,1080 ****
+--- 1138,1157 ----
+        csa->inv_cnt = 0;
+        /* try to solve working LP */
+        ret = primal_simplex(csa);
++ #ifdef CSL
++       /* go over further objectives; restrict the solution space and
++          compute the next objective */
++       if (parm->mobj == GLP_ON)
++          for (objs = 1; csa->p_stat == GLP_FEAS && 
++             csa->d_stat == GLP_FEAS && objs <= P->cobj_num; objs++)
++          {  /* restrict search to the solution space and set up the new goal */
++             next_objective(P,csa,objs,map);
++             /* reduced costs are invalid */
++             csa->d_st = 0;
++             /* if (csa->se) csa->se->valid=0; */
++             ret = primal_simplex(csa);
++          }
++ #endif
+        /* return basis factorization back to problem object */
+        P->valid = csa->lp->valid;
+        P->bfd = csa->lp->bfd;
+diff -r -c a/simplex/spydual.c b/simplex/spydual.c
+*** a/simplex/spydual.c	2015-11-08 08:00:00.000000000 +0100
+--- b/simplex/spydual.c	2015-12-06 15:56:29.339492861 +0100
+***************
+*** 174,181 ****
+--- 174,183 ----
+              xassert(!flag[j]);
+           else if (l[k] == -DBL_MAX && u[k] != +DBL_MAX)
+              xassert(flag[j]);
++ #ifndef CSL /* this might not hold */
+           else if (l[k] == u[k])
+              xassert(!flag[j]);
++ #endif      
+        }
+        return;
+  }
+***************
+*** 690,695 ****
+--- 692,746 ----
+  skip: return;
+  }
+  
++ #ifdef CSL
++ /***********************************************************************
++ *  next_objective - set up the next objective
++ *
++ *  After restriciting the free variables to the solution space,
++ *  the next objective is computed into the array lp->c */
++ 
++ static void next_objective(glp_prob *P, struct csa *csa, int objno, 
++       int map[/*1+m+n */])
++ {     SPXLP *lp = csa->lp;
++       int n = lp->n;
++       int m = lp->m;
++       double *c = lp->c;
++       double *d = csa->d;
++       double *l = lp->l;
++       double *u = lp->u;
++       double tol = csa->tol_dj;
++       double tol1 = csa->tol_dj1;
++       int *head = lp->head;
++       double dir, eps;
++       int objidx,j,k;
++       /* change the bounds where the variable is fixed */
++       for (j = 1; j <= n-m; j++)
++       {  k = head[m+j]; /* x[k] = xN[j] */
++          if (l[k] == u[k]) /* skip it */
++             continue;
++          eps = tol + tol1 * (c[k]>=0.0 ? +c[k] : -c[k]);
++          if (d[j] > +0.5*eps) /* lower bound is active */
++          {  u[k] = l[k]; xassert(!lp->flag[j]); }
++          else if (d[j] < -0.5*eps) /* upper bound is active */
++          {  l[k] = u[k]; xassert(lp->flag[j]); }
++       }
++       /* save lover and upper bounds */
++       memcpy(csa->l, l, (1+n) * sizeof(double));
++       memcpy(csa->u, u, (1+n) * sizeof(double));
++       /* set up the next objective to lp->c */
++       dir = P->dir == GLP_MIN ? +1.0 : -1.0; /* get direction */
++       memset(c,0,(n+1)*sizeof(double)); /* set c[] to zero */
++       for (objidx=P->cobj_idx[objno-1]; P->cobj_idx[objidx]>0; objidx++)
++       {  j = P->cobj_idx[objidx];
++          k=map[m+j];
++          if (k == 0)
++             continue;
++          /* xassert(1 <= k && k <= lp->n); */
++          c[k] = dir * P->cobj_val[objidx] * P->col[j]->sjj;
++       }
++ }
++ #endif
++ 
+  /***********************************************************************
+  *  spy_dual - driver to dual simplex method
+  *
+***************
+*** 1055,1060 ****
+--- 1106,1114 ----
+  #endif
+        SPYSE se;
+        int ret, *map, *daeh;
++ #ifdef CSL
++       int objs;
++ #endif
+        /* build working LP and its initial basis */
+        memset(csa, 0, sizeof(struct csa));
+        csa->lp = &lp;
+***************
+*** 1154,1159 ****
+--- 1208,1228 ----
+        csa->inv_cnt = 0;
+        /* try to solve working LP */
+        ret = dual_simplex(csa);
++ #ifdef CSL
++       /* go over further objectives; restrict the solution space and
++          compute the next objective */
++       if (parm->mobj == GLP_ON)
++          for (objs = 1; csa->p_stat == GLP_FEAS &&
++             csa->d_stat == GLP_FEAS && objs <= P->cobj_num; objs++)
++          {  /* restrict search to the solution space */
++             next_objective(P,csa,objs,map);
++             csa->d_st = 0;
++             csa->phase = 0;
++             if(parm->pricing == GLP_PT_PSE)
++                csa->se->valid = 0;
++             ret = dual_simplex(csa);
++          }
++ #endif
+        /* return basis factorization back to problem object */
+        P->valid = csa->lp->valid;
+        P->bfd = csa->lp->bfd;
