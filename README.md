@@ -22,14 +22,11 @@ of the problem is vlp format. Accepted options are
 | --help=out  | describe output format |
 | --version   | version and copyright information |
 | --dump     | dump the default config file and quit |
-| --config=<config-file> | |
-| -c <config-file>  | read configuration from the given file.
-                      Use \'--dump\' to show the default config file |
-| -o <file>  | save result (both vertices and facets) to <file> |
-| -ov <file> | save vertices to <file> |
-| -of <file> | save facets to <file> |
-| --name=NAME | |
-| -n NAME    | specify the problem name |
+| --config=\<config-file\> <br> -c \<config-file\>  | read configuration from the given file. <br>  Use '--dump' to show the default config file |
+| -o \<file\>  | save result (both vertices and facets) to <file> |
+| -ov \<file\> | save vertices to <file> |
+| -of \<file\> | save facets to <file> |
+| --name=NAME <br> -n NAME    | specify the problem name |
 | -m[0..3]   | set message level: 0: none, 1: errors, 2: all, 3: verbose |
 | -q         | quiet, same as -m0 |
 | -p T       | progress report in every T seconds (default: T=5) |
