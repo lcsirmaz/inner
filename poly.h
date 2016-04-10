@@ -198,7 +198,7 @@ int check_consistency(void);
 *
 * void print_vertex(report_type channel, double dir, double coords[])
 *    Report the coordinates of a vertex on the given channel. Use
-*    fractional format if PrintAsFraction is set, otherwise a floating
+*    fractional format if VertexAsFraction is set, otherwise a floating
 *    number. Coordinates are separated by a space, and a terminating
 *    newline is added at the end.
 *

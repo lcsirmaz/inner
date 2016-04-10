@@ -684,7 +684,7 @@ void get_facet_into(int fno, double *v)
 /** formatted output of a vertex coordinate **/
 static char *formatvalue(double v)
 {static char buf[80]; int d;
-    if(!closetoint(v) && PARAMS(PrintAsFraction)){
+    if(!closetoint(v) && PARAMS(VertexAsFraction)){
         d=denum(v); if(closetoint(d*v)){
             sprintf(buf,"%d/%d",(int)(round(d*v)),d);
             return buf;
