@@ -358,7 +358,7 @@ int inner(void)
     if(check_outfiles()) return 1; // data error before start
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",
-       PARAMS(ProblemName),PARAMS(Direction)?"minimize":"maximize",
+       PARAMS(ProblemName),PARAMS(Direction)?"maximize":"minimize",
        PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
     set_oracle_parameters();
     gettime100(); // initialize elapsed time, reading vlp not included
