@@ -64,20 +64,50 @@ int check_outfiles(void)
 *
 * FILE *savefile, *savevertexfile, *savefacetfile
 *    either NULL or the opened stream handle for that channel.
+*
+* int open_vertexfile(void)
+*    if savevertexfile is not open, open it. Take care if it is
+*    the same as savefacetfile, and that has been opened.
+*
+* int open_facetfile(void)
+*    if savefacetfile is not open, open it. Take care if it is
+*    the save as savevertexfile, and that has been opened.
 */
 static int pending_output=0;
 static FILE *savefile=NULL, *savevertexfile=NULL, *savefacetfile=NULL;
+
+static int open_vertexfile(void)
+{   if(savevertexfile) return 1;
+    if(PARAMS(SaveFacetFile)
+       && strcmp(PARAMS(SaveFacetFile),PARAMS(SaveVertexFile))==0
+       && savefacetfile){
+         savevertexfile=savefacetfile; return 1;
+    }
+    savevertexfile=fopen(PARAMS(SaveVertexFile),"w");
+    return savevertexfile!=NULL;
+}
+
+static int open_facetfile(void)
+{   if(savefacetfile) return 1;
+    if(PARAMS(SaveVertexFile)
+       && strcmp(PARAMS(SaveVertexFile),PARAMS(SaveFacetFile))==0
+       && savevertexfile){
+        savefacetfile=savevertexfile; return 1;
+    }
+    savefacetfile=fopen(PARAMS(SaveFacetFile),"w");
+    return savefacetfile!=NULL;
+}
 
 /** report(report_type, fmt, ...) **/
 void report(report_type level, const char *fmt,...)
 {va_list arg; int y,flush;
     y=0; flush=0;
     switch(level){
-      case R_info: if(PARAMS(ReportLevel)>2){ y=1; flush=1; } break;
+      case R_info: if(PARAMS(MessageLevel)>2){ y=1; flush=1; } break;
       case R_fatal:
       case R_txt:  y=1; break;
-      case R_err:  if(PARAMS(ReportLevel)>0) y=1; break;
-      case R_warn: if(PARAMS(ReportLevel)>1) { y=1; flush=1; } break;
+      case R_err:  if(PARAMS(MessageLevel)>0) y=1; break;
+      case R_warn: if(PARAMS(MessageLevel)>1) { y=1; flush=1; } break;
       default:     y=-1; break;
     }
     if(y>=0){
@@ -89,39 +119,36 @@ void report(report_type level, const char *fmt,...)
         return;
     }
     if(level==R_savefacet){
-        if(PARAMS(SaveFile) && !savefile){
-            savefile=fopen(PARAMS(SaveFile),"w");
+        if(PARAMS(SaveFile) && PARAMS(SaveFacets)){
+            if(!savefile) savefile=fopen(PARAMS(SaveFile),"w");
+            if(savefile){
+              va_start(arg,fmt); vfprintf(savefile,fmt,arg); va_end(arg);
+            }
         }
-        if(PARAMS(SaveFacetFile) && !savefacetfile){
-            savefacetfile=fopen(PARAMS(SaveFacetFile),"w");
-        }
-        if(savefile){
-          va_start(arg,fmt); vfprintf(savefile,fmt,arg); va_end(arg);
-        }
-        if(savefacetfile){
-          va_start(arg,fmt); vfprintf(savefacetfile,fmt,arg); va_end(arg);
+        if(PARAMS(SaveFacetFile) && open_facetfile()){
+            va_start(arg,fmt); vfprintf(savefacetfile,fmt,arg); va_end(arg);
         }
     }
     if(level==R_savevertex){
-        if(PARAMS(SaveFile) && !savefile){
-            savefile=fopen(PARAMS(SaveFile),"w");
+        if(PARAMS(SaveFile) && PARAMS(SaveVertices)){
+            if(!savefile) savefile=fopen(PARAMS(SaveFile),"w");
+            if(savefile){
+              va_start(arg,fmt); vfprintf(savefile,fmt,arg); va_end(arg);
+            }
         }
-        if(PARAMS(SaveVertexFile) && !savevertexfile){
-            savevertexfile=fopen(PARAMS(SaveVertexFile),"w");
-        }
-        if(savefile){
-          va_start(arg,fmt); vfprintf(savefile,fmt,arg); va_end(arg);
-        }
-        if(savevertexfile){
-          va_start(arg,fmt); vfprintf(savevertexfile,fmt,arg); va_end(arg);
+        if(PARAMS(SaveVertexFile) && open_vertexfile()){
+            va_start(arg,fmt); vfprintf(savevertexfile,fmt,arg); va_end(arg);
         }
     }
 }
 
 void close_savefiles(void)
-{   if(savefile)fclose(savefile); savefile=NULL;
-    if(savevertexfile) fclose(savevertexfile); savevertexfile=NULL;
-    if(savefacetfile) fclose(savefacetfile); savefacetfile=NULL;
+{   if(savefile) { fclose(savefile); savefile=NULL; }
+    if(savevertexfile){
+        if(savevertexfile==savefacetfile) savefacetfile=NULL;
+        fclose(savevertexfile); savevertexfile=NULL;
+    }
+    if(savefacetfile){ fclose(savefacetfile); savefacetfile=NULL; }
 }
 
 void flush_report(void)
