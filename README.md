@@ -92,23 +92,23 @@ of the problem in vlp format. Accepted options are
 
 The program uses a patched version of glpk, the GNU Linear Program Kit. 
 First, glpk should be compiled after the patch has been applied. Unpack the
-glpk source. Change to the `<GLPK>/src` directory, and execute the command
+glpk source. Change to the `glpk-X.Y/src` directory, and execute the command
 
-    patch -p1 < <INNER>/patch-X.Y.txt
+    patch -p1 < ../../patch-X.Y.txt
 
-where `<INNER>` is the directory all inner source files are. Then change to `<GLPK>`
-directory and run 'configure' and 'make' as follows:
+assuming you have unpacked glpk in your `INNER` the directory. Then change to
+`glpk-X.Y` and run 'configure' and 'make' as follows:
 
     ./configure
     ./make CFLAGS='-O3 -DCSL'
 
-You must define `CSL` as all patches to glpk are encapsulated in '#ifdef CSL`
+You must define `CSL` as all patches to glpk are encapsulated in `#ifdef CSL`
 blocks.
 
-Going back to `<INNER>`, the following command complies a static version of
-this program with name <NAME>:
+Going back to `INNER`, the following command complies a static version of
+this program with name NAME:
 
-    gcc -O3 -W -I <GLPK>/src -o <NAME> -DPROG=<NAME> *.c <GLPK>/src/.libs/libglpk.a -lm
+    gcc -O3 -W -I glpk-X.Y/src -o NAME -DPROG=NAME *.c glpk-X.Y/src/.libs/libglpk.a -lm
 
 #### EXAMPLES
 
