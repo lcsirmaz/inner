@@ -759,7 +759,7 @@ static int handle_options(int argc, const char *argv[])
 */
 
 static void postprocess_parameters(void)
-{int i;
+{
     if(PARAMS(ARGm_set)){ // -m[0..3]
         PARAMS(OracleMessage)=PARAMS(ARGm);
         PARAMS(MessageLevel)=PARAMS(ARGm);

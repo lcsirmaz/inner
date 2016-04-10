@@ -111,7 +111,7 @@ void report_memory_usage(void)
     report(R_txt,"vertex and facet storage%s:\n",
         OUT_OF_MEMORY ? " (out of memory)":"");
     for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++){
-        report(R_txt,"M   slot %2d: blocksize=%6u, no=%6u, total=%9u, ptr=%p\n",
+        report(R_txt,"M   slot %2d: blocksize=%6zu, no=%6zu, total=%9zu, ptr=%p\n",
            i,ms->blocksize,ms->blockno,ms->rsize,ms->ptr);
     }
 }
@@ -136,7 +136,7 @@ static void allocmem(memslot_t slot, size_t nno, size_t nsize)
     ms->ptr=malloc(total);
     if(!ms->ptr){
         report(R_fatal,
-           "Allocmem: out of memory for slot=%d, blocksize=%d, n=%u\n",
+           "Allocmem: out of memory for slot=%d, blocksize=%zu, n=%zu\n",
            slot,nsize,nno);
         OUT_OF_MEMORY=1;
         return;

@@ -21,12 +21,14 @@
 */
 struct params_t {
   char			/* bool parameters, or parameters with small values */
-    ReportLevel,	/* 0: quiet, 1: error, 2: warning, 3: verbose */
-    PrintAsFraction,	/* print vertex coordinates as fractions */
-    ShowVertices,	/* print out vertices when they are found */
-    ReportMemory,	/* report combinatorial memory usage */
-    DumpVertices,	/* dump vertices at the end */
-    DumpFacets,		/* dump facets at the end */
+    MessageLevel,	/* 0: quiet, 1: error, 2: warning, 3: verbose */
+    PrintParams,		/* print parameters which differ from their default values */
+    PrintStatistics,	/* print statistics at the end */
+    VertexAsFraction,	/* print vertex coordinates as fractions */
+    VertexReport,	/* print out vertices when they are found */
+    MemoryReport,	/* print combinatorial memory usage  whenever changes */
+    PrintVertices,	/* dump vertices at the end */
+    PrintFacets,	/* dump facets at the end */
     SaveVertices,	/* save vertices at the end */
     SaveFacets,		/* save facets at the end */
     RandomFacet,	/* pick the facet to be tested randomly */
@@ -42,12 +44,12 @@ struct params_t {
     OraclePricing,	/* 0: standard, 1: steepest edge */
     Direction,		/* 0: minimize, 1: maximize, set by the Oracle */
     ARGm,		/* -m[0-3] option */
-    ARGy,		/* -y or -y- */
-    ARGm_set,ARGy_set,ARGp_set,ARGr_set,ARGk_set;
+    ARGy,		/* -y+ or -y- */
+    ARGm_set,ARGp_set,ARGy_set;
 			/* whether these options were used */
 
   int			/* integer parameters */
-    ShowProgress,	/* progress frequency in seconds, 0 means no report */
+    ProgressReport,	/* progress frequency in seconds, 0 means no report */
     RecalculateFacets,	/* after that many iterations do it */
     CheckConsistency,	/* after that many iterations do it */
     OracleOutFreq,	/* oracle output frequency in seconds, >=5 */
@@ -56,9 +58,7 @@ struct params_t {
     ProblemColumns,	/* problem columns, set by the Oracle */
     ProblemRows,	/* problem rows, set by the Oracle */
     ProblemObjects,	/* problem objects (dimension), set by the Oracle */
-    ARGp,		/* -p T */
-    ARGr,		/* -r N */
-    ARGk;		/* -k N */
+    ARGp;		/* -r N */
 
   double		/* double parameters */
     RoundEps,		/* (oracle) round to a rational if closer than this value, 1e-9 */
@@ -94,8 +94,14 @@ extern struct params_t GlobalParams;
 *      0:  options are OK, can continue
 *      1:  option handled, exit normally
 *     -1:  some error, error message issued, exit with error
+*
+* void show_parameters(void)
+*    print algorithm and oracle parameters which differ from their
+*    default values.
 */
+
 int process_parameters(int argc, const char *argv[]);
+void show_parameters(void);
 
 /* EOF */
 
