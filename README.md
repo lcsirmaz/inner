@@ -90,17 +90,17 @@ of the problem in vlp format. Accepted options are
 
 #### COMPILATION
 
-The program uses a patched version of 'glpk', the GNU Linear Program Kit. 
+The program uses a patched version of glpk, the GNU Linear Program Kit. 
 First, glpk should be compiled after the patch has been applied. Unpack the
-glpk source. Change to the '<GLPK>/src' directory, and execute the command
+glpk source. Change to the `<GLPK>/src` directory, and execute the command
 
     patch -p1 < <INNER>/patch-X.Y.txt
 
-where `<INNER>` is the inner directory. Then change to '<GLPK>`, and run 
-the 'configure' script and then run 'make':
+where `<INNER>` is the directory all inner source files are. Then change to `<GLPK>`
+directory and run 'configure' and 'make' as follows:
 
     ./configure
-    ./make -CFLAGS='-O3 -DCSL'
+    ./make CFLAGS='-O3 -DCSL'
 
 You must define `CSL` as all patches to glpk are encapsulated in '#ifdef CSL`
 blocks.
