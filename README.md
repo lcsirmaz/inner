@@ -30,17 +30,17 @@ There are m &ge; 1 *objectives*, which are given as
 <td>where 1 &le; k &le; m</td>
 </tr><tbody></table>
 
-The m-dimensional vector **y** = &lt; y<sub>1</sub, . . ., y<sub>m</sub> &gt; is 
+The m-dimensional vector **y** = &lt;y<sub>1</sub>, . . ., y<sub>m</sub>&gt; is 
 *achievable* if there is a feasible solution **x** which yields exactly these objective values.
 
-The *solution of a minimizing MOLP* is a minimal list of achievable 
-objective vectors &ndash; called *extremal solutions* &ndash; such that any 
-other achievable objective vector is &ge; (coordinatewise) than some 
+The *solution of a minimizing* MOLP is a minimal list of achievable
+objective vectors &ndash; called *extremal solutions* &ndash; such that any
+other achievable objective vector is coordinatewise &ge; than some
 non-negative linear combination of extremal solutions.
 
-The solution set is always unique, and the MOLP solver's task is to 
-find it. Extremal solutions are called *vertices* as they form the 
-vertices of an (unbounded) convex m-dimensional polytope. 
+The solution set is always unique, and the MOLP solver's task is to find it. 
+Extremal solutions are called *vertices* as they form the vertices of an
+(unbounded) convex m-dimensional polytope.
 
 This MOLP solver finds the extremal solutions by *iterations*. In each 
 iteration step one more extremal solution is added to the final list. The
@@ -100,7 +100,7 @@ the patched glpk:
 
 #### EXAMPLES
 
-The `examples` directory contains vlp files describing different MOLPs. File
+The 'examples' directory contains vlp files describing different MOLPs. File
 names contain three numbers separated by dashes: the number
 of *objectives*, the number of *columns*, and the number of *rows*.  Each
 file starts with comment lines describing the problem.
