@@ -1,0 +1,69 @@
+C copy string: rs=cd:ab;tu=cr:ab;vw=cs:abrtu
+C MOLP problem=10-707-8891-a.vlp, minimize
+C rows=707, columns=8891, objectives=10
+Warning: numerical instability (primal simplex, phase II)
+I    8.50] Elapsed: 8.50, vertices: 1, facets final: -1, pending: 0
+I   15.65] Elapsed: 15.65, vertices: 1, facets final: 1, pending: 9
+I   20.80] Elapsed: 20.80, vertices: 2, facets final: 3, pending: 16
+I   30.08] Elapsed: 30.08, vertices: 2, facets final: 5, pending: 14
+I   36.45] Elapsed: 36.45, vertices: 3, facets final: 5, pending: 20
+I   41.65] Elapsed: 41.65, vertices: 4, facets final: 6, pending: 23
+I   47.78] Elapsed: 47.78, vertices: 4, facets final: 8, pending: 21
+I   57.58] Elapsed: 57.58, vertices: 5, facets final: 9, pending: 30
+I   62.62] Elapsed: 1:03, vertices: 5, facets final: 9, pending: 30
+I   68.38] Elapsed: 1:08, vertices: 7, facets final: 10, pending: 45
+I   77.16] Elapsed: 1:17, vertices: 7, facets final: 12, pending: 43
+I   84.47] Elapsed: 1:24, vertices: 7, facets final: 13, pending: 42
+I   90.94] Elapsed: 1:31, vertices: 8, facets final: 14, pending: 39
+I   99.40] Elapsed: 1:39, vertices: 8, facets final: 16, pending: 37
+I  107.62] Elapsed: 1:48, vertices: 10, facets final: 17, pending: 38
+I  118.08] Elapsed: 1:58, vertices: 10, facets final: 19, pending: 36
+I  125.99] Elapsed: 2:06, vertices: 10, facets final: 20, pending: 35
+I  133.37] Elapsed: 2:13, vertices: 11, facets final: 22, pending: 37
+I  138.62] Elapsed: 2:19, vertices: 11, facets final: 23, pending: 36
+I  144.86] Elapsed: 2:25, vertices: 11, facets final: 24, pending: 35
+I  150.92] Elapsed: 2:31, vertices: 12, facets final: 26, pending: 33
+I  162.18] Elapsed: 2:42, vertices: 12, facets final: 28, pending: 31
+I  168.34] Elapsed: 2:48, vertices: 13, facets final: 30, pending: 27
+I  174.61] Elapsed: 2:55, vertices: 13, facets final: 32, pending: 25
+I  182.97] Elapsed: 3:03, vertices: 13, facets final: 34, pending: 23
+I  190.33] Elapsed: 3:10, vertices: 13, facets final: 36, pending: 21
+I  196.82] Elapsed: 3:17, vertices: 13, facets final: 39, pending: 18
+I  205.15] Elapsed: 3:25, vertices: 13, facets final: 41, pending: 16
+I  215.33] Elapsed: 3:35, vertices: 13, facets final: 44, pending: 13
+I  222.15] Elapsed: 3:42, vertices: 13, facets final: 46, pending: 11
+I  227.79] Elapsed: 3:48, vertices: 13, facets final: 48, pending: 9
+I  233.87] Elapsed: 3:54, vertices: 13, facets final: 50, pending: 7
+I  241.11] Elapsed: 4:01, vertices: 13, facets final: 52, pending: 5
+I  246.19] Elapsed: 4:06, vertices: 13, facets final: 54, pending: 3
+I  250.69] Elapsed: 4:11, vertices: 13, facets final: 57, pending: 0
+
+--------------------------------
+Problem completed
+ name                    10-707-8891-a.vlp
+ output                  solution/10-707-8891-a.res
+ rows, cols, objs        707, 8891, 10
+ vertices, facets        13, 57
+ total time              4:11
+--------------------------------
+Statistics
+LP:
+ oracle calls            70
+   avg iterations/calls  2.61k
+ total oracle time       4:11
+Combinatorics:
+ vertices added          13
+ facets probed           70
+ facets # max            60
+ memory allocated        536.93k
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     1 / 4092
+ facet manipulating
+   compress / increase   0 / 0
+   added avg / max       9.58 / 20.00
+ number of ridge tests
+   avg / max             163.00 / 280.00
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

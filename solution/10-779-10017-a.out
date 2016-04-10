@@ -1,0 +1,106 @@
+C copy string: rs=cd:ab;tu=cr:ab;vw=cs:abtu
+C MOLP problem=10-779-10017-a.vlp, minimize
+C rows=779, columns=10017, objectives=10
+I    7.59] Elapsed: 7.59, vertices: 1, facets final: -1, pending: 0
+I   13.53] Elapsed: 13.53, vertices: 1, facets final: 0, pending: 10
+I   19.76] Elapsed: 19.76, vertices: 2, facets final: 2, pending: 11
+I   25.03] Elapsed: 25.03, vertices: 2, facets final: 2, pending: 11
+I   32.26] Elapsed: 32.26, vertices: 3, facets final: 2, pending: 19
+I   38.56] Elapsed: 38.56, vertices: 5, facets final: 2, pending: 39
+I   44.41] Elapsed: 44.41, vertices: 6, facets final: 3, pending: 46
+I   53.89] Elapsed: 53.89, vertices: 6, facets final: 4, pending: 45
+I   60.37] Elapsed: 1:00, vertices: 6, facets final: 5, pending: 44
+I   70.91] Elapsed: 1:11, vertices: 6, facets final: 7, pending: 42
+I   76.37] Elapsed: 1:16, vertices: 6, facets final: 8, pending: 41
+I   86.09] Elapsed: 1:26, vertices: 6, facets final: 9, pending: 40
+I   93.18] Elapsed: 1:33, vertices: 7, facets final: 10, pending: 37
+I  109.05] Elapsed: 1:49, vertices: 7, facets final: 13, pending: 34
+Warning: numerical instability (primal simplex, phase II)
+I  118.61] Elapsed: 1:59, vertices: 7, facets final: 15, pending: 32
+Warning: numerical instability (primal simplex, phase II)
+I  129.92] Elapsed: 2:10, vertices: 7, facets final: 16, pending: 31
+I  141.24] Elapsed: 2:21, vertices: 9, facets final: 17, pending: 42
+I  146.77] Elapsed: 2:27, vertices: 9, facets final: 18, pending: 41
+I  154.72] Elapsed: 2:35, vertices: 9, facets final: 19, pending: 40
+I  160.83] Elapsed: 2:41, vertices: 10, facets final: 20, pending: 49
+I  167.27] Elapsed: 2:47, vertices: 10, facets final: 20, pending: 49
+I  174.75] Elapsed: 2:55, vertices: 12, facets final: 20, pending: 57
+I  182.22] Elapsed: 3:02, vertices: 14, facets final: 21, pending: 86
+I  187.52] Elapsed: 3:08, vertices: 14, facets final: 22, pending: 85
+I  193.17] Elapsed: 3:13, vertices: 14, facets final: 23, pending: 84
+I  206.86] Elapsed: 3:27, vertices: 15, facets final: 24, pending: 87
+I  212.71] Elapsed: 3:33, vertices: 15, facets final: 24, pending: 87
+I  219.44] Elapsed: 3:39, vertices: 16, facets final: 26, pending: 81
+I  228.51] Elapsed: 3:49, vertices: 17, facets final: 26, pending: 85
+I  238.28] Elapsed: 3:58, vertices: 20, facets final: 27, pending: 68
+I  245.27] Elapsed: 4:05, vertices: 20, facets final: 28, pending: 67
+I  255.32] Elapsed: 4:15, vertices: 21, facets final: 30, pending: 73
+I  261.37] Elapsed: 4:21, vertices: 21, facets final: 31, pending: 72
+I  266.47] Elapsed: 4:26, vertices: 21, facets final: 32, pending: 71
+I  277.03] Elapsed: 4:37, vertices: 21, facets final: 33, pending: 70
+I  284.22] Elapsed: 4:44, vertices: 23, facets final: 34, pending: 73
+I  290.47] Elapsed: 4:50, vertices: 24, facets final: 35, pending: 72
+I  295.62] Elapsed: 4:56, vertices: 24, facets final: 38, pending: 69
+I  305.48] Elapsed: 5:05, vertices: 24, facets final: 39, pending: 68
+I  314.97] Elapsed: 5:15, vertices: 24, facets final: 40, pending: 67
+I  324.77] Elapsed: 5:25, vertices: 24, facets final: 42, pending: 65
+I  333.69] Elapsed: 5:34, vertices: 24, facets final: 43, pending: 64
+I  342.62] Elapsed: 5:43, vertices: 24, facets final: 44, pending: 63
+I  349.85] Elapsed: 5:50, vertices: 27, facets final: 45, pending: 62
+I  357.15] Elapsed: 5:57, vertices: 27, facets final: 46, pending: 61
+I  364.99] Elapsed: 6:05, vertices: 27, facets final: 47, pending: 60
+I  371.78] Elapsed: 6:12, vertices: 27, facets final: 48, pending: 59
+I  380.13] Elapsed: 6:20, vertices: 27, facets final: 50, pending: 57
+I  388.28] Elapsed: 6:28, vertices: 27, facets final: 51, pending: 56
+I  393.94] Elapsed: 6:34, vertices: 27, facets final: 52, pending: 55
+I  399.12] Elapsed: 6:39, vertices: 27, facets final: 54, pending: 53
+I  410.98] Elapsed: 6:51, vertices: 27, facets final: 55, pending: 52
+I  418.77] Elapsed: 6:59, vertices: 28, facets final: 56, pending: 47
+I  427.54] Elapsed: 7:08, vertices: 28, facets final: 58, pending: 45
+I  433.33] Elapsed: 7:13, vertices: 28, facets final: 59, pending: 44
+I  438.71] Elapsed: 7:19, vertices: 28, facets final: 61, pending: 42
+I  445.62] Elapsed: 7:26, vertices: 28, facets final: 63, pending: 40
+I  454.90] Elapsed: 7:35, vertices: 28, facets final: 65, pending: 38
+I  463.17] Elapsed: 7:43, vertices: 28, facets final: 68, pending: 35
+I  469.54] Elapsed: 7:50, vertices: 28, facets final: 69, pending: 34
+I  478.59] Elapsed: 7:59, vertices: 28, facets final: 71, pending: 32
+I  487.75] Elapsed: 8:08, vertices: 28, facets final: 74, pending: 29
+I  493.99] Elapsed: 8:14, vertices: 28, facets final: 77, pending: 26
+I  500.70] Elapsed: 8:21, vertices: 29, facets final: 79, pending: 24
+I  506.29] Elapsed: 8:26, vertices: 29, facets final: 80, pending: 23
+I  512.47] Elapsed: 8:32, vertices: 30, facets final: 85, pending: 16
+I  517.63] Elapsed: 8:38, vertices: 30, facets final: 89, pending: 12
+I  523.14] Elapsed: 8:43, vertices: 30, facets final: 94, pending: 7
+I  529.04] Elapsed: 8:49, vertices: 30, facets final: 99, pending: 2
+I  540.02] Elapsed: 9:00, vertices: 30, facets final: 100, pending: 1
+I  541.46] Elapsed: 9:01, vertices: 30, facets final: 101, pending: 0
+
+--------------------------------
+Problem completed
+ name                    10-779-10017-a.vlp
+ output                  solution/10-779-10017-a.res
+ rows, cols, objs        779, 10017, 10
+ vertices, facets        30, 101
+ total time              9:01
+--------------------------------
+Statistics
+LP:
+ oracle calls            131
+   avg iterations/calls  2.78k
+ total oracle time       9:01
+Combinatorics:
+ vertices added          30
+ facets probed           131
+ facets # max            112
+ memory allocated        536.93k
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     1 / 4092
+ facet manipulating
+   compress / increase   0 / 0
+   added avg / max       11.72 / 34.00
+ number of ridge tests
+   avg / max             523.45 / 1.41k
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

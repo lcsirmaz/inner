@@ -1,0 +1,44 @@
+C applying rule r12-11.txt, eqs from eqall.txt
+C MOLP problem=10-12-877-a.vlp, minimize
+C rows=12, columns=877, objectives=10
+I    0.39] recalculating facets...
+I    1.23] recalculating facets...
+I    2.60] recalculating facets...
+I    3.99] recalculating facets...
+I    5.00] Elapsed: 5.00, vertices: 454, facets final: 765, pending: 5566
+I    5.79] recalculating facets...
+I    8.10] recalculating facets...
+I   10.00] Elapsed: 10.00, vertices: 673, facets final: 3198, pending: 3744
+I   11.43] recalculating facets...
+I   15.00] Elapsed: 15.00, vertices: 733, facets final: 6698, pending: 375
+I   15.50] Elapsed: 15.50, vertices: 740, facets final: 7075, pending: 0
+
+--------------------------------
+Problem completed
+ name                    10-12-877-a.vlp
+ output                  solution/10-12-877-a.res
+ rows, cols, objs        12, 877, 10
+ vertices, facets        740, 7075
+ total time              15.50
+--------------------------------
+Statistics
+LP:
+ oracle calls            7815
+   avg iterations/calls  5.53
+ total oracle time       10.47
+Combinatorics:
+ vertices added          740
+ facets probed           7815
+ facets # max            7077
+ memory allocated        3.24M
+ storage expansion
+   vertices # / upto     6 / 764
+   facets   # / upto     3 / 12284
+ facet manipulating
+   compress / increase   574 / 1
+   added avg / max       34.24 / 186.00
+ number of ridge tests
+   avg / max             95.83k / 514.08k
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

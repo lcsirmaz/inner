@@ -1,0 +1,43 @@
+C copy string: rs=cd:ab;tu=cr:ab;v=(rtu):ad
+C MOLP problem=10-338-3722-a.vlp, minimize
+C rows=338, columns=3722, objectives=10
+I    5.02] Elapsed: 5.02, vertices: 4, facets final: 7, pending: 18
+I   10.33] Elapsed: 10.33, vertices: 10, facets final: 18, pending: 48
+I   15.37] Elapsed: 15.37, vertices: 18, facets final: 28, pending: 91
+I   20.51] Elapsed: 20.51, vertices: 21, facets final: 43, pending: 81
+I   25.54] Elapsed: 25.54, vertices: 25, facets final: 57, pending: 87
+I   30.70] Elapsed: 30.70, vertices: 29, facets final: 74, pending: 82
+I   35.79] Elapsed: 35.79, vertices: 38, facets final: 95, pending: 67
+I   40.89] Elapsed: 40.89, vertices: 45, facets final: 119, pending: 50
+I   45.99] Elapsed: 45.99, vertices: 53, facets final: 138, pending: 32
+I   50.95] Elapsed: 50.95, vertices: 60, facets final: 169, pending: 0
+
+--------------------------------
+Problem completed
+ name                    10-338-3722-a.vlp
+ output                  solution/10-338-3722-a.res
+ rows, cols, objs        338, 3722, 10
+ vertices, facets        60, 169
+ total time              50.95
+--------------------------------
+Statistics
+LP:
+ oracle calls            229
+   avg iterations/calls  467.34
+ total oracle time       50.94
+Combinatorics:
+ vertices added          60
+ facets probed           229
+ facets # max            175
+ memory allocated        536.93k
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     1 / 4092
+ facet manipulating
+   compress / increase   0 / 0
+   added avg / max       8.58 / 33.00
+ number of ridge tests
+   avg / max             590.80 / 2.40k
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

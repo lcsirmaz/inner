@@ -1,0 +1,41 @@
+C copy string: rs=cd:ab;t=(cr):ab;uv=rt:ad
+C MOLP problem=10-338-3725-a.vlp, minimize
+C rows=338, columns=3725, objectives=10
+I    5.30] Elapsed: 5.30, vertices: 3, facets final: 11, pending: 14
+I   10.39] Elapsed: 10.39, vertices: 11, facets final: 18, pending: 42
+I   15.43] Elapsed: 15.43, vertices: 13, facets final: 33, pending: 35
+I   20.49] Elapsed: 20.49, vertices: 21, facets final: 45, pending: 51
+I   25.49] Elapsed: 25.49, vertices: 29, facets final: 59, pending: 63
+I   30.68] Elapsed: 30.68, vertices: 39, facets final: 77, pending: 68
+I   35.79] Elapsed: 35.79, vertices: 49, facets final: 107, pending: 23
+I   38.85] Elapsed: 38.85, vertices: 61, facets final: 148, pending: 0
+
+--------------------------------
+Problem completed
+ name                    10-338-3725-a.vlp
+ output                  solution/10-338-3725-a.res
+ rows, cols, objs        338, 3725, 10
+ vertices, facets        61, 148
+ total time              38.85
+--------------------------------
+Statistics
+LP:
+ oracle calls            209
+   avg iterations/calls  403.04
+ total oracle time       38.85
+Combinatorics:
+ vertices added          61
+ facets probed           209
+ facets # max            152
+ memory allocated        536.93k
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     1 / 4092
+ facet manipulating
+   compress / increase   0 / 0
+   added avg / max       8.12 / 23.00
+ number of ridge tests
+   avg / max             501.70 / 2.11k
+--------------------------------
+Parameters with new values
+ RandomFacet = 1
