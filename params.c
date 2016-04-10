@@ -43,7 +43,7 @@
 #define DEF_ExactFacetEq	0	/* no */
 #define DEF_RecalculateFacets	100
 #define DEF_CheckConsistency	0
-#define DEF_ReportMemory	0	/* don't report */
+#define DEF_MemoryReport	0	/* don't report */
 #define DEF_ExtractAfterBreak	1	/* yes */
 /* Tolerances */
 #define DEF_RoundEps		1e-9
@@ -52,14 +52,16 @@
 #define DEF_LineqEps		8e-8	/* 6.0*PolytopeEps */
 #define DEF_FacetRecalcEps	1e-6
 /* Reporting */
-#define DEF_ReportLevel		3	/* verbose */
-#define DEF_ShowProgress	5	/* in seconds */
-#define DEF_ShowVertices	1	/* yes */
-#define DEF_PrintAsFraction	1	/* yes */
-#define DEF_DumpVertices	2	/* partial results */
-#define DEF_DumpFacets		0	/* don't report */
+#define DEF_MessageLevel	3	/* verbose */
+#define DEF_PrintParams		0	/* no */
+#define DEF_PrintStatistics	1	/* yes */
+#define DEF_ProgressReport	5	/* in seconds */
+#define DEF_VertexReport	1	/* yes */
+#define DEF_VertexAsFraction	1	/* yes */
+#define DEF_PrintVertices	2	/* partial results */
+#define DEF_PrintFacets		0	/* don't report */
 #define DEF_SaveVertices	2	/* partial */
-#define DEF_SaveFacets		2	/* partial */
+#define DEF_SaveFacets		1	/* on normal exit only */
 /* name of this program */
 #ifndef PROG
   #define PROG			inner
@@ -84,10 +86,10 @@ struct params_t GlobalParams;
 
 
 #define DEFAULT_CONFIG_FILE	\
-"# " PROGNAME ".cfg -- configuration file for the program " PROGNAME ", a MOLP solver\n"\
+"# " PROGNAME ".cfg -- configuration file for the program " PROGNAME "\n"\
 "\n"\
 "# This file defines different parameters of the MOLP solver. Values\n"\
-"# defined here are superseded by command line options. Commented out\n"\
+"# defined here are superseded by command line options. Unspecified\n"\
 "# keywords take their default values.\n"\
 "# In this file everything after a # symbol is ignored.\n"\
 "\n"\
@@ -104,16 +106,19 @@ CFG( ExactFacetEq, BOOL) \
 "#\n"\
 CFG( RecalculateFacets, INTEGER) \
 "#    after that many iterations recalculate all facet equations\n"\
-"#    from the set of adjacent vertices. Less than 5 means never.\n"\
+"#    from the set of adjacent vertices. Should be zero (never),\n"\
+"#    or at least 5.\n"\
 "#\n"\
 CFG( CheckConsistency, INTEGER) \
 "#    after that many iterations check the consistency of the data\n"\
-"#    structure against numerical errors. Less than 5 means never.\n"\
+"#    structure against numerical errors. Should be zero (never),\n"\
+"#    or at least 5.\n"\
 "#\n"\
 CFG( ExtractAfterBreak, BOOL) \
 "#    when the program is interrupted by Ctrl+C, continue extracting\n"\
 "#    new vertices by asking the oracle about every facet of the actual\n"\
-"#    approximating polyhedron. Can be very time consuming.\n"\
+"#    approximating polyhedron. Can be very time consuming. Second\n"\
+"#    Ctrl+C aborts post-processing.\n"\
 "#\n"\
 "##########################\n"\
 "#   ORACLE parameters    #\n"\
@@ -154,45 +159,58 @@ CFG( RoundVertices, BOOL) \
 "#       REPORTING        #\n"\
 "##########################\n"\
 "#\n"\
-CFG( ReportLevel, "0 = quiet, 1 = error, 2 = all, 3 = verbose")\
-"#    report level, quiet means no messages at all.\n"\
+CFG( MessageLevel, "0 = quiet, 1 = error, 2 = all, 3 = verbose")\
+"#    report level, quiet means no messages at all. Command line\n"\
+"#    option -m[0..3] overrides this value.\n"\
 "#\n"\
-CFG( ShowProgress, INTEGER) \
-"#    minimum time between two progress reports (in seconds). Less\n"\
-"#    than 5 means don't report.\n"\
+CFG( ProgressReport, INTEGER) \
+"#    minimum time between two progress reports (in seconds). Should\n"\
+"#    be zero (no progress report), or at least 5. Use command line\n"\
+"#    option -p T to override this value.\n"\
 "#\n"\
-CFG( ReportMemory, BOOL) \
+CFG( VertexReport, BOOL) \
+"#    print out each vertex (extremal solution) immediately as it is\n"\
+"#    found. Use command line option -y+ (yes) or -y- (no) to override\n"\
+"#    the value defined here.\n"\
+"#\n"\
+CFG( MemoryReport, BOOL) \
 "#    report the size and location, whenever it changes, of memory\n"\
 "#    blocks storing the data structure.\n"\
 "#\n"\
-CFG( ShowVertices, BOOL) \
-"#    print out each vertex (extremal solution) immediately as it is\n"\
-"#    found.\n"\
+CFG( VertexAsFraction, BOOL) \
+"#    if possible, print (and save) vertex coordinates as fractions\n"\
+"#    rather than floating point numerals.\n"\
 "#\n"\
-CFG( PrintAsFraction, BOOL) \
-"#    report (and save) vertex coordinates as fractions rather than\n"\
-"#    floating point numerals.\n"\
+CFG( PrintStatistics, BOOL) \
+"#    print out resources used (number of iterations, ridge tests, etc.)\n"\
 "#\n"\
-CFG( DumpVertices, BOOL2) \
-"#    when the program terminates report all known vertices.\n"\
+CFG( PrintParams, BOOL) \
+"#    print out parameter values which are not the default ones.\n"\
 "#\n"\
-CFG( DumpFacets, BOOL2) \
-"#    when the program terminates report all known facets.\n"\
+CFG( PrintVertices, BOOL2) \
+"#    print out all known vertices when the program terminates.\n"\
+"#\n"\
+CFG( PrintFacets, BOOL2) \
+"#    print out all known facets when the program terminates.\n"\
 "#\n"\
 CFG( SaveVertices, BOOL2) \
-"#    when the program terminates save all known vertices to file(s)\n"\
-"#    specified after the command line options '-o' and '-ov'.\n"\
+"#    when the program terminates save known vertices to the file\n"\
+"#    specified after the command line option '-o'. For the file\n"\
+"#    specified after '-ov' both 0 and 1 means \"save on normal\n"\
+"#    exit only\".\n"\
 "#\n"\
 CFG( SaveFacets, BOOL2) \
-"#    when the program terminates save all known facets to file(s)\n"\
-"#    specified after command line options '-o' and '-of'.\n"\
+"#    when the program terminates save known facets to the file\n"\
+"#    specified after command line options '-o'. For the file\n"\
+"#    specified after '-of' both 0 and 1 means \"save on normal\n"\
+"#    exit only\".\n"\
 "#\n"\
 "##########################\n"\
 "#       TOLERANCES       #\n"\
 "##########################\n"\
 "#\n"\
-"#  >>> Change these values with great care ... <<<\n"\
-"#  >>> Don't forget to delete the leading #    <<<\n"\
+"#  >>> Change these values with great care ...      <<<\n"\
+"#  >>> ... and don't forget to delete the leading # <<<\n"\
 "#\n"\
 "#" CFG( PolytopeEps, REAL) \
 "#    a facet and a vertex are considered adjacent if their distance is\n"\
@@ -242,26 +260,23 @@ static void dump_config(void)
 */
 
 static void short_help(void) {printf(
-"Usage: " PROGNAME " [options] <vlp file>\n"
 "Solve a multiobjective linear program using the inner approximation method.\n"
-COPYRIGHT "\n"
+"Usage: " PROGNAME " [options] <vlp file>\n"
 "Some of the options are:\n"
 "  -h               display this short help\n"
 "  --help           display all options\n"
 "  -c <config file> specify configuration file\n"
 "  -o <file>        save the solution to <file>\n"
-"  -q               quiet, no messages\n"
-"  -p T             progress report in every T seconds (default: T=5)\n"
-"  -p 0             no progress report\n"
-"  -y+              report vertices immediately when generated (default)\n"
+"  -q               quiet, no messages, no statistics\n"
+"  -p0              no progress report\n"
 "  -y-              do not report vertices when generated\n"
 "Previous content of the output file is deleted without warning.\n"
+COPYRIGHT "\n"
 );}
 
 static void long_help(void){ printf(
-"Usage: " PROGNAME " [options] <vlp file>\n"
 "Solve a multiobjective linear program using the inner approximation method.\n"
-COPYRIGHT "\n"
+"Usage: " PROGNAME " [options] <vlp file>\n"
 "Options are:\n"
 "  -h               display a short help\n"
 "  --help           display all options\n"
@@ -270,28 +285,21 @@ COPYRIGHT "\n"
 "  --version        version and copyright information\n"
 "  --dump           dump the default config file and quit\n"
 "  --config=<config file>\n"
-"  -c <config file> read configuration from the given file\n"
-"                   use '" PROGNAME " --dump' to show the default config file\n"
+"  -c <config file> read configuration from the given file (see --dump)\n"
 "  -o <file>        save result (both vertices and facets) to <file>\n"
 "  -ov <file>       save vertices to <file>\n"
 "  -of <file>       save facets to <file>\n"
 "  --name=NAME\n"
 "  -n NAME          specify the problem name\n"
 "  -m[0..3]         set message level: 0: none, 3: verbose\n"
-"  -q               quiet, same as -m0\n"
+"  -q               quiet, same as -m0. Implies --PrintStatistics=0\n"
 "  -p T             progress report in every T seconds (default: T=5)\n"
 "  -p 0             no progress report\n"
 "  -y+              report vertices immediately when generated (default)\n"
 "  -y-              do not report vertices when generated\n"
-"  -r N             recalculate facet equations after N rounds (default: N=100)\n"
-"  -k N             check numerical consistency after N rounds (default: N=0)\n"
-"  --KEYWORD=value  change value of a config keyword\n"
-"Exit values:\n"
-"  0                program exited normally\n"
-"  1                input error\n"
-"  2                numerical instability; computational error\n"
-"  3                interrupted, only partial result is available\n"
+"  --KEYWORD=value  change value of a config keyword (see --dump)\n"
 "Previous content of output files are deleted without warning.\n"
+COPYRIGHT "\n"
 );}
 
 static void vlp_help(void) {printf(
@@ -313,10 +321,10 @@ static void vlp_help(void) {printf(
 "Comment lines are ignored. The 'p' program line has the format\n"
 "    p vlp DIR ROWS COLS ALINES OBJS OLINES\n"
 "DIR is either 'min' or 'max' defining whether the problem is to minimize\n"
-"or maximize the objectives. The other fields are positive integers: ROWS,\n"
-"COLS are the number of rows and columns of the constraint matrix, and OBJS\n"
-"is the number of objectives. ALINES and OLINES are the number of 'a' and\n"
-"'o' lines in the vlp file; these numbers are ignored by this program.\n"
+"or maximize the objectives. Other fields are positive integers: ROWS, COLS\n"
+"are the number of rows and columns of the constraint matrix; OBJS is the\n"
+"number of objectives. ALINES and OLINES are the number of 'a' and 'o'\n"
+"lines in the vlp file; these numbers are ignored by this program.\n"
 "\n"
 "PLEASE NOTE: rows, columns and objectives ARE INDEXED STARTING FROM 1.\n"
 "\n"
@@ -353,7 +361,7 @@ static void out_help(void) {printf(
 "by the value of the d objectives separated by spaces:\n"
 "    V 0 5/2 3/4 7.123456789 -1/2\n"
 "Numbers are printed as fractions with small denominator whenever possible.\n"
-"To print them as floating point numerals use the '--PrintAsFraction=0'\n"
+"To print them as floating point numerals use the '--VertexAsFraction=0'\n"
 "command line option, or change this value in the default config file.\n"
 "\n"
 "When requested, facets of the extremal polyhedron are printed in separate\n"
@@ -363,7 +371,7 @@ static void out_help(void) {printf(
 "\n"
 "Other non-empty lines in the output start with C, and contain information\n"
 "such as the name and size of the problem; whether it is a partial list; and\n"
-"the number of vertices and facets printed.\n"
+"the number of vertices and facets generated.\n"
 );}
 
 #include "glpk.h"
@@ -402,12 +410,14 @@ static struct char_params {
     const char max;        // maximal accepted value, 0..1, 0..2, 0..3 
     char       filled;     // filled
 } CHAR_PARAMS[] = {
-  CFG(ReportLevel,3),
-  CFG(PrintAsFraction,1),
-  CFG(ShowVertices,1),
-  CFG(ReportMemory,1),
-  CFG(DumpVertices,2),
-  CFG(DumpFacets,2),
+  CFG(MessageLevel,3),
+  CFG(PrintParams,1),
+  CFG(PrintStatistics,1),
+  CFG(VertexAsFraction,1),
+  CFG(VertexReport,1),
+  CFG(MemoryReport,1),
+  CFG(PrintVertices,2),
+  CFG(PrintFacets,2),
   CFG(SaveVertices,2),
   CFG(SaveFacets,2),
   CFG(RandomFacet,1),
@@ -433,7 +443,7 @@ static struct int_params {
     const int  max;        // maximal value
     int        filled;     // filled
 } INT_PARAMS[] = {
-  CFG(ShowProgress,1000000),
+  CFG(ProgressReport,1000000),
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
   CFG(OracleOutFreq,1000000),
@@ -704,7 +714,7 @@ static int handle_options(int argc, const char *argv[])
             break;
         case 'p': // progress report
             if(integer_arg(argv[c],argv[c+1],&c,&val)) return -1;
-            if(val<0 || val>1000000){
+            if(val<0 || val>1000000 || (0<val && val<5)){
                 report(R_fatal,"Argument of -p is out of range\n");
                 config_error++; return -1;
             }
@@ -721,22 +731,6 @@ static int handle_options(int argc, const char *argv[])
                 config_error++; return -1;
             }
             PARAMS(ARGy)= val; PARAMS(ARGy_set)=1;
-            break;
-        case 'r': // recalculate facet equations
-            if(integer_arg(argv[c],argv[c+1],&c,&val)) return -1;
-            if(val<0 || val>1000000){
-                report(R_fatal,"Argument of -r is out of range\n");
-                config_error++; return -1;
-            }
-            PARAMS(ARGr)=val; PARAMS(ARGr_set)=1;
-            break;
-        case 'k': // consistency check
-            if(integer_arg(argv[c],argv[c+1],&c,&val)) return -1;
-            if(val<0 || val>1000000){
-                report(R_fatal,"Argument of -k is out of range\n");
-                config_error++; return -1;
-            }
-            PARAMS(ARGk)=val; PARAMS(ARGk_set)=1;
             break;
         default:
             report(R_fatal,"Unknown option: %s\n",argv[c]);
@@ -768,41 +762,39 @@ static void postprocess_parameters(void)
 {int i;
     if(PARAMS(ARGm_set)){ // -m[0..3]
         PARAMS(OracleMessage)=PARAMS(ARGm);
-        PARAMS(ReportLevel)=PARAMS(ARGm);
+        PARAMS(MessageLevel)=PARAMS(ARGm);
+        if(PARAMS(ARGm)==0) PARAMS(PrintStatistics)=0;
     }
     if(PARAMS(ARGy_set)){ // -y+ or -y-
-        PARAMS(ShowVertices)=PARAMS(ARGy);
+        PARAMS(VertexReport)=PARAMS(ARGy);
     }
-    if(PARAMS(ARGp_set)){ // p T
-        i=PARAMS(ARGp); if(i<5) i=0; // less than 5 means never
-        PARAMS(ShowProgress)=i;
+    if(PARAMS(ARGp_set)){ // -p T
+        PARAMS(ProgressReport) = PARAMS(ARGp);
     }
-    if(PARAMS(ARGr_set)){ // r T
-        i=PARAMS(ARGr); if(0<i && i<5) i=5;
-        PARAMS(RecalculateFacets)=i;
-    }
-    if(PARAMS(ARGk_set)){
-        PARAMS(CheckConsistency)=PARAMS(ARGk);
-    }
-    if(PARAMS(SaveFile)){
+    if(PARAMS(SaveFile)){ // -o <file>
         if(PARAMS(SaveVertexFile) && 
-           strcmp(PARAMS(SaveFile),PARAMS(SaveVertexFile))==0)
+           strcmp(PARAMS(SaveFile),PARAMS(SaveVertexFile))==0){
             PARAMS(SaveVertexFile)=NULL;
+            if(!PARAMS(SaveVertices)) PARAMS(SaveVertices)=1;
+        }
         if(PARAMS(SaveFacetFile) && 
-           strcmp(PARAMS(SaveFile),PARAMS(SaveFacetFile))==0)
+           strcmp(PARAMS(SaveFile),PARAMS(SaveFacetFile))==0){
             PARAMS(SaveFacetFile)=NULL;
+            if(!PARAMS(SaveFacets)) PARAMS(SaveFacets)=1;
+        }
+    } else { // no -o, we might have -ov or -of 
+        if(!PARAMS(SaveVertexFile)) PARAMS(SaveVertices)=0;
+        if(!PARAMS(SaveFacetFile)) PARAMS(SaveFacets)=0;
     }
-    if(PARAMS(SaveFile) || PARAMS(SaveVertexFile)){
-        if(!PARAMS(SaveVertices)) PARAMS(SaveVertices)=1;
-    } else { PARAMS(SaveVertices)=0; }
-    if(PARAMS(SaveFile) || PARAMS(SaveFacetFile)){
-        if(!PARAMS(SaveFacets)) PARAMS(SaveFacets)=1;
-    } else { PARAMS(SaveFacets)=0; }
     // do we have any output?
-    if(!PARAMS(ShowVertices) && 
-       !PARAMS(DumpVertices) && !PARAMS(DumpFacets) && 
-       !PARAMS(SaveVertices) && !PARAMS(SaveFacets)){
+    if(!PARAMS(VertexReport) && !PARAMS(PrintVertices)
+       && !PARAMS(SaveVertices) && !PARAMS(SaveVertexFile)
+       && !PARAMS(SaveFacets) && !PARAMS(SaveFacetFile)){
         report(R_fatal,"No output is specified; all computation would be lost...\n");
+        config_error++; return;
+    }
+    if(PARAMS(SaveFile) && !PARAMS(SaveVertices) && !PARAMS(SaveFacets)){
+        report(R_fatal,"No content is specified for the output file, it would be empty...\n");
         config_error++; return;
     }
     // create problem name
@@ -826,6 +818,36 @@ int process_parameters(int argc, const char *argv[])
          report(R_fatal,"Use '" PROGNAME " --help' for a complete list of options.\n");
     }
     return v;
+}
+
+/***********************************************************************
+* Show parameter values which differ from their default values
+*
+* void sho_parameters(void)
+*    report algorithm and oracle parameters only
+*/
+void show_parameters(void)
+{   /* integer and bool parameters */
+#define CFG(x)	\
+    if(PARAMS(x) != DEF_##x) report(R_txt," " #x " = %d\n",PARAMS(x))
+    CFG(OracleMethod);		/* primal / dual */
+    CFG(OraclePricing);
+    CFG(OracleRatioTest);
+    CFG(OracleScale);		/* scale the constraint matrix */
+    CFG(ShuffleMatrix);		/* random shuffle of the constraint matrix */
+    CFG(RoundVertices);		/* round vertices reported by the oracle */
+    CFG(RandomFacet);		/* pick next facet randomly */
+    CFG(ExactFacetEq);		/* recompute facet equation immediately */
+    CFG(RecalculateFacets);	/* how ofter recalculate facets */
+#undef CFG
+    /* double parameters */
+#define CFG(x)	\
+    if(PARAMS(x) != DEF_##x) report(R_txt," " #x " = %lg\n",PARAMS(x))
+    CFG(PolytopeEps);		/* facet and vertex adjacency */
+    CFG(ScaleEps);		/* rounding when retrieving a facet equation */
+    CFG(LineqEps);		/* tolerance in system of linear equations */
+    CFG(RoundEps);		/* tolerance for RoundVertices */
+#undef CFG
 }
 
 /* EOF */
