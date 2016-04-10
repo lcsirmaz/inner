@@ -142,7 +142,7 @@ static void progress_stat(unsigned long dtime)
 
 static void progress_stat_if_expired(void)
 {unsigned long dtime;
-    if(PARAMS(ShowProgress)==0) return;
+    if(PARAMS(ProgressReport)==0) return;
     dtime=gettime100();
     if(dtime-progresstime < progressdelay) return;
     progress_stat(dtime);
@@ -151,11 +151,11 @@ static void progress_stat_if_expired(void)
 
 static void report_new_vertex(void)
 {unsigned long thistime;
-    if(PARAMS(ShowProgress)==0 && !PARAMS(ShowVertices)) return;
+    if(PARAMS(ProgressReport)==0 && !PARAMS(VertexReport)) return;
     thistime=gettime100();
-    if(PARAMS(ShowProgress) && thistime-progresstime >= progressdelay)
+    if(PARAMS(ProgressReport) && thistime-progresstime >= progressdelay)
         progress_stat(thistime);
-    if(PARAMS(ShowVertices)){
+    if(PARAMS(VertexReport)){
       report(R_txt,"[%8.2f] ",0.01*(double)thistime);
       print_vertex(R_txt,(PARAMS(Direction) ? -1.0 : +1.0),VertexOracleData.overtex);
     }
@@ -180,19 +180,19 @@ static void report_new_vertex(void)
 static void dump_and_save(int how)
 {unsigned long endtime; int partial;
     endtime=gettime100(); // program finished
-    if(PARAMS(ShowProgress)) progress_stat(endtime);
+    if(PARAMS(ProgressReport)) progress_stat(endtime);
     partial = how==0 ? 0 : 1; // whether we have a partial list
-    if(PARAMS(DumpVertices) > partial){
+    if(PARAMS(PrintVertices) > partial){
         if(partial) report(R_txt,"Partial list of vertices:\n");
         report(R_txt, "\n" DASHSEP "\n");
         print_vertices(R_txt);
     }
-    if(PARAMS(DumpFacets) > partial){
+    if(PARAMS(PrintFacets) > partial){
         if(partial) report(R_txt,"Partial list of facets:\n");
         report(R_txt, "\n" DASHSEP "\n");
         print_facets(R_txt);
     }
-    if(PARAMS(ReportLevel)){ /* statistics, only if not quiet */
+    if(PARAMS(PrintStatistics)){ /* statistics, only if not quiet */
       report(R_txt,"\n" DASHSEP "\n"
       "Problem %s\n"
       " name                    %s\n"
@@ -249,7 +249,11 @@ static void dump_and_save(int how)
       readable(dd_stats.avg_facetsadded,0),readable(dd_stats.max_facetsadded,1),
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
     }
-    if(PARAMS(SaveVertices)>partial){
+    if(PARAMS(PrintParams)){
+        report(R_txt, DASHSEP "\nParameters with new values\n");
+        show_parameters();
+    }
+    if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
         if(partial) report(R_savevertex,"C *** Partial list of vertices ***\n");
         report(R_savevertex,"C name=%s, cols=%d, rows=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
@@ -259,7 +263,7 @@ static void dump_and_save(int how)
         print_vertices(R_savevertex);
         report(R_savevertex,"\n");
     }
-    if(PARAMS(SaveFacets)>partial){
+    if(PARAMS(SaveFacets)>partial || (partial==0 && PARAMS(SaveFacetFile))){
         if(partial) report(R_savefacet,"C *** Partial list of facets ***\n");
         report(R_savefacet,"C name=%s, cols=%d, rows=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
@@ -308,16 +312,16 @@ static int break_inner(void)
       showtime(aborttime), vertex_num(), facet_num());
     if(!PARAMS(ExtractAfterBreak)) return 3; // normal termination
     // don't do if no need to extract data
-    if(PARAMS(DumpVertices)<2 && PARAMS(SaveVertices)<2 &&
-       !PARAMS(ShowVertices)){
+    if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2 &&
+       !PARAMS(VertexReport)){
         report(R_fatal,"Result of postprocessing would be lost, not doing...\n");
         return 3;
     }
     report(R_fatal,"Checking additional vertices. This may take some time...\n"
       EQSEP "\n\n");
-    // at least one of DumpVertices and SaveVertices should be set
-    if(PARAMS(DumpVertices)<2 && PARAMS(SaveVertices)<2)
-        PARAMS(DumpVertices)=2;
+    // at least one of PrintVertices and SaveVertices should be set
+    if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2)
+        PARAMS(PrintVertices)=2;
     /* search for new vertices by calling the oracle for all facets */
     j=-1;
     while((j=get_next_facet(j+1))>=0){
@@ -365,7 +369,7 @@ int inner(void)
         report(R_fatal,"Error getting the first optimal solution.\n");
         return 2;
     }
-    progressdelay = 100*PARAMS(ShowProgress);
+    progressdelay = 100*PARAMS(ProgressReport);
     report_new_vertex();  // take care of reporting
     if(init_dd(DIM,VertexOracleData.overtex)) return 2; // fatal error
     last_memreport=0; // in case memory report is requested
@@ -429,7 +433,7 @@ again:
         dump_and_save(1);
         return 2; // error during computation
     }
-    if(PARAMS(ReportMemory) && 
+    if(PARAMS(MemoryReport) && 
       last_memreport!=dd_stats.memory_allocated_no){
         last_memreport=dd_stats.memory_allocated_no;
         report(R_txt,"M%8.2f] ", 0.01*(double)gettime100());
