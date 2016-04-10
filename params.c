@@ -833,6 +833,8 @@ void show_parameters(void)
     CFG(OracleMethod);		/* primal / dual */
     CFG(OraclePricing);
     CFG(OracleRatioTest);
+    CFG(OracleItLimit);
+    CFG(OracleTimeLimit);
     CFG(OracleScale);		/* scale the constraint matrix */
     CFG(ShuffleMatrix);		/* random shuffle of the constraint matrix */
     CFG(RoundVertices);		/* round vertices reported by the oracle */

@@ -539,6 +539,8 @@ void get_dd_facetno(void) // get the number living and final facets
         }
         fno += (1<<packshift);
     }
+    if(dd_stats.final_facets_no<0) dd_stats.final_facets_no=0;
+    if(dd_stats.living_facets_no<0) dd_stats.living_facets_no=0;
 }
 /***********************************************************************
 * Interrogate facets and vertices
