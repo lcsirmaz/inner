@@ -95,16 +95,18 @@ values of several keywords. Each keyword has a default value, which is
 overwritten by the values in the config file (if specified), and those
 values are overwritten by the `--KEYWORD=value` command line options.
 
-| Keyword | description |
+| Algorithm parameters | |
 |:--------|:------------|
-|**Algorithm parameters** | |
-|`RandomFacet=0` | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle |
-|`ExactFacetEq=0` | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately <br> from the set of adjacent vertices |
-|`RecalculateFacets=100` | non-negative integers <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5 |
-|`CheckConsistenct=0` | non-negative integer <br> after that many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5 |
-|`ExtractAfterBread=1` | 0 = no, 1 = yes <br> when the program is intterupted by Ctrl+C, <br> continue extracting new vertices by asking the oracle about every facet of the actual approximating polyhedron. <br> Second Ctrl+C aborts this post-processing. |
+|`RandomFacet=0`<br> | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle |
+|`ExactFacetEq=0`<br><br> | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately <br> from the set of adjacent vertices |
+|`RecalculateFacets=100`<br><br> | non-negative integers <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5 |
+|`CheckConsistency=0`<br><br> | non-negative integer <br> after that many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5 |
+|`ExtractAfterBreak=1`<br><br><br> | 0 = no, 1 = yes <br> when the program is intterupted by Ctrl+C, continue extracting new vertices by asking <br> the oracle about every facet of the actual approximating polyhedron. <br> Second Ctrl+C aborts this post-processing. |
 |**Oracle parameters**| |
 |`OracleMessage=1` | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
+|`OracleMethod=0`  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
+|`OraclePricing=1` | 0 = standard, 1 = steepest edge <br> the LP pricing method. |
+
 
 
 
