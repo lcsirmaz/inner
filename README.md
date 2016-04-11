@@ -87,14 +87,39 @@ of the problem in vlp format. Accepted options are
 | `-y-`        | do not report vertices when generated |
 | `--KEYWORD=value` | change value of a config keyword |
 
+#### CONFIGURATION PARAMETERS
+
+Fine tuning the algorithm, the underlying scalar LP solver and 
+specifying the amount and type of saved information is done by giving
+values of several keywords. Each keyword has a default value, which is
+overwritten by the values in the config file (if specified), and those
+values are overwritten by the `--KEYWORD=value` command line options.
+
+| Keyword | description ]
+|:--------|:------------|
+|**Algorithm parameters ** | |
+|`RandomFacet = 0` | 0 = no, 1 = yes <br>
+ pick a random facet which is then passed to the oracle |
+|`ExactFacetEq = 0` | 0 = no, 1 = yes <br>
+ when a facet is created, recompute its equation immediately
+ from the set of adjacent vertices |
+|`RecalculateFacets = 100` | non-negative integers <br>
+ after that many iterations recalculate all facet equations
+ from the set of its adjacent vertices. The number should be
+ zero (meaning never), or at least 5 |
+|`CheckConsistenct = 0 | non-negative integer <br>
+ after that many iterations check the consistency of the data
+ structure against numerical errors. The number should be
+ zero (meaning never), or at least 5 |
+
 
 #### COMPILATION
 
 The program uses a patched version of glpk, the GNU Linear Program Kit. 
 First, glpk should be compiled after the patch has been applied. Unpack the
-glpk source. Change to the `glpk-X.Y/src` directory, and execute the command
+glpk source. Change to the `glpk-X.Y` directory, and execute the command
 
-    patch -p1 < ../../patch-X.Y.txt
+    patch -p1 < ../patch-X.Y.txt
 
 assuming you have unpacked glpk in your `INNER` the directory. Then change to
 `glpk-X.Y` and run 'configure' and 'make' as follows:
@@ -105,7 +130,7 @@ assuming you have unpacked glpk in your `INNER` the directory. Then change to
 You must define `CSL` as all patches to glpk are encapsulated in `#ifdef CSL`
 blocks.
 
-Going back to `INNER`, the following command complies a static version of
+Going back to `INNER`, the following command compiles a static version of
 this program with name NAME:
 
     gcc -O3 -W -I glpk-X.Y/src -o NAME -DPROG=NAME *.c glpk-X.Y/src/.libs/libglpk.a -lm
@@ -113,13 +138,13 @@ this program with name NAME:
 #### EXAMPLES
 
 The 'examples' directory contains vlp files describing different MOLPs. File
-names contain three numbers separated by dashes: the number
-of *objectives*, the number of *columns*, and the number of *rows*.  Each
-file starts with comment lines describing the problem.
+names contain three numbers separated by dashes: the number of *objectives*,
+the number of *rows*, and the number of *columns*.  Each file starts with
+some comment lines.
 
-Solutions are in the 'solution' directory. The same file name with extension `.res`
-contains the list of vertices and facets. `.out` files contain progress report,
-statistics, and parameter settings.
+Solutions are in the 'solution' directory. The same file name with extension
+`.res`contains the list of vertices and facets.  `.out` files contain
+progress report, statistics, and parameter settings.
 
 
 #### AUTHOR
