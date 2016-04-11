@@ -95,22 +95,13 @@ values of several keywords. Each keyword has a default value, which is
 overwritten by the values in the config file (if specified), and those
 values are overwritten by the `--KEYWORD=value` command line options.
 
-| Keyword | description ]
+| Keyword | description |
 |:--------|:------------|
-|**Algorithm parameters ** | |
-|`RandomFacet = 0` | 0 = no, 1 = yes <br>
- pick a random facet which is then passed to the oracle |
-|`ExactFacetEq = 0` | 0 = no, 1 = yes <br>
- when a facet is created, recompute its equation immediately
- from the set of adjacent vertices |
-|`RecalculateFacets = 100` | non-negative integers <br>
- after that many iterations recalculate all facet equations
- from the set of its adjacent vertices. The number should be
- zero (meaning never), or at least 5 |
-|`CheckConsistenct = 0 | non-negative integer <br>
- after that many iterations check the consistency of the data
- structure against numerical errors. The number should be
- zero (meaning never), or at least 5 |
+|**Algorithm parameters** | |
+|`RandomFacet = 0` | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle |
+|`ExactFacetEq = 0` | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent vertices |
+|`RecalculateFacets = 100` | non-negative integers <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5 |
+|`CheckConsistenct = 0 | non-negative integer <br> after that many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5 |
 
 
 #### COMPILATION
