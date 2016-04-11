@@ -1,6 +1,6 @@
-diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
-*** a57/src/glpapi01.c	2015-11-08 08:00:00.000000000 +0100
---- b57/src/glpapi01.c	2015-12-03 14:31:51.078419642 +0100
+diff -r -c5 a60/src/glpapi01.c b60/src/glpapi01.c
+*** a60/src/glpapi01.c	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/glpapi01.c	2016-04-11 16:33:45.609952327 +0200
 ***************
 *** 81,90 ****
 --- 81,97 ----
@@ -23,7 +23,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
         lp->bfcp = NULL;
 ***************
 *** 219,228 ****
---- 226,277 ----
+--- 226,278 ----
               dir);
         lp->dir = dir;
         return;
@@ -71,6 +71,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
 +       return;
 + }
 + #endif
++ 
   /***********************************************************************
   *  NAME
   *
@@ -78,7 +79,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
   *
 ***************
 *** 689,698 ****
---- 738,857 ----
+--- 739,859 ----
         else
            lp->col[j]->coef = coef;
         return;
@@ -194,6 +195,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
 + }
 + #endif
 + 
++ 
   /***********************************************************************
   *  NAME
   *
@@ -201,7 +203,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
   *
 ***************
 *** 1346,1355 ****
---- 1505,1518 ----
+--- 1507,1520 ----
            xerror("glp_del_cols: operation not allowed\n");
         /* mark columns to be deleted */
         if (!(1 <= ncs && ncs <= lp->n))
@@ -218,7 +220,7 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
            if (!(1 <= j && j <= lp->n))
 ***************
 *** 1449,1458 ****
---- 1612,1637 ----
+--- 1614,1639 ----
         glp_get_bfcp(prob, &bfcp);
         glp_set_bfcp(dest, &bfcp);
         dest->pbs_stat = prob->pbs_stat;
@@ -246,25 +248,25 @@ diff -r -c5 a57/src/glpapi01.c b57/src/glpapi01.c
         dest->mip_stat = prob->mip_stat;
         dest->mip_obj = prob->mip_obj;
 ***************
-*** 1562,1571 ****
---- 1741,1754 ----
+*** 1561,1570 ****
+--- 1742,1755 ----
+        if (lp->c_tree != NULL) avl_delete_tree(lp->c_tree);
         xfree(lp->head);
   #if 0 /* 08/III-2014 */
         if (lp->bfcp != NULL) xfree(lp->bfcp);
   #endif
-        if (lp->bfd != NULL) bfd_delete_it(lp->bfd);
 + #ifdef CSL
 +       if(lp->cobj_idx != NULL) xfree(lp->cobj_idx);
 +       if(lp->cobj_val != NULL) xfree(lp->cobj_val);
 + #endif
+        if (lp->bfd != NULL) bfd_delete_it(lp->bfd);
         return;
   }
   
   void glp_delete_prob(glp_prob *lp)
-  {     glp_tree *tree = lp->tree;
-diff -r -c5 a57/src/glpapi02.c b57/src/glpapi02.c
-*** a57/src/glpapi02.c	2015-11-08 08:00:00.000000000 +0100
---- b57/src/glpapi02.c	2015-12-02 14:33:39.536769618 +0100
+diff -r -c5 a60/src/glpapi02.c b60/src/glpapi02.c
+*** a60/src/glpapi02.c	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/glpapi02.c	2016-04-11 16:33:45.633952082 +0200
 ***************
 *** 386,395 ****
 --- 386,431 ----
@@ -314,12 +316,12 @@ diff -r -c5 a57/src/glpapi02.c b57/src/glpapi02.c
   *
   *  glp_get_num_nz - retrieve number of constraint coefficients
   *
-diff -r -c5 a57/src/glpapi06.c b57/src/glpapi06.c
-*** a57/src/glpapi06.c	2015-11-08 08:00:00.000000000 +0100
---- b57/src/glpapi06.c	2015-12-03 16:13:56.155023543 +0100
+diff -r -c5 a60/src/glpapi06.c b60/src/glpapi06.c
+*** a60/src/glpapi06.c	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/glpapi06.c	2016-04-11 16:33:45.449953954 +0200
 ***************
-*** 496,505 ****
---- 496,508 ----
+*** 499,508 ****
+--- 499,511 ----
         parm->it_lim = INT_MAX;
         parm->tm_lim = INT_MAX;
         parm->out_frq = 500;
@@ -333,12 +335,12 @@ diff -r -c5 a57/src/glpapi06.c b57/src/glpapi06.c
   
   /***********************************************************************
   *  NAME
-diff -r -c5 a57/src/glpk.h b57/src/glpk.h
-*** a57/src/glpk.h	2015-11-08 08:00:00.000000000 +0100
---- b57/src/glpk.h	2015-12-03 16:12:46.743852966 +0100
+diff -r -c5 a60/src/glpk.h b60/src/glpk.h
+*** a60/src/glpk.h	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/glpk.h	2016-04-11 16:33:45.569952733 +0200
 ***************
-*** 132,141 ****
---- 132,144 ----
+*** 135,144 ****
+--- 135,147 ----
         int it_lim;             /* spx.it_lim */
         int tm_lim;             /* spx.tm_lim (milliseconds) */
         int out_frq;            /* spx.out_frq */
@@ -353,8 +355,8 @@ diff -r -c5 a57/src/glpk.h b57/src/glpk.h
   typedef struct
   {     /* interior-point solver control parameters */
 ***************
-*** 297,306 ****
---- 300,314 ----
+*** 303,312 ****
+--- 306,320 ----
   /* assign (change) objective function name */
   
   void glp_set_obj_dir(glp_prob *P, int dir);
@@ -371,8 +373,8 @@ diff -r -c5 a57/src/glpk.h b57/src/glpk.h
   int glp_add_cols(glp_prob *P, int ncs);
   /* add new columns to problem object */
 ***************
-*** 320,329 ****
---- 328,342 ----
+*** 326,335 ****
+--- 334,348 ----
   /* set (change) column bounds */
   
   void glp_set_obj_coef(glp_prob *P, int j, double coef);
@@ -389,8 +391,8 @@ diff -r -c5 a57/src/glpk.h b57/src/glpk.h
   
   void glp_set_mat_col(glp_prob *P, int j, int len, const int ind[],
 ***************
-*** 395,404 ****
---- 408,422 ----
+*** 401,410 ****
+--- 414,428 ----
   /* retrieve column upper bound */
   
   double glp_get_obj_coef(glp_prob *P, int j);
@@ -406,12 +408,12 @@ diff -r -c5 a57/src/glpk.h b57/src/glpk.h
   
   int glp_get_mat_row(glp_prob *P, int i, int ind[], double val[]);
   /* retrieve row of the constraint matrix */
-diff -r -c5 a57/src/prob.h b57/src/prob.h
-*** a57/src/prob.h	2015-11-08 08:00:00.000000000 +0100
---- b57/src/prob.h	2015-11-26 13:27:15.711006623 +0100
+diff -r -c5 a60/src/prob.h b60/src/prob.h
+*** a60/src/prob.h	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/prob.h	2016-04-11 16:33:45.505953384 +0200
 ***************
-*** 81,90 ****
---- 81,104 ----
+*** 84,93 ****
+--- 84,107 ----
         /* row index to find rows by their names; NULL means this index
            does not exist */
         AVL *c_tree;
@@ -436,12 +438,12 @@ diff -r -c5 a57/src/prob.h b57/src/prob.h
         int valid;
         /* the factorization is valid only if this flag is set */
         int *head; /* int head[1+m_max]; */
-diff -r -c5 a57/src/simplex/spxprim.c b57/src/simplex/spxprim.c
-*** a57/src/simplex/spxprim.c	2015-11-08 08:00:00.000000000 +0100
---- b57/src/simplex/spxprim.c	2015-12-06 15:56:29.339492861 +0100
+diff -r -c5 a60/src/simplex/spxprim.c b60/src/simplex/spxprim.c
+*** a60/src/simplex/spxprim.c	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/simplex/spxprim.c	2016-04-11 16:33:45.545952978 +0200
 ***************
-*** 650,659 ****
---- 650,719 ----
+*** 690,699 ****
+--- 690,759 ----
         xprintf("\n");
         csa->it_dpy = csa->it_cnt;
   skip: return;
@@ -513,24 +515,24 @@ diff -r -c5 a57/src/simplex/spxprim.c b57/src/simplex/spxprim.c
   *  This routine is a driver to the two-phase primal simplex method.
   *
 ***************
-*** 990,999 ****
---- 1050,1062 ----
+*** 1036,1045 ****
+--- 1096,1108 ----
+        SPXAT at;
   #else
         SPXNT nt;
   #endif
         SPXSE se;
-        int ret, *map, *daeh;
 + #ifdef CSL
 +       int objs;
 + #endif
+        int ret, *map, *daeh;
         /* build working LP and its initial basis */
         memset(csa, 0, sizeof(struct csa));
         csa->lp = &lp;
         spx_init_lp(csa->lp, P, EXCL);
-        spx_alloc_lp(csa->lp);
 ***************
-*** 1073,1082 ****
---- 1136,1159 ----
+*** 1126,1135 ****
+--- 1189,1212 ----
         csa->it_beg = csa->it_cnt = P->it_cnt;
         csa->it_dpy = -1;
         csa->inv_cnt = 0;
@@ -555,12 +557,12 @@ diff -r -c5 a57/src/simplex/spxprim.c b57/src/simplex/spxprim.c
         P->bfd = csa->lp->bfd;
         /* set solution status */
         P->pbs_stat = csa->p_stat;
-diff -r -c5 a57/src/simplex/spydual.c b57/src/simplex/spydual.c
-*** a57/src/simplex/spydual.c	2015-11-08 08:00:00.000000000 +0100
---- b57/src/simplex/spydual.c	2016-04-05 10:08:28.224294708 +0200
+diff -r -c5 a60/src/simplex/spydual.c b60/src/simplex/spydual.c
+*** a60/src/simplex/spydual.c	2016-04-01 09:00:00.000000000 +0200
+--- b60/src/simplex/spydual.c	2016-04-11 16:33:45.545952978 +0200
 ***************
-*** 172,183 ****
---- 172,185 ----
+*** 225,236 ****
+--- 225,238 ----
               xassert(!flag[j]);
            else if (l[k] != -DBL_MAX && u[k] == +DBL_MAX)
               xassert(!flag[j]);
@@ -576,12 +578,12 @@ diff -r -c5 a57/src/simplex/spydual.c b57/src/simplex/spydual.c
   
   /***********************************************************************
 ***************
-*** 688,697 ****
---- 690,748 ----
-        xprintf("\n");
-        csa->it_dpy = csa->it_cnt;
-  skip: return;
+*** 1153,1162 ****
+--- 1155,1213 ----
+        fvs_adjust_vec(r, DBL_MIN + DBL_MIN);
+        return;
   }
+  #endif
   
 + #ifdef CSL
 + /***********************************************************************
@@ -616,8 +618,8 @@ diff -r -c5 a57/src/simplex/spydual.c b57/src/simplex/spydual.c
 +          {  l[k] = u[k]; xassert(lp->flag[j]); }
 +       }
 +       /* save lover and upper bounds */
-+       memcpy(csa->l, l, (1+n) * sizeof(double));
-+       memcpy(csa->u, u, (1+n) * sizeof(double));
++       memcpy(csa->orig_l, l, (1+n) * sizeof(double));
++       memcpy(csa->orig_u, u, (1+n) * sizeof(double));
 +       /* set up the next objective to lp->c */
 +       dir = P->dir == GLP_MIN ? +1.0 : -1.0; /* get direction */
 +       memset(c,0,(n+1)*sizeof(double)); /* set c[] to zero */
@@ -638,26 +640,8 @@ diff -r -c5 a57/src/simplex/spydual.c b57/src/simplex/spydual.c
   *  This routine is a driver to the two-phase dual simplex method.
   *
 ***************
-*** 902,912 ****
---- 953,967 ----
-              spx_eval_beta(lp, beta);
-           }
-           csa->num = spy_chuzr_sel(lp, beta, tol_bnd, tol_bnd1, list);
-           csa->p_stat = (csa->num == 0 ? GLP_FEAS : GLP_INFEAS);
-           csa->d_stat = (csa->phase == 1 ? GLP_INFEAS : GLP_FEAS);
-+ #ifdef CSL
-+          ret = GLP_ETMLIM;
-+ #else
-           ret = GLP_EITLIM;
-+ #endif
-           goto fini;
-        }
-        /* display the search progress */
-        display(csa, 0);
-        /* select eligible basic variables */
-***************
-*** 1053,1062 ****
---- 1108,1120 ----
+*** 1777,1786 ****
+--- 1828,1840 ----
   #else
         SPXNT nt;
   #endif
@@ -672,11 +656,11 @@ diff -r -c5 a57/src/simplex/spydual.c b57/src/simplex/spydual.c
         spx_init_lp(csa->lp, P, EXCL);
         spx_alloc_lp(csa->lp);
 ***************
-*** 1152,1161 ****
---- 1210,1234 ----
-        csa->it_beg = csa->it_cnt = P->it_cnt;
-        csa->it_dpy = -1;
-        csa->inv_cnt = 0;
+*** 1913,1922 ****
+--- 1967,1991 ----
+  #if 1 /* 23/III-2016 */
+        csa->ns_cnt = csa->ls_cnt = 0;
+  #endif
         /* try to solve working LP */
         ret = dual_simplex(csa);
 + #ifdef CSL
