@@ -1,4 +1,4 @@
-## Source
+## Source files
 
 * glp_oracle.c, glp_oracle.h &ndash; implementing LP oracle based on glpk
 * inner.c, inner.h &ndash; the main loop executing the inner approximation algorithm
