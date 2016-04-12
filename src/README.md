@@ -1,6 +1,6 @@
 ## Source files
 
-* glp_oracle.c, glp_oracle.h &ndash; implementing LP oracle based on glpk
+* glp_oracle.c, glp_oracle.h &ndash; implementing the vertex separation oracle based on glpk library
 * inner.c, inner.h &ndash; the main loop executing the inner approximation algorithm
 * main.c, main.h &ndash; the main program
 * params.c, params.h &ndash; reading and processing configuration parameters and comand line options
