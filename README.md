@@ -99,7 +99,7 @@ Change tolerances with great care.
 | Algorithm parameters | |
 |:--------|:------------|
 |`RandomFacet=0`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
-|`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately <br> from the set of adjacent vertices. |
+|`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of <br> adjacent vertices. |
 |`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integers <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after that many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
 |`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program is interrupted by Ctrl+C, continue extracting new vertices by asking <br> the oracle about every facet of the actual approximating polyhedron. Second Ctrl+C <br> aborts this post-processing. |
@@ -108,27 +108,27 @@ Change tolerances with great care.
 |`OracleMethod=0`<br>&nbsp;  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
 |`OraclePricing=1`<br>&nbsp; | 0 = standard, 1 = steepest edge <br> the LP pricing method. |
 |`OracleRatioTest=1`<br>&nbsp; | 0 = standard, 1 = Harris' two pass <br> the LP ratio test. |
-|`OracleTimeLimit=20` <br>&nbsp; | non-negative integer <br> time limit for each oracle calls in seconds; 0 means unlimited. |
-|`OracleItLimit=10000` <br>&nbsp; | non-negative integer <be> iteration limit for each oracle call; 0 means unlimited. |
-|`OracleScale=1` <br>&nbsp; | 0 = no, 1 = yes <br> scale the constraint matrix; help numerical stability. |
-|`ShuffleMatrix=1` <br>&nbsp; | 0 = no, 1 = yes <br> shuffle the rows and columns of the constraint matrix randomly. |
-|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle report a result vertex, round its coordinates <br> to the nearest rational with small denominator. |
+|`OracleTimeLimit=20` <br>&nbsp; | non-negative integer <br> time limit for each oracle call in seconds; 0 means unlimited. |
+|`OracleItLimit=10000` <br>&nbsp; | non-negative integer <br> iteration limit for each oracle call; 0 means unlimited. |
+|`OracleScale=1` <br>&nbsp; | 0 = no, 1 = yes <br> scale the constraint matrix; helps numerical stability. |
+|`ShuffleMatrix=1` <br>&nbsp; | 0 = no, 1 = yes <br> shuffle rows and columns of the constraint matrix randomly. |
+|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle report a result vertex, round its coordinates to the nearest rational <br> number with small denominator. |
 |**Reporting**| |
-|`MessageLevel=3` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. Command line option <br> `-m[0..3]` overrides this value. |
+|`MessageLevel=3` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. Command line option `-m[0..3]` <br> overrides this value. |
 |`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress <br> report, or at least 5. Use command line option `-p T` to override this value. |
 |`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> print out each vertex (extremal solution) immediately as it is found. Use command line <br> option `-y+` (yes) or `-y-` (no) to override the value defined here. |
-|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size of the location of the 11 memory blocks storing the combinatorial data <br> structure whenever it changes. |
-|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominator <br> rather than floating point numerals. |
+|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location of the 11 memory blocks storing the combinatorial data <br> structure whenever it changes. |
+|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fraction with small denominator <br> rather than floating point numerals. |
 |`PrintStistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print out resources used (number of iterations, ridge tests, etc.) when the program stops. |
 |`PrintParams=0` <br>&nbsp; | 0 = no, 1 = yes <br> print out algorithm parameters which are not equal to their default values. |
 |`PrintVertices=2` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print out (again) all known vertices when the program terminates. |
 |`PrintFacets=0` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print out all known (relevant) facets when the program terminates. |
-|`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after <br> the command line option `-o`. For file specified after `-ov` both <br> 0 and 1 means &quot;save on normal exit only&quot;. |
-|`SaveFacets=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known (relevant) facets to the file specified after the command line <br> option `-o`. For file specified after `-of` both 0 and 1 means &quot;save on normal exit only&quot;. |
+|`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after the command <br> line option `-o`. For file specified after `-ov` both 0 and 1 means &quot;save on normal exit only&quot;. |
+|`SaveFacets=1` <br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known (relevant) facets to the file specified after <br> the command line option `-o`. For file specified after `-of` both 0 and 1 means &quot;save on <br> normal exit only&quot;. |
 |**Tolerances**| |
 |`PolytopeEps=1.3e-8` <br>&nbsp; | positive real number <br> a facet and a vertex are considered adjacent if their distance is smaller than this value. |
-|`ScaleEps=3e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> coefficients in the scaled facet equation are rounded to the nearest integer <br> if they are closer to it than this value. |
-|`LineqEps=8e-8` <br>&nbsp;<br>&nbsp; | positive real number <br> when solving a system of linear equation for a facet equation, a coefficient <br> smaller than this is considered to be zero. |
+|`ScaleEps=3e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> coefficients in the scaled facet equation are rounded to the nearest integer if they are <br> closer to it than this value. |
+|`LineqEps=8e-8` <br>&nbsp;<br>&nbsp; | positive real number <br> when solving a system of linear equation for a facet equation, a coefficient smaller than <br> this is considered to be zero. |
 |`RoundEps=1e-9` <br>&nbsp; | positive real number <br> if the oracle reports vertices with rounded coordinates (`RoundVertices=1`), this is the <br> tolerance in the rounding algorithm. |
 |`FacetRecalcEps=1e-6` <br>&nbsp;<br>&nbsp; | positive real number <br> when recalculating facet equation, report numerical instability if the new and old <br> coordinates differ at least that much. |
 
