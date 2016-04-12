@@ -1,0 +1,52 @@
+C copy string: rs=cd:ab;tv=cr:ab;uw=tv:adr
+C MOLP problem=10-779-10174-a.vlp, minimize
+C rows=779, columns=10174, objectives=10
+I    7.86] Elapsed: 7.86, vertices: 1, facets final: -1, pending: 0
+I   15.96] Elapsed: 15.96, vertices: 1, facets final: 0, pending: 10
+I   25.55] Elapsed: 25.55, vertices: 2, facets final: 1, pending: 18
+I   34.50] Elapsed: 34.50, vertices: 2, facets final: 3, pending: 16
+I   40.26] Elapsed: 40.26, vertices: 3, facets final: 4, pending: 21
+I   48.41] Elapsed: 48.41, vertices: 3, facets final: 5, pending: 20
+I   60.54] Elapsed: 1:01, vertices: 3, facets final: 6, pending: 19
+I   70.20] Elapsed: 1:10, vertices: 4, facets final: 7, pending: 24
+I   78.20] Elapsed: 1:18, vertices: 4, facets final: 8, pending: 23
+I   84.13] Elapsed: 1:24, vertices: 4, facets final: 8, pending: 23
+I   94.76] Elapsed: 1:35, vertices: 5, facets final: 10, pending: 27
+I  104.67] Elapsed: 1:45, vertices: 5, facets final: 11, pending: 26
+I  113.20] Elapsed: 1:53, vertices: 5, facets final: 11, pending: 26
+I  120.51] Elapsed: 2:01, vertices: 6, facets final: 12, pending: 34
+I  129.45] Elapsed: 2:09, vertices: 6, facets final: 12, pending: 34
+Warning: numerical instability (primal simplex, phase II)
+The oracle says: iteration limit exceeded (8)
+The oracle says: either iteration or time limit was reached
+I  149.79] Elapsed: 2:30, vertices: 7, facets final: 13, pending: 44
+
+--------------------------------
+Problem aborted with error
+ name                    10-779-10174-a.vlp
+ output                  solution/10-779-10174-a.res
+ rows, cols, objs        779, 10174, 10
+ vertices, facets        7, 57
+ total time              2:30
+--------------------------------
+Statistics
+LP:
+ oracle calls            21
+   avg iterations/calls  4.40k
+ total oracle time       2:30
+Combinatorics:
+ vertices added          7
+ facets probed           20
+ facets # max            58
+ memory allocated        536.93k
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     1 / 4092
+ facet manipulating
+   compress / increase   0 / 0
+   added avg / max       12.83 / 19.00
+ number of ridge tests
+   avg / max             103.67 / 264.00
+--------------------------------
+Parameters with new values
+ RandomFacet = 1
