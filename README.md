@@ -100,7 +100,7 @@ Change tolerances with great care.
 |:--------|:------------|
 |`RandomFacet=0`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
 |`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent <br> vertices. |
-|`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integers <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
+|`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after that many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after that many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
 |`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program is interrupted by Ctrl+C, continue extracting new vertices by asking <br> the oracle about every facet of the actual approximating polyhedron. Second Ctrl+C <br> aborts this post-processing. |
 |**Oracle parameters**| |
@@ -112,13 +112,13 @@ Change tolerances with great care.
 |`OracleItLimit=10000` <br>&nbsp; | non-negative integer <br> iteration limit for each oracle call; 0 means unlimited. |
 |`OracleScale=1` <br>&nbsp; | 0 = no, 1 = yes <br> scale the constraint matrix; helps numerical stability. |
 |`ShuffleMatrix=1` <br>&nbsp; | 0 = no, 1 = yes <br> shuffle rows and columns of the constraint matrix randomly. |
-|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle report a result vertex, round its coordinates to the nearest rational <br> number with small denominator. |
+|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle reports a result vertex, round its coordinates to the nearest rational <br> number with small denominator. |
 |**Reporting**| |
 |`MessageLevel=3` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. Command line option `-m[0..3]` overrides <br> this value. |
-|`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress <br> report, or at least 5. Use command line option `-p T` to override this value. |
-|`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately as it is found. Use command line <br> option `-y-` (no) or `-y+` (yes) to override the value defined here. |
-|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location of the 11 memory blocks storing the combinatorial data <br> structure whenever it changes. |
-|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fraction with small denominator <br> rather than floating point numerals. |
+|`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress <br> report, or at least 5. Command line option `-p T` overrides this value. |
+|`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately as it is found. Command line <br> option `-y-` (no) or `-y+` (yes) overrides the value defined here. |
+|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> whenever it changes report the size and location of the 11 memory blocks storing <br> the combinatorial data structure. |
+|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominator <br> rather than floating point numerals. |
 |`PrintStistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print out resources used (number of iterations, ridge tests, etc.) when the program stops. |
 |`PrintParams=0` <br>&nbsp; | 0 = no, 1 = yes <br> print out algorithm parameters which are not equal to their default values. |
 |`PrintVertices=2` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print out (again) all known vertices when the program terminates. |
@@ -141,8 +141,8 @@ glpk source. Change to the `glpk-X.Y` directory, and execute the command
 
     patch -p1 < ../patch-X.Y.txt
 
-assuming you have unpacked glpk in your `INNER` the directory. Then change to
-`glpk-X.Y` and run 'configure' and 'make' as follows:
+assuming you have unpacked glpk in your `INNER` the directory. Still in the
+`glpk-X.Y` directory run 'configure' and 'make' as follows:
 
     ./configure
     ./make CFLAGS='-O3 -DCSL'
@@ -151,7 +151,7 @@ You must define `CSL` as all patches to glpk are encapsulated in `#ifdef CSL`
 blocks.
 
 Going back to `INNER`, the following command compiles a static version of
-this program with name NAME:
+this program with name `NAME`:
 
     gcc -O3 -W -I glpk-X.Y/src -o NAME -DPROG=NAME *.c glpk-X.Y/src/.libs/libglpk.a -lm
 
