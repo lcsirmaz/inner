@@ -342,7 +342,6 @@ void set_oracle_parameters(void)
       case  2: parm.msg_lev=GLP_MSG_ON; break;
       default: parm.msg_lev=GLP_MSG_ALL; break;
     }
-    if(PARAMS(OracleOutFreq)>=1) parm.out_frq=1000*PARAMS(OracleOutFreq);
     // method, pricing, ratio test
     parm.meth = GLP_PRIMAL;	// PRIMAL,DUAL,DUALP
     if(PARAMS(OracleMethod)) parm.meth=GLP_DUAL;

@@ -35,7 +35,6 @@
 #define DEF_OraclePricing	1	/* STD / steepest */
 #define DEF_OracleRatioTest	1	/* STD / Harris */
 #define DEF_OracleScale		1	/* scale */
-#define DEF_OracleOutFreq	10	/* in seconds */
 #define DEF_ShuffleMatrix	1
 #define DEF_RoundVertices	1
 /* DD parameters */
@@ -135,9 +134,6 @@ CFG( OraclePricing, "0 = standard, 1 = steepest edge") \
 "#\n"\
 CFG( OracleRatioTest, "0 = standard, 1 = Harris' two pass") \
 "#    the LP ratio test.\n"\
-"#\n"\
-CFG( OracleOutFreq, POSINT) \
-"#    oracle progress report frequency in seconds.\n"\
 "#\n"\
 CFG( OracleTimeLimit, INTEGER) \
 "#    time limit for each oracle call in seconds, 0 = unlimited.\n"\
@@ -446,7 +442,6 @@ static struct int_params {
   CFG(ProgressReport,1000000),
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
-  CFG(OracleOutFreq,1000000),
   CFG(OracleItLimit,10000000),
   CFG(OracleTimeLimit,1000000),
   {NULL,NULL,0,0,0}

@@ -52,7 +52,6 @@ struct params_t {
     ProgressReport,	/* progress frequency in seconds, 0 means no report */
     RecalculateFacets,	/* after that many iterations do it */
     CheckConsistency,	/* after that many iterations do it */
-    OracleOutFreq,	/* oracle output frequency in seconds, >=5 */
     OracleItLimit,	/* iteration limit, >=1000; =0: unlimited */
     OracleTimeLimit,	/* time limit in seconds, >=5; =0: unlimited */
     ProblemColumns,	/* problem columns, set by the Oracle */
