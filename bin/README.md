@@ -1,6 +1,6 @@
 ## Binary executables
 
-In these binaries the patched glpk library is statically linked.
+In these linux binaries the patched glpk library is statically linked.
 
 AMD 64 bit architecture
 
