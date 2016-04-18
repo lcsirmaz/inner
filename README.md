@@ -1,4 +1,4 @@
-## inner - a MultiObjective Linear Program (MOLP) solver
+# inner - a MultiObjective Linear Program (MOLP) solver
 
 A MOLP is a linear program with more than one objective function. The linear
 *constraints* are arranged into a matrix form with c columns and r rows.
@@ -25,7 +25,7 @@ which satisfies all constraints.
 
 There are m &ge; 1 *objectives*, which are given as
 
-<table><tbody><tr>
+x<table><tbody><tr>
 <td>y<sub>k</sub> = o<sub>1,k</sub> x<sub>1</sub> + o<sub>2,k</sub> x<sub>2</sub> + . . . + o<sub>c,k</sub> x<sub>c</sub></td>
 <td>where 1 &le; k &le; m</td>
 </tr><tbody></table>
@@ -33,21 +33,21 @@ There are m &ge; 1 *objectives*, which are given as
 The m-dimensional vector **y** = &lt;y<sub>1</sub>, . . ., y<sub>m</sub>&gt; is 
 *achievable* if there is a feasible solution **x** which yields exactly these objective values.
 
-The *solution of a minimizing* MOLP is a minimal list of achievable
-objective vectors &ndash; called *extremal solutions* &ndash; such that any
-other achievable objective vector is coordinatewise &ge; than some
-non-negative linear combination of extremal solutions.
+The *solution* of a MOLP is the list of all extremal objective vectors. For a 
+minimizing (maximizing) MOLP the objective vector **y** is *extremal*, if there 
+is no other achievable objective vector **y**' which would be coordinatewise &le; 
+(or &ge; when maximizing) than **y**. 
 
-The solution set is always unique, and the MOLP solver's task is to find it. 
-Extremal solutions are called *vertices* as they form the vertices of an
+MOLP solver's task is to find the collection of all extremal objective vectors.
+These extremal vectors are called *vertices* as they form the vertices of an
 (unbounded) convex m-dimensional polytope.
 
-This MOLP solver finds the extremal solutions by *iterations*. In each 
-iteration step one more extremal solution is added to the final list. The
+This MOLP solver finds the extremal vectors by *iterations*. In each 
+iteration step one more extremal vector is added to the final list. The
 time required for an iteration varies widely from a couple of microseconds
 to several days. After each iteration the solver checks if the process
 was interrupted. If yes, it switches to a quick and dirty method which
-might find further extremal solutions (but not necessarily all of them).
+might find further extremal vectors (but not necessarily all of them).
 
 
 #### RESTRICTIONS
@@ -83,8 +83,8 @@ of the problem in vlp format. Accepted options are
 | `-q`         | quiet, same as `-m0`. Implies `--PrintStatistics=0` |
 | `-p T`       | progress report in every T seconds (default: T=5) |
 | `-p 0`       | no progress report |
-| `-y+`        | report vertices immediately when generated (default) |
-| `-y-`        | do not report vertices when generated |
+| `-y+`        | report extremal solutions (vertices) immediately when generated (default) |
+| `-y-`        | do not report extremal solutions when generated |
 | `--KEYWORD=value` | change value of a config keyword |
 
 #### CONFIGURATION PARAMETERS
@@ -139,7 +139,7 @@ The program uses a patched version of glpk, the GNU Linear Program Kit.
 First, glpk should be compiled after the patch has been applied. Unpack the
 glpk source. Change to the `glpk-X.Y` directory, and execute the command
 
-    patch -p1 < ../patch-X.Y.txt
+    patch -p1 < ../src/patch-X.Y.txt
 
 assuming you have unpacked glpk in your `INNER` the directory. Still in the
 `glpk-X.Y` directory run 'configure' and 'make' as follows:
@@ -150,10 +150,11 @@ assuming you have unpacked glpk in your `INNER` the directory. Still in the
 You must define `CSL` as all patches to glpk are encapsulated in `#ifdef CSL`
 blocks.
 
-Going back to `INNER`, the following command compiles a static version of
-this program with name `NAME`:
+Changing to the directory `INNER/src`, the following command compiles
+program with name `NAME` linking the patched glpk routines statically:
 
-    gcc -O3 -W -I glpk-X.Y/src -o NAME -DPROG=NAME *.c glpk-X.Y/src/.libs/libglpk.a -lm
+    gcc -O3 -W -I ../glpk-X.Y/src -o NAME -DPROG=NAME *.c ../glpk-X.Y/src/.libs/libglpk.a -lm
+
 
 #### EXAMPLES
 
