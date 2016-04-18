@@ -114,7 +114,7 @@ inline static int ask_oracle_with_timer(void)
 /*******************************************************************
 * Progress report
 *
-* unsigned long progresstime, progressdalay
+* unsigned long progresstime, progressdelay
 *    when the last progress report was made
 *    minimum delay between two reports, in 0.01 seconds (set in inner)
 * void progress_stat(unsigned long thistime)
@@ -250,7 +250,7 @@ static void dump_and_save(int how)
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
     }
     if(PARAMS(PrintParams)){
-        report(R_txt, DASHSEP "\nParameters with new values\n");
+        report(R_txt, DASHSEP "\nParameters with non-default values\n");
         show_parameters();
     }
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){

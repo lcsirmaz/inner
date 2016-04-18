@@ -275,10 +275,8 @@ static int DIM; // problem dimension = number of objectives
 #ifdef BITMAP_32		/* 32 bit bitmap */
 typedef uint32_t BITMAP_t;
 #define packsizelog	2	/* sizeof(BITMAP_t)== 1<<packsizelog */
-
 #else				/* 64 bit bitmap */
 typedef uint64_t BITMAP_t;
-typedef union {BITMAP_t u; struct { uint32_t i1,i2;}i; } SPLIT_BITMAP_t;
 #define packsizelog	3	/* sizeof(BITMAP_t)== 1<<packsizelog */
 #endif
 
@@ -517,8 +515,43 @@ inline static void intersect_VertexAdj_Fliving(int vno)
 *
 * get_dd_facetno()
 *   computes the number of living and final facets.
+*
+* int bitcnt_mask, bitcnt_shift
+*    number of bits stored for the last bitcnt_shift many bits
+*
+* char bitcnt[0..bitcnt_mask]
+*    number of bits in the index. Used to speed up counting bits
+*    in a bitmap.
+*
+* int add_bitcount(BITMAP_t v, int *total)
+*    add the number of bits set in v to *total
 */
 DD_STATS dd_stats;
+
+#define bitcnt_shift	8
+#define bitcnt_mask	((1u<<bitcnt_shift)-1u)
+
+static char bitcnt[] = {
+0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,
+1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
+};
+
+#define add_bitcount(v,total)	\
+    while(v){ total += bitcnt[(v)&bitcnt_mask]; (v)>>=bitcnt_shift; }
 
 void get_dd_facetno(void) // get the number living and final facets
 {int fno,i; BITMAP_t v;
@@ -527,16 +560,10 @@ void get_dd_facetno(void) // get the number living and final facets
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
         v=FacetLiving[i];
         if(v==~BITMAP0){ dd_stats.living_facets_no+=(1<<packshift); }
-        else while(v){
-            if(v&1) dd_stats.living_facets_no++;
-            v>>=1;
-        }
+        else add_bitcount(v,dd_stats.living_facets_no);
         v=FacetFinal[i];
         if(v==~BITMAP0){ dd_stats.final_facets_no +=(1<<packshift); }
-        else while(v){
-            if(v&1) dd_stats.final_facets_no++;
-            v>>=1;
-        }
+        else add_bitcount(v,dd_stats.final_facets_no);
         fno += (1<<packshift);
     }
     if(dd_stats.final_facets_no<0) dd_stats.final_facets_no=0;
@@ -1129,62 +1156,35 @@ double probe_vertex(double *coords) /* return the number of ridge tests */
 
 /** compute how many vertices are adjacent to both f1 and f2 **/
 inline static int facet_intersection(int f1, int f2)
-{int i,total; register BITMAP_t *L1,*L2;
-#ifdef BITMAP_32
-    BITMAP_t v;
+{int i,total; register BITMAP_t *L1,*L2, v;
     total=0; L1=FACET_adj(f1); L2=FACET_adj(f2);
     for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
-        v=VertexWork[i]= (*L1)&(*L2);
-        while(v){if(v&1) total++; v>>=1; }
+        v=VertexWork[i]=(*L1)&(*L2);
+        add_bitcount(v,total);
     }
-#else
-    SPLIT_BITMAP_t vv;
-    total=0; L1=FACET_adj(f1); L2=FACET_adj(f2);
-    for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
-        vv.u=VertexWork[i]= (*L1)&(*L2);
-        while(vv.i.i1){if(vv.i.i1&1) total++; vv.i.i1>>=1; }
-        while(vv.i.i2){if(vv.i.i2&1) total++; vv.i.i2>>=1; }
-    }
-#endif
     return total;
 }
 
 /** combinatorial test whether f1 and f2 intersect in a ridge **/
 inline static int is_ridge(int f1,int f2)
-{int vertexno,i,j;
+{int vertexno,i,j; BITMAP_t v;
      // get vertices adjacent to both f1 and f2 into VertexWork
     if(facet_intersection(f1,f2) < DIM-1){
          return 0; // no
     }
     copy_Fliving_to_Fwork();
-#ifdef BITMAP_32
-    {BITMAP_t v;
     vertexno=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
-        j=vertexno; v=VertexWork[i];
-        while(v){
-            if(v&1){ intersect_Fwork_with_vertex(j); }
-            j++; v>>=1;
+        if((v=VertexWork[i])){
+            j=vertexno; v=VertexWork[i];
+            while(v){
+                while((v&7)==0){ j+=3; v>>=3; }
+                if(v&1){ intersect_Fwork_with_vertex(j); }
+                j++; v>>=1;
+            }
         }
         vertexno += (1<<packshift);
-    }}
-#else
-    {uint32_t *vv, v;
-    vertexno=0; vv=(uint32_t *)VertexWork;
-    for(i=0;i<VertexBitmapBlockSize;i++){
-        j=vertexno; v=*vv;
-        while(v){
-            if(v&1){ intersect_Fwork_with_vertex(j); }
-            j++; v>>=1;
-        }
-        vertexno += (1<<(packshift-1)); j=vertexno; vv++; v=*vv; 
-        while(v){
-            if(v&1){ intersect_Fwork_with_vertex(j); }
-            j++; v>>=1;
-        }
-        vv++; vertexno += (1<<(packshift-1));
-    }}
-#endif
+    }
     // only f1 and f2 should remain, if any other remains, no
     clear_facet_in_Fwork(f1); clear_facet_in_Fwork(f2);
     for(i=0;i<FacetBitmapBlockSize;i++){
@@ -1222,13 +1222,19 @@ inline static void search_ridges_with(int f1, int newvertex)
 {int i,j,f2; BITMAP_t f2c;
     f2=0;
     for(i=0;i<FacetBitmapBlockSize;i++){
-        if(OUT_OF_MEMORY) return;
-        j=f2; f2c=FacetPositive[i];
-        while(f2c){
-            if((f2c&1) && is_ridge(f1,j)){
-                create_new_facet(f1,j,newvertex);
+        if((f2c=FacetPositive[i])){
+            j=f2;
+#ifndef BITMAP_32
+            if((f2c&0xffffffffu)==0){ j+=32; f2c>>=32; }
+#endif
+            while(f2c){
+                while((f2c&0x7)==0){ j+=3; f2c>>=3; }
+                if((f2c&1) && is_ridge(f1,j)){
+                    create_new_facet(f1,j,newvertex);
+                }
+                j++; f2c>>=1;
             }
-            j++; f2c>>=1;
+            if(OUT_OF_MEMORY) return;
         }
         f2+=(1<<packshift);
     }
@@ -1241,6 +1247,7 @@ static void make_facet_living(int fno)
     vno=0; for(i=0;i<VertexBitmapBlockSize;i++){
         j=vno; fc=FACET_adj(fno)[i];
         while(fc){
+            while((fc&7)==0){ j+=3; fc>>=3; }
             if(fc&1){set_VertexAdj(j,fno);}
             j++; fc>>=1;
         }
@@ -1288,6 +1295,7 @@ void add_new_vertex(double *coords)
     fno=0;for(i=0;i<FacetBitmapBlockSize;i++){
         j=fno; fc=FacetNegative[i];
         while(fc){
+            while((fc&7)==0){ j+=3; fc>>=3; }
             if(fc&1){search_ridges_with(j,thisvertex);}
             j++; fc>>=1;
         }
@@ -1322,6 +1330,7 @@ void add_new_vertex(double *coords)
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
         j=fno; fc=~FacetLiving[i]; // complement ...
         while(fc){
+            while((fc&7)==0){ j+=3; fc>>=3; }
             if((fc&1)){
                 if(j>=newfacet) goto finish_compress;
                 move_lastfacet_to(j); set_facet_in_Fwork(j);
@@ -1345,6 +1354,7 @@ void add_new_vertex(double *coords)
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
         j=fno; fc=FacetWork[i];
         while(fc){
+            while((fc&7)==0){ j+=3; fc>>=3; }
             if(fc&1){ make_facet_living(j); }
             j++; fc>>=1;
         }
