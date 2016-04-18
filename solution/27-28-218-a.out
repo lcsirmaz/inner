@@ -1,0 +1,79 @@
+C a44, string: ab:cd
+C MOLP problem=27-28-218-a.vlp, minimize
+C rows=28, columns=218, objectives=27
+I    5.10] Elapsed: 5.10, vertices: 26, facets final: 13, pending: 6800
+I   10.52] Elapsed: 10.52, vertices: 34, facets final: 17, pending: 9467
+I   15.57] Elapsed: 15.57, vertices: 38, facets final: 18, pending: 9302
+I   20.90] Elapsed: 20.90, vertices: 43, facets final: 26, pending: 8554
+I   25.91] Elapsed: 25.91, vertices: 48, facets final: 32, pending: 8901
+I   32.78] Elapsed: 32.78, vertices: 55, facets final: 45, pending: 8432
+I   40.33] Elapsed: 40.33, vertices: 60, facets final: 48, pending: 16333
+I   45.73] Elapsed: 45.73, vertices: 67, facets final: 87, pending: 15338
+I   52.09] Elapsed: 52.09, vertices: 75, facets final: 117, pending: 19113
+I   57.30] Elapsed: 57.30, vertices: 79, facets final: 132, pending: 20880
+I   64.19] Elapsed: 1:04, vertices: 86, facets final: 174, pending: 22942
+I   69.78] Elapsed: 1:10, vertices: 96, facets final: 210, pending: 25637
+I   71.06] recalculating facets...
+I   75.73] Elapsed: 1:16, vertices: 105, facets final: 230, pending: 26058
+I   81.35] Elapsed: 1:21, vertices: 109, facets final: 257, pending: 28204
+I   87.05] Elapsed: 1:27, vertices: 119, facets final: 301, pending: 28543
+I   92.43] Elapsed: 1:32, vertices: 122, facets final: 308, pending: 29835
+I   97.65] Elapsed: 1:38, vertices: 137, facets final: 356, pending: 30752
+I  102.93] Elapsed: 1:43, vertices: 141, facets final: 376, pending: 32421
+I  108.59] Elapsed: 1:49, vertices: 151, facets final: 416, pending: 32577
+I  113.80] Elapsed: 1:54, vertices: 159, facets final: 470, pending: 32590
+I  118.97] Elapsed: 1:59, vertices: 166, facets final: 505, pending: 32793
+I  124.00] Elapsed: 2:04, vertices: 178, facets final: 562, pending: 33003
+I  129.93] Elapsed: 2:10, vertices: 192, facets final: 690, pending: 32874
+I  132.35] recalculating facets...
+I  135.19] Elapsed: 2:15, vertices: 207, facets final: 889, pending: 32719
+I  141.67] Elapsed: 2:22, vertices: 225, facets final: 1075, pending: 33016
+I  146.83] Elapsed: 2:27, vertices: 241, facets final: 1213, pending: 33121
+I  151.83] Elapsed: 2:32, vertices: 265, facets final: 1534, pending: 33145
+I  156.99] Elapsed: 2:37, vertices: 287, facets final: 1775, pending: 33097
+I  160.04] recalculating facets...
+I  162.26] Elapsed: 2:42, vertices: 307, facets final: 2218, pending: 33041
+I  167.57] Elapsed: 2:48, vertices: 316, facets final: 2315, pending: 33144
+I  172.69] Elapsed: 2:53, vertices: 339, facets final: 2808, pending: 32623
+I  177.86] Elapsed: 2:58, vertices: 364, facets final: 3325, pending: 32298
+I  183.02] Elapsed: 3:03, vertices: 394, facets final: 4396, pending: 31429
+I  183.77] recalculating facets...
+I  188.86] Elapsed: 3:09, vertices: 428, facets final: 6507, pending: 29472
+I  193.86] Elapsed: 3:14, vertices: 459, facets final: 9066, pending: 27316
+I  199.13] Elapsed: 3:19, vertices: 491, facets final: 11621, pending: 25240
+I  201.37] recalculating facets...
+I  204.13] Elapsed: 3:24, vertices: 522, facets final: 14605, pending: 22198
+I  209.13] Elapsed: 3:29, vertices: 565, facets final: 22329, pending: 14934
+I  213.74] recalculating facets...
+I  214.22] Elapsed: 3:34, vertices: 601, facets final: 30335, pending: 7081
+I  217.88] Elapsed: 3:38, vertices: 623, facets final: 37534, pending: 0
+
+--------------------------------
+Problem completed
+ name                    27-28-218-a.vlp
+ output                  solution/27-28-218-a.res
+ rows, cols, objs        28, 218, 27
+ vertices, facets        623, 37534
+ total time              3:38
+--------------------------------
+Statistics
+LP:
+ oracle calls            38157
+   avg iterations/calls  31.37
+ total oracle time       18.08
+Combinatorics:
+ vertices added          623
+ facets probed           38157
+ facets # max            37555
+ memory allocated        17.68M
+ storage expansion
+   vertices # / upto     6 / 764
+   facets   # / upto     10 / 40956
+ facet manipulating
+   compress / increase   347 / 7
+   added avg / max       260.53 / 8.02k
+ number of ridge tests
+   avg / max             1.67M / 44.67M
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

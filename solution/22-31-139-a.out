@@ -1,0 +1,43 @@
+C maximal rule for rs=cd:ab; ac,bc,cr,cs
+C MOLP problem=22-31-139-a.vlp, minimize
+C rows=31, columns=139, objectives=22
+I    7.21] Elapsed: 7.21, vertices: 48, facets final: 4318, pending: 17172
+I   13.69] Elapsed: 13.69, vertices: 49, facets final: 4319, pending: 20376
+I   19.43] Elapsed: 19.43, vertices: 50, facets final: 4321, pending: 22202
+I   25.64] Elapsed: 25.64, vertices: 52, facets final: 4326, pending: 17751
+I   31.59] Elapsed: 31.59, vertices: 55, facets final: 4329, pending: 16695
+I   36.97] Elapsed: 36.97, vertices: 61, facets final: 4354, pending: 17257
+I   42.86] Elapsed: 42.86, vertices: 67, facets final: 4461, pending: 17826
+I   47.93] Elapsed: 47.93, vertices: 73, facets final: 4515, pending: 18716
+I   52.93] Elapsed: 52.93, vertices: 85, facets final: 9661, pending: 11000
+I   55.91] Elapsed: 55.91, vertices: 85, facets final: 20661, pending: 0
+
+--------------------------------
+Problem completed
+ name                    22-31-139-a.vlp
+ output                  solution/22-31-139-a.res
+ rows, cols, objs        31, 139, 22
+ vertices, facets        85, 20661
+ total time              55.91
+--------------------------------
+Statistics
+LP:
+ oracle calls            20746
+   avg iterations/calls  17.91
+ total oracle time       5.65
+Combinatorics:
+ vertices added          85
+ facets probed           20746
+ facets # max            27690
+ memory allocated        8.92M
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     10 / 40956
+ facet manipulating
+   compress / increase   39 / 3
+   added avg / max       1.36k / 13.12k
+ number of ridge tests
+   avg / max             14.02M / 103.43M
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

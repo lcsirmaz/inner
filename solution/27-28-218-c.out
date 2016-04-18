@@ -1,0 +1,105 @@
+C a44, string: cd:ab
+C MOLP problem=27-28-218-c.vlp, minimize
+C rows=28, columns=218, objectives=27
+I    6.77] Elapsed: 6.77, vertices: 20, facets final: 4, pending: 19568
+I   12.82] Elapsed: 12.82, vertices: 21, facets final: 4, pending: 27935
+I   19.39] Elapsed: 19.39, vertices: 22, facets final: 4, pending: 21384
+I   26.55] Elapsed: 26.55, vertices: 23, facets final: 4, pending: 23656
+I   32.80] Elapsed: 32.80, vertices: 24, facets final: 4, pending: 22552
+I   43.04] Elapsed: 43.04, vertices: 26, facets final: 4, pending: 15194
+I   54.58] Elapsed: 54.58, vertices: 28, facets final: 4, pending: 20284
+I   64.93] Elapsed: 1:05, vertices: 29, facets final: 4, pending: 43999
+I   77.65] Elapsed: 1:18, vertices: 30, facets final: 4, pending: 37939
+I   92.23] Elapsed: 1:32, vertices: 31, facets final: 4, pending: 35776
+I  117.65] Elapsed: 1:58, vertices: 32, facets final: 4, pending: 35417
+I  133.43] Elapsed: 2:13, vertices: 33, facets final: 4, pending: 35785
+I  147.06] Elapsed: 2:27, vertices: 34, facets final: 4, pending: 24242
+I  173.80] Elapsed: 2:54, vertices: 35, facets final: 4, pending: 42228
+I  206.47] Elapsed: 3:26, vertices: 36, facets final: 4, pending: 57443
+I  279.69] Elapsed: 4:40, vertices: 37, facets final: 4, pending: 58738
+I  322.19] Elapsed: 5:22, vertices: 38, facets final: 4, pending: 53754
+I  342.00] Elapsed: 5:42, vertices: 39, facets final: 4, pending: 48368
+I  386.20] Elapsed: 6:26, vertices: 40, facets final: 4, pending: 31721
+I  395.74] Elapsed: 6:36, vertices: 41, facets final: 4, pending: 35806
+I  412.08] Elapsed: 6:52, vertices: 42, facets final: 4, pending: 41598
+I  429.11] Elapsed: 7:09, vertices: 43, facets final: 4, pending: 23432
+I  440.61] Elapsed: 7:21, vertices: 44, facets final: 4, pending: 34867
+I  454.59] Elapsed: 7:35, vertices: 45, facets final: 4, pending: 35876
+I  470.93] Elapsed: 7:51, vertices: 46, facets final: 4, pending: 33147
+I  483.21] Elapsed: 8:03, vertices: 47, facets final: 4, pending: 36497
+I  503.12] Elapsed: 8:23, vertices: 48, facets final: 4, pending: 30038
+I  511.36] Elapsed: 8:31, vertices: 49, facets final: 4, pending: 18166
+I  519.28] Elapsed: 8:39, vertices: 51, facets final: 5, pending: 17766
+I  525.41] Elapsed: 8:45, vertices: 53, facets final: 5, pending: 16263
+I  541.36] Elapsed: 9:01, vertices: 54, facets final: 6, pending: 16787
+I  549.46] Elapsed: 9:09, vertices: 56, facets final: 9, pending: 14199
+I  569.31] Elapsed: 9:29, vertices: 57, facets final: 10, pending: 13704
+I  574.48] Elapsed: 9:34, vertices: 61, facets final: 60, pending: 13534
+I  579.86] Elapsed: 9:40, vertices: 68, facets final: 131, pending: 15480
+I  591.98] Elapsed: 9:52, vertices: 73, facets final: 204, pending: 17597
+I  597.17] Elapsed: 9:57, vertices: 75, facets final: 229, pending: 17802
+I  605.33] Elapsed: 10:05, vertices: 78, facets final: 261, pending: 20243
+I  612.01] Elapsed: 10:12, vertices: 80, facets final: 262, pending: 21340
+I  619.32] Elapsed: 10:19, vertices: 83, facets final: 293, pending: 22725
+I  624.51] Elapsed: 10:25, vertices: 91, facets final: 378, pending: 23178
+I  631.71] Elapsed: 10:32, vertices: 94, facets final: 390, pending: 24719
+I  637.63] Elapsed: 10:38, vertices: 97, facets final: 436, pending: 25800
+I  638.66] recalculating facets...
+I  642.96] Elapsed: 10:43, vertices: 106, facets final: 600, pending: 27362
+I  649.45] Elapsed: 10:49, vertices: 121, facets final: 877, pending: 29120
+I  655.17] Elapsed: 10:55, vertices: 131, facets final: 1061, pending: 29279
+I  660.59] Elapsed: 11:01, vertices: 139, facets final: 1169, pending: 29772
+I  666.41] Elapsed: 11:06, vertices: 150, facets final: 1323, pending: 29797
+I  671.52] Elapsed: 11:12, vertices: 163, facets final: 1568, pending: 29621
+I  676.78] Elapsed: 11:17, vertices: 175, facets final: 1714, pending: 29922
+I  681.80] Elapsed: 11:22, vertices: 182, facets final: 1849, pending: 29901
+I  687.05] Elapsed: 11:27, vertices: 197, facets final: 2454, pending: 29456
+I  688.70] recalculating facets...
+I  692.24] Elapsed: 11:32, vertices: 211, facets final: 2957, pending: 29029
+I  697.27] Elapsed: 11:37, vertices: 241, facets final: 3947, pending: 28292
+I  702.40] Elapsed: 11:42, vertices: 272, facets final: 4570, pending: 28001
+I  707.41] Elapsed: 11:47, vertices: 298, facets final: 5079, pending: 27800
+I  707.48] recalculating facets...
+I  713.38] Elapsed: 11:53, vertices: 332, facets final: 6344, pending: 27221
+I  718.77] Elapsed: 11:59, vertices: 346, facets final: 7125, pending: 26522
+I  723.77] Elapsed: 12:04, vertices: 376, facets final: 9113, pending: 24623
+I  729.18] Elapsed: 12:09, vertices: 394, facets final: 10285, pending: 23641
+I  729.98] recalculating facets...
+I  734.39] Elapsed: 12:14, vertices: 414, facets final: 12337, pending: 21768
+I  739.57] Elapsed: 12:20, vertices: 441, facets final: 14143, pending: 20472
+I  745.38] Elapsed: 12:25, vertices: 475, facets final: 16435, pending: 18289
+I  747.51] recalculating facets...
+I  750.41] Elapsed: 12:30, vertices: 532, facets final: 22545, pending: 12459
+I  755.41] Elapsed: 12:35, vertices: 596, facets final: 32967, pending: 2586
+I  755.75] recalculating facets...
+I  757.08] Elapsed: 12:37, vertices: 619, facets final: 35573, pending: 0
+
+--------------------------------
+Problem completed
+ name                    27-28-218-c.vlp
+ output                  solution/27-28-218-c.res
+ rows, cols, objs        28, 218, 27
+ vertices, facets        619, 35573
+ total time              12:37
+--------------------------------
+Statistics
+LP:
+ oracle calls            36192
+   avg iterations/calls  22.93
+ total oracle time       14.22
+Combinatorics:
+ vertices added          619
+ facets probed           36192
+ facets # max            58743
+ memory allocated        42.92M
+ storage expansion
+   vertices # / upto     6 / 764
+   facets   # / upto     26 / 106492
+ facet manipulating
+   compress / increase   531 / 4
+   added avg / max       792.74 / 36.16k
+ number of ridge tests
+   avg / max             9.16M / 735.45M
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

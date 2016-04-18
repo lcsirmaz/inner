@@ -1,0 +1,37 @@
+C maximal rule for rs=cd:ab; a,b,c,dr
+C MOLP problem=22-30-139-b.vlp, minimize
+C rows=30, columns=139, objectives=22
+I    5.01] Elapsed: 5.01, vertices: 40, facets final: 3591, pending: 8901
+I   10.35] Elapsed: 10.35, vertices: 53, facets final: 3658, pending: 14047
+I   15.35] Elapsed: 15.35, vertices: 71, facets final: 11642, pending: 14239
+I   19.11] Elapsed: 19.11, vertices: 72, facets final: 25817, pending: 0
+
+--------------------------------
+Problem completed
+ name                    22-30-139-b.vlp
+ output                  solution/22-30-139-b.res
+ rows, cols, objs        30, 139, 22
+ vertices, facets        72, 25817
+ total time              19.11
+--------------------------------
+Statistics
+LP:
+ oracle calls            25889
+   avg iterations/calls  18.21
+ total oracle time       6.87
+Combinatorics:
+ vertices added          72
+ facets probed           25889
+ facets # max            25882
+ memory allocated        9.21M
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     10 / 40956
+ facet manipulating
+   compress / increase   21 / 5
+   added avg / max       911.49 / 12.74k
+ number of ridge tests
+   avg / max             5.72M / 50.89M
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

@@ -1,0 +1,42 @@
+C maximal rule for r=c:ab;s=(ar):bc; a,s,c,d
+C MOLP problem=22-42-227-a.vlp, minimize
+C rows=42, columns=227, objectives=22
+I    5.19] Elapsed: 5.19, vertices: 46, facets final: 89, pending: 11753
+I   10.30] Elapsed: 10.30, vertices: 63, facets final: 129, pending: 10996
+I   73.23] Elapsed: 1:13, vertices: 91, facets final: 534, pending: 44184
+I  112.92] Elapsed: 1:53, vertices: 92, facets final: 542, pending: 55608
+I  136.74] Elapsed: 2:17, vertices: 93, facets final: 543, pending: 41143
+I  141.74] Elapsed: 2:22, vertices: 97, facets final: 5460, pending: 33682
+I  146.74] Elapsed: 2:27, vertices: 97, facets final: 16914, pending: 22228
+I  151.74] Elapsed: 2:32, vertices: 97, facets final: 28329, pending: 10813
+I  156.30] Elapsed: 2:36, vertices: 97, facets final: 39142, pending: 0
+
+--------------------------------
+Problem completed
+ name                    22-42-227-a.vlp
+ output                  solution/22-42-227-a.res
+ rows, cols, objs        42, 227, 22
+ vertices, facets        97, 39142
+ total time              2:36
+--------------------------------
+Statistics
+LP:
+ oracle calls            39239
+   avg iterations/calls  23.26
+ total oracle time       16.92
+Combinatorics:
+ vertices added          97
+ facets probed           39239
+ facets # max            56151
+ memory allocated        14.52M
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     16 / 65532
+ facet manipulating
+   compress / increase   46 / 5
+   added avg / max       1.20k / 19.76k
+ number of ridge tests
+   avg / max             13.05M / 395.42M
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

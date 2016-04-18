@@ -1,0 +1,34 @@
+C maximal rule for r=a:bc; ar,br,cr,d
+C MOLP problem=22-22-88-a.vlp, minimize
+C rows=22, columns=88, objectives=22
+I    0.85] Elapsed: 0.85, vertices: 29, facets final: 5687, pending: 0
+
+--------------------------------
+Problem completed
+ name                    22-22-88-a.vlp
+ output                  solution/22-22-88-a.res
+ rows, cols, objs        22, 88, 22
+ vertices, facets        29, 5687
+ total time              0.85
+--------------------------------
+Statistics
+LP:
+ oracle calls            5716
+   avg iterations/calls  10.30
+ total oracle time       0.83
+Combinatorics:
+ vertices added          29
+ facets probed           5716
+ facets # max            5688
+ memory allocated        1.87M
+ storage expansion
+   vertices # / upto     1 / 124
+   facets   # / upto     2 / 8188
+ facet manipulating
+   compress / increase   2 / 1
+   added avg / max       255.00 / 2.69k
+ number of ridge tests
+   avg / max             23.93k / 302.22k
+--------------------------------
+Parameters with new values
+ RandomFacet = 1

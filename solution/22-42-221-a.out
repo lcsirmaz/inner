@@ -1,0 +1,165 @@
+C maximal rule for r=a:bc;s=r:ab; s,b,c,d
+C MOLP problem=22-42-221-a.vlp, minimize
+C rows=42, columns=221, objectives=22
+I   10.46] Elapsed: 10.46, vertices: 25, facets final: 10, pending: 54857
+I   18.80] Elapsed: 18.80, vertices: 26, facets final: 10, pending: 55622
+I   35.25] Elapsed: 35.25, vertices: 27, facets final: 10, pending: 56290
+I   63.96] Elapsed: 1:04, vertices: 28, facets final: 10, pending: 47954
+I   79.25] Elapsed: 1:19, vertices: 29, facets final: 10, pending: 43262
+I   92.02] Elapsed: 1:32, vertices: 30, facets final: 10, pending: 62354
+I  121.42] Elapsed: 2:01, vertices: 31, facets final: 10, pending: 53662
+I  147.41] Elapsed: 2:27, vertices: 32, facets final: 10, pending: 61985
+I  166.82] Elapsed: 2:47, vertices: 33, facets final: 10, pending: 62641
+I  188.81] Elapsed: 3:09, vertices: 34, facets final: 10, pending: 79237
+I  212.89] Elapsed: 3:33, vertices: 35, facets final: 10, pending: 58841
+I  254.93] Elapsed: 4:15, vertices: 36, facets final: 10, pending: 59874
+I  299.13] Elapsed: 4:59, vertices: 37, facets final: 10, pending: 62549
+I  324.38] Elapsed: 5:24, vertices: 38, facets final: 10, pending: 64189
+I  347.38] Elapsed: 5:47, vertices: 39, facets final: 10, pending: 68302
+I  362.07] Elapsed: 6:02, vertices: 40, facets final: 11, pending: 71576
+I  382.50] Elapsed: 6:23, vertices: 41, facets final: 11, pending: 81594
+I  393.91] Elapsed: 6:34, vertices: 42, facets final: 11, pending: 81560
+I  437.27] Elapsed: 7:17, vertices: 43, facets final: 11, pending: 110393
+I  487.08] Elapsed: 8:07, vertices: 44, facets final: 11, pending: 94345
+I  564.40] Elapsed: 9:24, vertices: 45, facets final: 11, pending: 102877
+I  613.39] Elapsed: 10:13, vertices: 46, facets final: 11, pending: 106660
+I  655.54] Elapsed: 10:56, vertices: 47, facets final: 11, pending: 103074
+I  703.49] Elapsed: 11:43, vertices: 48, facets final: 11, pending: 95498
+I  744.95] Elapsed: 12:25, vertices: 49, facets final: 11, pending: 95306
+I  804.25] Elapsed: 13:24, vertices: 50, facets final: 11, pending: 87623
+I  830.27] Elapsed: 13:50, vertices: 51, facets final: 12, pending: 88718
+I  883.16] Elapsed: 14:43, vertices: 52, facets final: 13, pending: 86073
+I  896.88] Elapsed: 14:57, vertices: 53, facets final: 13, pending: 167041
+I  948.30] Elapsed: 15:48, vertices: 54, facets final: 13, pending: 161409
+I  993.53] Elapsed: 16:34, vertices: 55, facets final: 13, pending: 159575
+I 1047.77] Elapsed: 17:28, vertices: 56, facets final: 13, pending: 156911
+I 1084.46] Elapsed: 18:04, vertices: 57, facets final: 13, pending: 148143
+I 1154.67] Elapsed: 19:15, vertices: 58, facets final: 13, pending: 158622
+I 1181.91] Elapsed: 19:42, vertices: 59, facets final: 13, pending: 160286
+I 1260.90] Elapsed: 21:01, vertices: 60, facets final: 13, pending: 154355
+I 1390.37] Elapsed: 23:10, vertices: 61, facets final: 14, pending: 145522
+I 1429.14] Elapsed: 23:49, vertices: 62, facets final: 14, pending: 137906
+I 1513.59] Elapsed: 25:14, vertices: 63, facets final: 14, pending: 136722
+I 1743.94] Elapsed: 29:04, vertices: 64, facets final: 14, pending: 167445
+I 1935.83] Elapsed: 32:16, vertices: 65, facets final: 14, pending: 176402
+I 2072.55] Elapsed: 34:33, vertices: 66, facets final: 14, pending: 153674
+I 2198.96] Elapsed: 36:39, vertices: 67, facets final: 14, pending: 115498
+I 2252.79] Elapsed: 37:33, vertices: 68, facets final: 14, pending: 107848
+I 2292.51] Elapsed: 38:13, vertices: 69, facets final: 14, pending: 101883
+I 2378.62] Elapsed: 39:39, vertices: 70, facets final: 14, pending: 104187
+I 2390.55] Elapsed: 39:51, vertices: 71, facets final: 14, pending: 101879
+I 2397.76] Elapsed: 39:58, vertices: 72, facets final: 14, pending: 99063
+I 2478.89] Elapsed: 41:19, vertices: 73, facets final: 15, pending: 80218
+I 2487.62] Elapsed: 41:28, vertices: 74, facets final: 16, pending: 86657
+I 2539.73] Elapsed: 42:20, vertices: 75, facets final: 17, pending: 95168
+I 2563.81] Elapsed: 42:44, vertices: 76, facets final: 18, pending: 91027
+I 2605.42] Elapsed: 43:25, vertices: 77, facets final: 19, pending: 90898
+I 2652.34] Elapsed: 44:12, vertices: 78, facets final: 20, pending: 88921
+I 2692.20] Elapsed: 44:52, vertices: 79, facets final: 23, pending: 83646
+I 2700.98] Elapsed: 45:01, vertices: 80, facets final: 24, pending: 81453
+I 2744.38] Elapsed: 45:44, vertices: 82, facets final: 24, pending: 84069
+I 2761.27] Elapsed: 46:01, vertices: 83, facets final: 25, pending: 80154
+I 2791.32] Elapsed: 46:31, vertices: 84, facets final: 29, pending: 72766
+I 2819.61] Elapsed: 47:00, vertices: 85, facets final: 30, pending: 72701
+I 2834.03] Elapsed: 47:14, vertices: 86, facets final: 33, pending: 66762
+I 2851.20] Elapsed: 47:31, vertices: 87, facets final: 33, pending: 57674
+I 2866.36] Elapsed: 47:46, vertices: 88, facets final: 34, pending: 54759
+I 2886.61] Elapsed: 48:07, vertices: 89, facets final: 37, pending: 52804
+I 2934.66] Elapsed: 48:55, vertices: 91, facets final: 40, pending: 56961
+I 2944.67] Elapsed: 49:05, vertices: 92, facets final: 41, pending: 54016
+I 2953.43] Elapsed: 49:13, vertices: 93, facets final: 42, pending: 53839
+I 2991.44] Elapsed: 49:51, vertices: 95, facets final: 51, pending: 51814
+I 3004.04] Elapsed: 50:04, vertices: 96, facets final: 52, pending: 47621
+I 3010.20] Elapsed: 50:10, vertices: 97, facets final: 57, pending: 45184
+I 3036.81] Elapsed: 50:37, vertices: 98, facets final: 57, pending: 46142
+I 3058.30] Elapsed: 50:58, vertices: 100, facets final: 59, pending: 46820
+I 3058.30] recalculating facets...
+I 3070.00] Elapsed: 51:10, vertices: 101, facets final: 61, pending: 52514
+I 3076.45] Elapsed: 51:16, vertices: 104, facets final: 64, pending: 51941
+I 3096.93] Elapsed: 51:37, vertices: 106, facets final: 64, pending: 46661
+I 3103.00] Elapsed: 51:43, vertices: 107, facets final: 64, pending: 44965
+I 3110.41] Elapsed: 51:50, vertices: 108, facets final: 65, pending: 42596
+I 3139.50] Elapsed: 52:20, vertices: 109, facets final: 66, pending: 41515
+I 3145.01] Elapsed: 52:25, vertices: 111, facets final: 86, pending: 44087
+I 3152.93] Elapsed: 52:33, vertices: 112, facets final: 98, pending: 44299
+I 3161.48] Elapsed: 52:41, vertices: 115, facets final: 115, pending: 42202
+I 3170.03] Elapsed: 52:50, vertices: 116, facets final: 136, pending: 44181
+I 3183.00] Elapsed: 53:03, vertices: 117, facets final: 151, pending: 43590
+I 3190.50] Elapsed: 53:11, vertices: 119, facets final: 161, pending: 42536
+I 3197.03] Elapsed: 53:17, vertices: 120, facets final: 168, pending: 41697
+I 3209.05] Elapsed: 53:29, vertices: 121, facets final: 183, pending: 39355
+I 3219.14] Elapsed: 53:39, vertices: 124, facets final: 210, pending: 36896
+I 3226.11] Elapsed: 53:46, vertices: 128, facets final: 288, pending: 32562
+I 3231.90] Elapsed: 53:52, vertices: 129, facets final: 310, pending: 32732
+I 3245.66] Elapsed: 54:06, vertices: 131, facets final: 320, pending: 33426
+I 3256.01] Elapsed: 54:16, vertices: 132, facets final: 341, pending: 34877
+I 3263.52] Elapsed: 54:24, vertices: 134, facets final: 358, pending: 34292
+I 3285.80] Elapsed: 54:46, vertices: 135, facets final: 363, pending: 65499
+I 3296.80] Elapsed: 54:57, vertices: 136, facets final: 370, pending: 69204
+I 3303.94] Elapsed: 55:04, vertices: 137, facets final: 394, pending: 68796
+I 3313.99] Elapsed: 55:14, vertices: 138, facets final: 404, pending: 68770
+I 3323.62] Elapsed: 55:24, vertices: 139, facets final: 407, pending: 71103
+I 3329.27] Elapsed: 55:29, vertices: 140, facets final: 408, pending: 70110
+I 3334.96] Elapsed: 55:35, vertices: 141, facets final: 414, pending: 68632
+I 3346.97] Elapsed: 55:47, vertices: 142, facets final: 416, pending: 63766
+I 3354.30] Elapsed: 55:54, vertices: 144, facets final: 439, pending: 61791
+I 3364.33] Elapsed: 56:04, vertices: 145, facets final: 459, pending: 61883
+I 3372.48] Elapsed: 56:12, vertices: 146, facets final: 464, pending: 62390
+I 3380.61] Elapsed: 56:21, vertices: 148, facets final: 505, pending: 62349
+I 3389.64] Elapsed: 56:30, vertices: 150, facets final: 528, pending: 63150
+I 3395.34] Elapsed: 56:35, vertices: 152, facets final: 531, pending: 63147
+I 3400.50] Elapsed: 56:41, vertices: 153, facets final: 539, pending: 60579
+I 3406.56] Elapsed: 56:47, vertices: 155, facets final: 654, pending: 59904
+I 3418.31] Elapsed: 56:58, vertices: 156, facets final: 730, pending: 59956
+I 3424.81] Elapsed: 57:05, vertices: 158, facets final: 769, pending: 59469
+I 3440.15] Elapsed: 57:20, vertices: 160, facets final: 817, pending: 58845
+I 3447.30] Elapsed: 57:27, vertices: 161, facets final: 836, pending: 58698
+I 3453.25] Elapsed: 57:33, vertices: 165, facets final: 973, pending: 56977
+I 3458.38] Elapsed: 57:38, vertices: 167, facets final: 1022, pending: 58080
+I 3464.05] Elapsed: 57:44, vertices: 170, facets final: 1084, pending: 56674
+I 3469.21] Elapsed: 57:49, vertices: 172, facets final: 1105, pending: 55725
+I 3478.97] Elapsed: 57:59, vertices: 176, facets final: 1227, pending: 56051
+I 3484.54] Elapsed: 58:05, vertices: 180, facets final: 1457, pending: 55477
+I 3491.80] Elapsed: 58:12, vertices: 184, facets final: 1792, pending: 54230
+I 3499.05] Elapsed: 58:19, vertices: 186, facets final: 1826, pending: 54260
+I 3505.82] Elapsed: 58:26, vertices: 190, facets final: 2099, pending: 52707
+I 3510.98] Elapsed: 58:31, vertices: 197, facets final: 3619, pending: 50227
+I 3511.84] recalculating facets...
+I 3517.52] Elapsed: 58:38, vertices: 204, facets final: 3893, pending: 49729
+I 3523.24] Elapsed: 58:43, vertices: 208, facets final: 3904, pending: 51254
+I 3528.24] Elapsed: 58:48, vertices: 213, facets final: 4797, pending: 48889
+I 3533.24] Elapsed: 58:53, vertices: 213, facets final: 14617, pending: 39069
+I 3538.24] Elapsed: 58:58, vertices: 213, facets final: 24474, pending: 29212
+I 3543.24] Elapsed: 59:03, vertices: 213, facets final: 35080, pending: 18606
+I 3548.24] Elapsed: 59:08, vertices: 213, facets final: 46675, pending: 7011
+I 3551.36] Elapsed: 59:11, vertices: 213, facets final: 53686, pending: 0
+
+--------------------------------
+Problem completed
+ name                    22-42-221-a.vlp
+ output                  solution/22-42-221-a.res
+ rows, cols, objs        42, 221, 22
+ vertices, facets        213, 53686
+ total time              59:11
+--------------------------------
+Statistics
+LP:
+ oracle calls            53899
+   avg iterations/calls  26.29
+ total oracle time       25.44
+Combinatorics:
+ vertices added          213
+ facets probed           53899
+ facets # max            176417
+ memory allocated        64.38M
+ storage expansion
+   vertices # / upto     2 / 252
+   facets   # / upto     63 / 258044
+ facet manipulating
+   compress / increase   159 / 8
+   added avg / max       4.96k / 83.32k
+ number of ridge tests
+   avg / max             302.44M / 3.89G
+--------------------------------
+Parameters with new values
+ RandomFacet = 1
