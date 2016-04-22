@@ -1,6 +1,6 @@
 # inner - a MultiObjective Linear Program (MOLP) solver
 
-A MOLP is a linear program with more than one objective function. The linear
+A MOLP is a linear program with more than one objective functions. The linear
 *constraints* are arranged in a matrix form with c columns and r rows.
 Columns correspond to variables x<sub>1</sub>, x<sub>2</sub>, . . . ,
 x<sub>c</sub>, which are subject to the restrictions
