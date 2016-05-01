@@ -74,8 +74,11 @@ int facets_allocated_no;    /* number of times facet space was extended */
 int facets_allocated;	    /* total number of facets allocated */
 int expand_facetbitmaps_no; /* number of times facet bitmaps extended */
 int facets_compressed_no;   /* times facet compression is called */
+int facet_pos;              /* last number of positive facets */
+int facet_zero;             /* facets adjacent to this vertex */
+int facet_neg;              /* negative facets to be dropped */
+int facet_new;              /* facets added */
 int max_facets;		    /* maximal number of intermediate facets */
-int last_facets[16];	    /* the last 16 facet numbers */
 int max_facetsadded;	    /* maximal number of facets added in an iteration */
 double avg_facetsadded;	    /* average number of facets added */
 double max_tests;	    /* maximal number of ridge tests by iteration */
@@ -161,12 +164,9 @@ void add_new_vertex(double *coords);
 *    can be reported. Error conditions should be checked
 *    after the routine returns.
 *
-* double probe_vertex(double v[0:dim-1])
-*    Return the number of ridge tests were this vertex be added to
-*    the approximation. The calling routine could try to optimize
-*    the total time by keeping a pool of vertices and adding that one
-*    (by calling add_new_vertex()) which requires the smallest amount
-*    of ridge tests.
+* int probe_vertex(double v[0:dim-1])
+*    Return the number of facets which would be thrown away if this 
+*    vertex were added to the approximation.
 *
 * void recalculate_facets(void)
 *    Go over all facets and recalculate their equations from the list
@@ -184,8 +184,8 @@ int vertex_num(void); int facet_num(void);
 /** store a vertex; tell if this is a new one **/
 int store_vertex(double *coords);
 
-/** return the number of ridge test if this vertex were added **/
-double probe_vertex(double *coords);
+/** return the number of negative facets **/
+int probe_vertex(double *coords);
 
 /** recalculate facet equations **/
 void recalculate_facets(void);

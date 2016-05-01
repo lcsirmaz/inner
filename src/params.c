@@ -38,12 +38,13 @@
 #define DEF_ShuffleMatrix	1
 #define DEF_RoundVertices	1
 /* DD parameters */
-#define DEF_RandomFacet		0	/* no */
+#define DEF_RandomFacet		1	/* yes */
 #define DEF_ExactFacetEq	0	/* no */
 #define DEF_RecalculateFacets	100
 #define DEF_CheckConsistency	0
-#define DEF_MemoryReport	0	/* don't report */
 #define DEF_ExtractAfterBreak	1	/* yes */
+/* vertex pool */
+#define DEF_VertexPoolSize	0	/* don't use vertex pool */
 /* Tolerances */
 #define DEF_RoundEps		1e-9
 #define DEF_ScaleEps		3e-9
@@ -52,9 +53,10 @@
 #define DEF_FacetRecalcEps	1e-6
 /* Reporting */
 #define DEF_MessageLevel	3	/* verbose */
-#define DEF_PrintParams		0	/* no */
+#define DEF_PrintParams		1	/* yes */
 #define DEF_PrintStatistics	1	/* yes */
 #define DEF_ProgressReport	5	/* in seconds */
+#define DEF_MemoryReport	0	/* don't report */
 #define DEF_VertexReport	1	/* yes */
 #define DEF_VertexAsFraction	1	/* yes */
 #define DEF_PrintVertices	2	/* partial results */
@@ -118,6 +120,12 @@ CFG( ExtractAfterBreak, BOOL) \
 "#    new vertices by asking the oracle about every facet of the actual\n"\
 "#    approximating polyhedron. Can be very time consuming. Second\n"\
 "#    Ctrl+C aborts post-processing.\n"\
+"#\n"\
+CFG( VertexPoolSize, INTEGER) \
+"#    size of the vertex pool; add the vertex to the approximation which\n"\
+"#    discards the largest number of existing facets. Should be zero\n"\
+"#    (don't use it) or at least 5. Using vertex pool adds more work,\n"\
+"#    but can simplify the approximating polytopes.\n"\
 "#\n"\
 "##########################\n"\
 "#   ORACLE parameters    #\n"\
@@ -442,6 +450,7 @@ static struct int_params {
   CFG(ProgressReport,1000000),
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
+  CFG(VertexPoolSize,1000),
   CFG(OracleItLimit,10000000),
   CFG(OracleTimeLimit,1000000),
   {NULL,NULL,0,0,0}
@@ -835,6 +844,7 @@ void show_parameters(void)
     CFG(RoundVertices);		/* round vertices reported by the oracle */
     CFG(RandomFacet);		/* pick next facet randomly */
     CFG(ExactFacetEq);		/* recompute facet equation immediately */
+    CFG(VertexPoolSize);	/* use vertex pool */
     CFG(RecalculateFacets);	/* how ofter recalculate facets */
 #undef CFG
     /* double parameters */

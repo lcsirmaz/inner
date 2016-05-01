@@ -1,0 +1,13 @@
+Version 1.5
+ - Changing the default to ShowParams=1 and RandomFacet=1
+ - When MessageLevel=3 the progress report shows three more
+   values: how many facets go through the vertex just added
+   (value after eq:), how many facets have been thrown (out:)
+   and how many new facets are added (new:)
+ - New heuristics added: keep a vertex pool and choose the
+   vertex which produces the largest number of "out" facets.
+   The value of the new keyword VertexPoolSize determines the
+   size of the pool; the default value is 0, which means no
+   pool.
+
+

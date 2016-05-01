@@ -25,7 +25,7 @@ which satisfies all constraints.
 
 There are m &ge; 1 *objectives*, which are given as
 
-x<table><tbody><tr>
+<table><tbody><tr>
 <td>y<sub>k</sub> = o<sub>1,k</sub> x<sub>1</sub> + o<sub>2,k</sub> x<sub>2</sub> + . . . + o<sub>c,k</sub> x<sub>c</sub></td>
 <td>where 1 &le; k &le; m</td>
 </tr><tbody></table>

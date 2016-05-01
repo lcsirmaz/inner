@@ -1062,8 +1062,8 @@ void recalculate_facets(void)
 *   further vertex processing. Return 1 if this vertex was not seen
 *   before; and zero otherwise.
 *
-* double probe_vertex(double *coords)
-*   return the number of ridge tests for this vertex.
+* int probe_vertex(double *coords)
+*   return the number of negative facets.
 */
 
 #define DD_EPS_EQ	PARAMS(PolytopeEps)
@@ -1100,19 +1100,16 @@ int store_vertex(double *coords) /* store vertex if new */
     return 1; /* new vertex */
 }
 
-double probe_vertex(double *coords) /* return the number of ridge tests */
-{double d; int fno,posfacets,negfacets;
+int probe_vertex(double *coords) /* return the number of negative facets */
+{int fno,negfacets;
     dd_stats.probevertex++;
-    posfacets=0; negfacets=0;
+    negfacets=0;
     for(fno=0;fno<NextFacet;fno++) if(is_livingFacet(fno)){
-        d=vertex_distance(coords,fno);
-        if(d>DD_EPS_EQ){ // positive side
-            posfacets++;
-        } else if(d<-DD_EPS_EQ){ // negative
+        if(vertex_distance(coords,fno) < -DD_EPS_EQ) {
             negfacets++;
         }
     }
-    return (double)posfacets * (double)negfacets;
+    return negfacets;
 }
 
 /***********************************************************************
@@ -1176,7 +1173,7 @@ inline static int is_ridge(int f1,int f2)
     vertexno=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
         if((v=VertexWork[i])){
-            j=vertexno; v=VertexWork[i];
+            j=vertexno;
             while(v){
                 while((v&7)==0){ j+=3; v>>=3; }
                 if(v&1){ intersect_Fwork_with_vertex(j); }
@@ -1234,8 +1231,8 @@ inline static void search_ridges_with(int f1, int newvertex)
                 }
                 j++; f2c>>=1;
             }
-            if(OUT_OF_MEMORY) return;
         }
+        if(OUT_OF_MEMORY) return;
         f2+=(1<<packshift);
     }
 }
@@ -1258,7 +1255,7 @@ static void make_facet_living(int fno)
 /** add a new vertex to the approximation **/
 void add_new_vertex(double *coords)
 {int i,j,fno,vno; int thisvertex; BITMAP_t fc; double d;
- int posfacets,negfacets,zerofacets,newfacet;
+ int allfacets,newfacet;
     dd_stats.iterations++;
     if(NextVertex >= MaxVertices){
         allocate_vertex_block();
@@ -1269,23 +1266,23 @@ void add_new_vertex(double *coords)
     clear_VertexAdj_all(thisvertex); // clear the adjacency list
     clear_PosNegFacets();
     // split facets into positive, negative and zero parts
-    posfacets=0; negfacets=0; zerofacets=0;
+    dd_stats.facet_pos=0; dd_stats.facet_neg=0; dd_stats.facet_zero=0;
     for(fno=0;fno<NextFacet;fno++) if(is_livingFacet(fno)){
         d=vertex_distance(coords,fno);
         if(d>DD_EPS_EQ){ // positive side 
             add_PositiveFacet(fno);
-            posfacets++;
+            dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative
             add_NegativeFacet(fno);
-            negfacets++;
+            dd_stats.facet_neg++;
         } else { // this is adjacent to our new vertex
             set_VertexAdj(thisvertex,fno);
             set_FacetAdj(fno,thisvertex);
-            zerofacets++;
+            dd_stats.facet_zero++;
         }
     }
-    // add statistics: posfacets*negfacets
-    d=(double)posfacets*(double)negfacets;
+    // add statistics:
+    d=(double)dd_stats.facet_pos*(double)dd_stats.facet_neg;
     if(dd_stats.max_tests<d)dd_stats.max_tests=d;
     dd_stats.avg_tests = (dd_stats.iterations-1)*dd_stats.avg_tests*(1.0/dd_stats.iterations)
       + (1.0/dd_stats.iterations)*d;
@@ -1301,15 +1298,20 @@ void add_new_vertex(double *coords)
         }
         fno+=(1<<packshift);
     }
-    if(OUT_OF_MEMORY || dobreak){ NextFacet=newfacet; return; }
+    if(OUT_OF_MEMORY || dobreak){
+         NextFacet=newfacet; dd_stats.facet_new=0;
+         return;
+    }
     // new facets are from newfacet ... NextFacet.
     // calculate the number of facets of the new polytope
-    zerofacets += posfacets + (NextFacet-newfacet);
-    if(dd_stats.max_facets < zerofacets) dd_stats.max_facets = zerofacets;
-    dd_stats.last_facets[dd_stats.iterations & 15]=zerofacets;
-    if(dd_stats.max_facetsadded<NextFacet-newfacet){ dd_stats.max_facetsadded=NextFacet-newfacet; }
+    dd_stats.facet_new=NextFacet-newfacet;
+    allfacets = dd_stats.facet_zero + dd_stats.facet_pos + dd_stats.facet_new;
+    if(dd_stats.max_facets < allfacets) dd_stats.max_facets = allfacets;
+    if(dd_stats.max_facetsadded<dd_stats.facet_new){
+        dd_stats.max_facetsadded=dd_stats.facet_new; 
+    }
     dd_stats.avg_facetsadded = (dd_stats.iterations-1)*dd_stats.avg_facetsadded*(1.0/dd_stats.iterations)
-         + (1.0/dd_stats.iterations)*(NextFacet-newfacet);
+         + (1.0/dd_stats.iterations)*dd_stats.facet_new;
     // delete negative facets from FacetLiving
     subtract_Fneg_from_Fliving();
     if(NextFacet <= MaxFacets){
