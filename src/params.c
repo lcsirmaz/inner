@@ -18,13 +18,6 @@
 #include <stdio.h>
 
 /***********************************************************************
-* mkstringof() macro
-*    creates a string from its only argument
-*/
-#define stringify(x)	#x
-#define mkstringof(x)	stringify(x)
-
-/***********************************************************************
 * Default values in the config file
 */
 /* oracle parameters */
@@ -52,7 +45,7 @@
 #define DEF_LineqEps		8e-8	/* 6.0*PolytopeEps */
 #define DEF_FacetRecalcEps	1e-6
 /* Reporting */
-#define DEF_MessageLevel	3	/* verbose */
+#define DEF_MessageLevel	2	/* on */
 #define DEF_PrintParams		1	/* yes */
 #define DEF_PrintStatistics	1	/* yes */
 #define DEF_ProgressReport	5	/* in seconds */
@@ -830,10 +823,10 @@ int process_parameters(int argc, const char *argv[])
 * void sho_parameters(void)
 *    report algorithm and oracle parameters only
 */
-void show_parameters(void)
+void show_parameters(char *hdr)
 {   /* integer and bool parameters */
 #define CFG(x)	\
-    if(PARAMS(x) != DEF_##x) report(R_txt," " #x " = %d\n",PARAMS(x))
+    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x " = %d\n",hdr,PARAMS(x)); hdr=""; }
     CFG(OracleMethod);		/* primal / dual */
     CFG(OraclePricing);
     CFG(OracleRatioTest);
@@ -849,7 +842,7 @@ void show_parameters(void)
 #undef CFG
     /* double parameters */
 #define CFG(x)	\
-    if(PARAMS(x) != DEF_##x) report(R_txt," " #x " = %lg\n",PARAMS(x))
+    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x " = %lg\n",hdr,PARAMS(x)); hdr=""; }
     CFG(PolytopeEps);		/* facet and vertex adjacency */
     CFG(ScaleEps);		/* rounding when retrieving a facet equation */
     CFG(LineqEps);		/* tolerance in system of linear equations */

@@ -95,13 +95,22 @@ extern struct params_t GlobalParams;
 *      1:  option handled, exit normally
 *     -1:  some error, error message issued, exit with error
 *
-* void show_parameters(void)
+* void show_parameters(char *hdr)
 *    print algorithm and oracle parameters which differ from their
-*    default values.
+*    default values. Put hdr before the first line.
 */
 
 int process_parameters(int argc, const char *argv[]);
-void show_parameters(void);
+void show_parameters(char *hdr);
+
+/***********************************************************************
+* mkstringof() macro
+*    creates a string from its only argument
+*/
+#define stringify(x)	#x
+#define mkstringof(x)	stringify(x)
+
+
 
 /* EOF */
 

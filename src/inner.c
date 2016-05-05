@@ -266,8 +266,7 @@ static void dump_and_save(int how)
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
     }
     if(PARAMS(PrintParams)){
-        report(R_txt, DASHSEP "\nParameters with non-default values\n");
-        show_parameters();
+        show_parameters(DASHSEP "\nParameters with non-default values\n");
     }
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
         if(partial) report(R_savevertex,"C *** Partial list of vertices ***\n");
@@ -523,6 +522,10 @@ int inner(void)
 {int i; int last_memreport;
     initialize_random(); // initialize random numbers
     if(read_vlp()) return 1; // data error before start
+    if(PARAMS(ProblemObjects)==1){
+        report(R_fatal,"The number of objectives is 1, please use an LP solver\n");
+        return 1;
+    }
     if(check_outfiles()) return 1; // data error before start
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",
@@ -562,7 +565,7 @@ again:
     if(PARAMS(RecalculateFacets)>=5 &&
        ((1+dd_stats.iterations)%PARAMS(RecalculateFacets))==0){
         // report what we are going to do
-        report(R_info,"I%8.2f] recalculating facets...\n",
+        report(R_warn,"I%8.2f] recalculating facets...\n",
              0.01*(double)gettime100());
         recalculate_facets();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
@@ -574,7 +577,7 @@ again:
     if(PARAMS(CheckConsistency)>=5 &&
        ((1+dd_stats.iterations)%PARAMS(CheckConsistency))==0){
         // report what we are going to do
-        report(R_info,"I%8.2f] checking data consistency...\n",
+        report(R_warn,"I%8.2f] checking data consistency...\n",
               0.01*(double)gettime100());
         if(check_consistency()) { // error
             report(R_fatal,"Consistency error: data structure has numerical errors.\n");
