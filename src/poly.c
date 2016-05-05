@@ -38,6 +38,17 @@
 #include "poly.h"
 #include "params.h"
 
+#define USETHREADS
+
+#ifdef USETHREADS
+
+#include<pthread.h>
+// Use gcc -pthread
+
+#define THREADNUM 3
+
+#endif
+
 /************************************************************************
 * Memory management routines
 *
@@ -804,7 +815,7 @@ int init_dd(int dimension, double *coords)
     yalloc(BITMAP_t,M_facetwork,1,FacetBitmapBlockSize); // FacetWork
     yalloc(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize); // VertexAdjList
     yalloc(int,M_vertexlist,MaxVertices,1); // VertexList
-    yalloc(int,M_facetposneg,MaxFacets,1); // FacetPostnegList
+    yalloc(int,M_facetposneg,MaxFacets,1); // FacetPosnegList
     yalloc(double,M_vertexcoord,MaxVertices,VertexSize); // StoreVertices
     yalloc(double,M_facetdist,AheadFacets,1); // StoreFacetDists
     yalloc(double,M_facetcoord,AheadFacets,FacetSize); // StoreFacets
@@ -1128,6 +1139,16 @@ inline static int facet_intersection(int f1, int f2)
 *    VertexList, then take the intersection of living facets and 
 *    the facet adjacency lists in VertexList. This is a ridge if 
 *    and only if the intersection contains f1 and f2 only. */
+/*
+Global input:
+    VertexBitmapBlockSize
+    FacetBitmapBlockSize
+    adj matrices
+Global output:
+    VertexWork
+Works with:
+    FacetWork (copy_Fliving_to_Fwork, clear_facet_in_Fwork)
+ */
 inline static int is_ridge(int f1,int f2)
 {int vertexno,i,j,vlistlen; BITMAP_t v;
      // get vertices adjacent to both f1 and f2 into VertexWork
@@ -1138,10 +1159,10 @@ inline static int is_ridge(int f1,int f2)
     // only f1 and f2 should remain, if any other remains, the answer is no
     clear_facet_in_Fwork(f1); clear_facet_in_Fwork(f2);
     // loop through the intersection of FACET_adj(f1) and FACET_adj(f2)
-    // store these vertices in VertexList
+    // store these vertices in VertexWork and VertexList
     vertexno=0; vlistlen=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
-        if((v=VertexWork[i] = FACET_adj(f1)[i] & FACET_adj(f2)[i])){
+        if((v = VertexWork[i] = (FACET_adj(f1)[i] & FACET_adj(f2)[i]))){
             j=vertexno;
             while(v){
                 while((v&7)==0){ j+=3; v>>=3; }
@@ -1195,6 +1216,14 @@ inline static void create_new_facet(int f1, int f2, int vno)
 /* void search_ridges_with(f1,vno)
 *    Vertex vno is on the negative side of f1; go over all positive
 *    facets and call create_new_facet() for ridges */
+/*
+-> is_ridge
+-> create_new_facet
+Global input:
+    FacetPosnegList
+Global output:
+Works with:
+ */
 inline static void search_ridges_with(int f1, int newvertex)
 {int *f2,j;
     for(f2=FacetPosnegList; (j=*f2)>=0; f2++)
@@ -1233,6 +1262,52 @@ static void make_facet_living(int fno)
     }
 }
 
+#ifdef USETHREADS
+
+pthread_t Threads[THREADNUM];
+
+/*
+Global inputs:
+    FacetPosnegList
+    MaxFacets
+Modifies:
+    FacetPosnegList
+*/
+void check_posneg_facets(int thisvertex, int pos_facet_num)
+{
+    int i,*ix,*ix0,step;
+
+    // Split the positive facets into ranges
+    // To make the loop in the threads very simple, we replace
+    // the last facet in the range in FacetPosnegList with -1
+    // and send the facet number to the thread separately
+    step = pos_facet_num / THREADNUM;
+    step--;
+    ix = FacetPosnegList;
+    for(i=0; i<THREADNUM-1; i++){
+        ix0 = ix; // ix0 is the beginning
+        ix += step; // ix is the end
+        final = *ix;
+        *ix = -1;
+        // Process 'final', and the facets from 'ix0' until -1
+        ix++;
+    }
+    // Process the facets from 'ix' until -1
+    
+        
+    
+/*    
+    int *NegIdx;
+
+    NegIdx = FacetPosnegList+MaxFacets;
+    while((j=*--NegIdx)>=0) search_ridges_with(j,thisvertex);
+*/
+}
+
+
+#endif
+
+
 /* void add_new_vertex(double vertex[0:dim-1])
 *    add a new vertex which is outside the convex hull of the present
 *    approximation. Split facets into positive, negative and zero sets
@@ -1243,8 +1318,10 @@ static void make_facet_living(int fno)
 
 /** add a new vertex to the approximation **/
 void add_new_vertex(double *coords)
-{int i,j,fno,vno; int thisvertex; BITMAP_t fc; double d;
- int allfacets,newfacet; int *PosIdx, *NegIdx;
+{
+    int i,j,fno,vno; int thisvertex; BITMAP_t fc; double d;
+    int allfacets,newfacet; int *PosIdx, *NegIdx;
+
     dd_stats.iterations++;
     if(NextVertex >= MaxVertices){
         allocate_vertex_block();
@@ -1253,6 +1330,9 @@ void add_new_vertex(double *coords)
     thisvertex=NextVertex; NextVertex++;
     for(i=0;i<DIM;i++){ VERTEX_coord(thisvertex)[i]=coords[i]; }
     clear_VertexAdj_all(thisvertex); // clear the adjacency list
+    
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
     // split facets into positive, negative and zero parts
     dd_stats.facet_pos=0; dd_stats.facet_neg=0; dd_stats.facet_zero=0;
     PosIdx = FacetPosnegList; // this goes ahead
@@ -1277,16 +1357,24 @@ void add_new_vertex(double *coords)
     if(dd_stats.max_tests<d)dd_stats.max_tests=d;
     dd_stats.avg_tests = (dd_stats.iterations-1)*dd_stats.avg_tests*(1.0/dd_stats.iterations)
       + (1.0/dd_stats.iterations)*d;
+      
+///////////////////////////////////////////////////////////////////////////////////////////////////
     // this is the critical part: for each positive/negative facet pair
     // compute whether this is a new facet.
     newfacet=NextFacet; // how many new facets are added at this step
     // go through all negative facets
-    NegIdx = FacetPosnegList+MaxFacets;
-    if(DIM<=2){ // search_ridges_with() assumes DIM>=3 
+    if(DIM<=2){ // search_ridges_with() and check_posneg_facets() assume DIM>=3 
+        NegIdx = FacetPosnegList+MaxFacets;
         while((j=*--NegIdx)>=0) search_ridges_DIM2(j,thisvertex);
     } else {
+#ifndef USETHREADS
+        NegIdx = FacetPosnegList+MaxFacets;
         while((j=*--NegIdx)>=0) search_ridges_with(j,thisvertex);
+#else
+        check_posneg_facets(thisvertex, PosIdx - FacetPosnegList); // the subtraction returns the number of elements (not bytes)
+#endif
     }
+
     if(OUT_OF_MEMORY || dobreak){
          NextFacet=newfacet; dd_stats.facet_new=0;
          return;
