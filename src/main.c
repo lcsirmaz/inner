@@ -20,26 +20,30 @@
 * signal handling 
 *
 * volatile int dobreak
-*    inticates how many timer CTRL+C was pressed
+*    inticates how many timer SIGNAL was sent
 * void set_ctrl_c()
-*    whenever CTRL+C is hit, increase the value of dobreak. To
-*    be checked in the main loops.
+*    whenever SIGNAL is received, increase the value of dobreak.
+*    This is to be checked in the main loops.
 */
 
 #include <signal.h>
 #include <stdio.h>
+#ifndef INNER_SIGNAL
+#define INNER_SIGNAL	SIGUSR1
+#endif
 
 volatile int dobreak=0;
 static void siginthandler(int signo)
-{   if(signo==SIGINT) dobreak++; }
+{   if(signo==INNER_SIGNAL) dobreak++; }
 
-static int set_ctrl_c(void)
+static int set_signal(void)
 {struct sigaction act;
     sigemptyset(&act.sa_mask); // which signals to be blocked
     act.sa_handler = siginthandler;
     act.sa_flags = 0; // do not reset to SIGN_DFL
-    if(sigaction(SIGINT, &act, NULL)){
-        report(R_fatal,"Cannot set CTRL+C signal, aborting\n"); return 1;
+    if(sigaction(INNER_SIGNAL, &act, NULL)){
+        report(R_fatal,"Cannot set " mkstringof(INNER_SIGNAL) " signal, aborting\n");
+        return 1;
     }
     return 0;
 }
@@ -55,7 +59,7 @@ int main(int argc, const char *argv[])
     r=process_parameters(argc,argv); // read parameters
     if(r==1) return 0; /* job done */
     if(r<0) return 1;  /* data error */
-    if(set_ctrl_c()) return 1; // handle intterupts
+    if(set_signal()) return 1; // handle intterupts
     switch(inner()){ // execute the algorithm
       case 0:  return 0; /* job done */
       case 1:  return 1; /* data error before algorithm started */
