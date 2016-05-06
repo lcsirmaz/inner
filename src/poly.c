@@ -454,7 +454,7 @@ static int
 #define clear_facet_in_Fwork(fno) \
     FacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 
-/* void clear_facet_in_Fliging(fno)
+/* void clear_facet_in_Fliving(fno)
 *    clear bit fno in the bitmap FacetLiving */
 #define clear_facet_in_Fliving(fno) \
     FacetLiving[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
@@ -1151,9 +1151,8 @@ inline static int is_ridge(int f1,int f2)
         }
         vertexno += (1<<packshift);
     }
-// ***********************************************************
-// CORRECT ME: this works only if DIM>=3, i.e. if vlistlen>=2
-// ***********************************************************
+    /* this code works only when vlistlen>=2. This holds for sure
+       when DIM >=3 */
     for(i=0;i<FacetBitmapBlockSize;i++) if(
       (v=FacetWork[i] & VERTEX_adj(VertexList[0])[i])
       && (v &= VERTEX_adj(VertexList[1])[i])){
@@ -1243,8 +1242,8 @@ static void make_facet_living(int fno)
 
 /** add a new vertex to the approximation **/
 void add_new_vertex(double *coords)
-{int i,j,fno,vno; int thisvertex; BITMAP_t fc; double d;
- int allfacets,newfacet; int *PosIdx, *NegIdx;
+{int i,j,fno; int thisvertex; BITMAP_t fc; double d;
+ int newfacet; int *PosIdx, *NegIdx;
     dd_stats.iterations++;
     if(NextVertex >= MaxVertices){
         allocate_vertex_block();
@@ -1294,8 +1293,8 @@ void add_new_vertex(double *coords)
     // new facets are from newfacet ... NextFacet.
     // calculate the number of facets of the new polytope
     dd_stats.facet_new=NextFacet-newfacet;
-    allfacets = dd_stats.facet_zero + dd_stats.facet_pos + dd_stats.facet_new;
-    if(dd_stats.max_facets < allfacets) dd_stats.max_facets = allfacets;
+    i = dd_stats.facet_zero + dd_stats.facet_pos + dd_stats.facet_new;
+    if(dd_stats.max_facets < i) dd_stats.max_facets = i;
     if(dd_stats.max_facetsadded<dd_stats.facet_new){
         dd_stats.max_facetsadded=dd_stats.facet_new; 
     }
@@ -1313,10 +1312,9 @@ void add_new_vertex(double *coords)
         return;
     }
     dd_stats.facets_compressed_no ++;
-    for(vno=0;vno<NextVertex;vno++){ // clear the adjacency list of vertices
-        intersect_VertexAdj_Fliving(vno);
+    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
+        intersect_VertexAdj_Fliving(i);
     }
-    clear_Fwork(); // collect new facets in Fwork
     // move new facets into free facet slots
     // Do it backward starting at NextFacet-1
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
@@ -1325,7 +1323,7 @@ void add_new_vertex(double *coords)
             while((fc&7)==0){ j+=3; fc>>=3; }
             if((fc&1)){
                 if(j>=newfacet) goto finish_compress;
-                move_lastfacet_to(j); set_facet_in_Fwork(j);
+                move_lastfacet_to(j); make_facet_living(j);
                 if(NextFacet<=newfacet) goto finish_compress;
             }
             j++; fc>>=1;
@@ -1339,21 +1337,28 @@ void add_new_vertex(double *coords)
         if(OUT_OF_MEMORY) NextFacet=MaxFacets;
     }
     // from newfacet until NextFacet indicate that they are new facets
-    while(newfacet<NextFacet){
-        set_facet_in_Fwork(newfacet); newfacet++;
-    }
-    // merge FacetWork to FacetLiving
-    fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
-        j=fno; fc=FacetWork[i];
-        while(fc){
-            while((fc&7)==0){ j+=3; fc>>=3; }
-            if(fc&1){ make_facet_living(j); }
-            j++; fc>>=1;
+    if(newfacet<NextFacet){ // all is full
+        while(newfacet<NextFacet){
+            make_facet_living(newfacet); newfacet++;
         }
-        fno += (1<<packshift);
+        return;
     }
-    // move back NextFacet as far as possible ...
-    while(NextFacet>0 && !is_livingFacet(NextFacet-1)) NextFacet--;
+    // facets 0..fno-1 are living, find the first empty slot
+  fill_holes:
+    while( fno<NextFacet && is_livingFacet(fno) ) fno++;
+    while( NextFacet>fno && !is_livingFacet(NextFacet-1)) NextFacet--;
+    if(fno<NextFacet && !is_finalFacet(NextFacet)){
+        move_lastfacet_to(fno); make_facet_living(fno);
+        clear_facet_in_Fliving(NextFacet);
+        if(is_finalFacet(NextFacet)) set_facet_in_Ffinal(fno);
+        fno++; goto fill_holes;
+    }
+    // clear FacetFinal
+    for(i=0;i<FacetBitmapBlockSize;i++) FacetFinal[i] &= FacetLiving[i];
+    // clear the adjacency list of vertices
+    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
+        intersect_VertexAdj_Fliving(i);
+    }
 }
 
 /*=====================================================================*/

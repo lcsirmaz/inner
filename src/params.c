@@ -38,6 +38,8 @@
 #define DEF_ExtractAfterBreak	1	/* yes */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
+/* randomness */
+#define DEF_TrueRandom		1	/* yes */
 /* Tolerances */
 #define DEF_RoundEps		1e-9
 #define DEF_ScaleEps		3e-9
@@ -109,10 +111,10 @@ CFG( CheckConsistency, INTEGER) \
 "#    or at least 5.\n"\
 "#\n"\
 CFG( ExtractAfterBreak, BOOL) \
-"#    when the program is interrupted by Ctrl+C, continue extracting\n"\
+"#    when the program receives a " mkstringof(INNER_SIGNAL) " signal, continue extracting\n"\
 "#    new vertices by asking the oracle about every facet of the actual\n"\
-"#    approximating polyhedron. Can be very time consuming. Second\n"\
-"#    Ctrl+C aborts post-processing.\n"\
+"#    approximating polyhedron. Can be very time consuming. Second signal\n"\
+"#    aborts post-processing.\n"\
 "#\n"\
 CFG( VertexPoolSize, INTEGER) \
 "#    size of the vertex pool; add the vertex to the approximation which\n"\
@@ -420,6 +422,7 @@ static struct char_params {
   CFG(RandomFacet,1),
   CFG(ExactFacetEq,1),
   CFG(ExtractAfterBreak,1),
+  CFG(TrueRandom,1),
   CFG(ShuffleMatrix,1),
   CFG(RoundVertices,1),
   CFG(OracleMessage,3),

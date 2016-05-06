@@ -28,9 +28,6 @@
 
 #include <signal.h>
 #include <stdio.h>
-#ifndef INNER_SIGNAL
-#define INNER_SIGNAL	SIGUSR1
-#endif
 
 volatile int dobreak=0;
 static void siginthandler(int signo)

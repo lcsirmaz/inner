@@ -33,7 +33,7 @@ struct params_t {
     SaveFacets,		/* save facets at the end */
     RandomFacet,	/* pick the facet to be tested randomly */
     ExactFacetEq,	/* always calculate the facet equation from adjacency vertices */
-    ExtractAfterBreak,	/* continue after Ctrl+C with extracting vertices */
+    ExtractAfterBreak,	/* continue after break with extracting vertices */
     ShuffleMatrix,	/* (oracle) shuffle rows, columns, and objective order.
 			   helps numerical stability */
     RoundVertices,	/* (oracle) round vertex coordinates to the nearest rational */
@@ -43,6 +43,7 @@ struct params_t {
     OracleRatioTest,	/* 0: standard, 1: Harris */
     OraclePricing,	/* 0: standard, 1: steepest edge */
     Direction,		/* 0: minimize, 1: maximize, set by the Oracle */
+    TrueRandom,		/* whether use true or deterministic generator */
     ARGm,		/* -m[0-3] option */
     ARGy,		/* -y+ or -y- */
     ARGm_set,ARGp_set,ARGy_set;
@@ -110,7 +111,13 @@ void show_parameters(char *hdr);
 #define stringify(x)	#x
 #define mkstringof(x)	stringify(x)
 
+/***********************************************************************
+* Signal which stops processing and instruct special continuation
+*/
 
+#ifndef INNER_SIGNAL
+#define INNER_SIGNAL	SIGUSR1
+#endif
 
 /* EOF */
 

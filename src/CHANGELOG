@@ -1,0 +1,25 @@
+1.6
+    poly.c: 
+        moving (some) documentation before definitions
+        deleting 
+           bitmaps M_facetpos, M_facetneg, FacetPositive, FacetNegative
+           intersect_Fwork_with_vertex
+           subtract_Fneg_from_Fliving
+           clear_PosNegFacets
+           add_PositiveFacet, add_NegativeFacet
+        adding M_vertexlist as VertexList (size MaxVertices)
+               M_facetposneg as FacetPosnegList (size MaxFacets)
+        extending bitcount up to 1023 (10 bits) instead of 8
+        squeezing facets to the beginning when we run out of space
+
+    inner.c: print "non-default parameters" headline only if there
+            was some change
+        check that the number of objectives is at least 2.
+        change R_info to R_warn
+
+    params.c: set the default message level to 2 (don't show the
+            eq: out: new:  values by default)
+        added the undocumented keyword TrueRandom so we can test
+            the speed of different optimizations
+
+    main.c: changing the CTRL+C signal to USR1
