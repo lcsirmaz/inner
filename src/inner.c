@@ -43,7 +43,7 @@
 inline static void initialize_random(void)
 {struct timeval tv;
     gettimeofday(&tv,NULL);
-    srandom(getpid()^tv.tv_sec^tv.tv_usec);
+    srandom( PARAMS(TrueRandom) ? getpid()^tv.tv_sec^tv.tv_usec : 0x12345678 );
 }
 /** return elapsed time in 0.01 seconds */
 static unsigned long gettime100(void)
@@ -148,7 +148,7 @@ static void progress_stat(unsigned long dtime)
         dd_stats.final_facets_no,
         dd_stats.living_facets_no-dd_stats.final_facets_no);
     if(facetstat){
-        report(R_info,", eq: %d, out: %d, new: %d",
+        report(R_info,", eq: %d, out: %d, in: %d",
            dd_stats.facet_zero, dd_stats.facet_neg,dd_stats.facet_new);
         facetstat=0;
     }
