@@ -428,7 +428,7 @@ static int
 #define FacetAdjList	\
     ((BITMAP_t*)memory_slots[M_facetadj].ptr)
 
-#define VertexWork	\
+#define absVertexWork	\
     ((BITMAP_t*)memory_slots[M_vertexwork].ptr)
 
 /* double *VertexArray
@@ -440,7 +440,7 @@ static int
 /* int VertexList[MaxVertices]
 *    auxiliary list to store vertex indices in the intersection of two
 *    facets */
-#define VertexList	\
+#define absVertexList	\
     ((int*)memory_slots[M_vertexlist].ptr)
 
 /* double *VERTEX_coord(vno)
@@ -513,7 +513,7 @@ static int
 
 /* BITMAP_t *FacetWork
 *    auxiliary facet bitmaps used during the DD algorithm. */
-#define FacetWork	\
+#define absFacetWork	\
     ((BITMAP_t*)memory_slots[M_facetwork].ptr)
 
 /* double *FACET_coords(fno)
@@ -558,8 +558,8 @@ static int
 
 /* void clear_Fwork()
 *    clear all bits in FacetWork */
-#define clear_Fwork()		\
-    memset(FacetWork,0,FacetBitmapBlockSize*sizeof(BITMAP_t))
+#define clear_absFwork()		\
+    memset(absFacetWork,0,FacetBitmapBlockSize*sizeof(BITMAP_t))
 
 /* void copy_Fliving_to_myFwork()
 *    copy the bitmap FacetLiving to FacetWork */
@@ -586,10 +586,10 @@ static int
 #define clear_facet_in_Fliving(fno) \
     FacetLiving[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 
-/* void set_facet_in_Fwork(fno)
+/* void set_facet_in_absFwork(fno)
 *    set bit fno in the bitmap FacetWork */
-#define set_facet_in_Fwork(fno)	  \
-    FacetWork[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
+#define set_facet_in_absFwork(fno)	  \
+    absFacetWork[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
 
 /* void set_facet_in_Fliving(fno)
 *    set bit fno in bitmap FacetLiving */
@@ -608,7 +608,7 @@ static int
     memcpy(FACET_adj(fno),myVertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
 #else
 #define copy_myVertexWork_to_facet(fno) \
-    memcpy(FACET_adj(fno),VertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
+    memcpy(FACET_adj(fno),absVertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
 #endif
 
 /* clear_FacetAdj_all(facetno)
@@ -1325,9 +1325,9 @@ inline static int is_ridge(int f1,int f2)
 {int vertexno,i,j,vlistlen; BITMAP_t v;
     
     ASSERT("threadId", threadId < NUMTHREAD, threadId);
-    ASSERT("myFacetWork", myFacetWork == FacetWork + (threadId*FacetBitmapBlockSize), threadId);
-    ASSERT("myVertexWork", myVertexWork == VertexWork + (threadId*VertexBitmapBlockSize), threadId);
-    ASSERT("myVertexList", myVertexList == VertexList + (threadId*MaxVertices), threadId);
+    ASSERT("myFacetWork", myFacetWork == absFacetWork + (threadId*FacetBitmapBlockSize), threadId);
+    ASSERT("myVertexWork", myVertexWork == absVertexWork + (threadId*VertexBitmapBlockSize), threadId);
+    ASSERT("myVertexList", myVertexList == absVertexList + (threadId*MaxVertices), threadId);
     
      // get vertices adjacent to both f1 and f2 into VertexWork
     if(facet_intersection(f1,f2) < DIM-1){
@@ -1340,7 +1340,7 @@ inline static int is_ridge(int f1,int f2)
     // store these vertices in VertexWork and VertexList
     vertexno=0; vlistlen=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
-        ASSERT("myVertexWork2", myVertexWork+i < VertexWork + (VertexBitmapBlockSize*NUMTHREAD), threadId);
+        ASSERT("myVertexWork2", myVertexWork+i < absVertexWork + (VertexBitmapBlockSize*NUMTHREAD), threadId);
         if((v = myVertexWork[i] = (FACET_adj(f1)[i] & FACET_adj(f2)[i]))){
             j=vertexno;
             while(v){
@@ -1396,7 +1396,7 @@ inline static void create_new_facet(int f1, int f2, int vno)
 {int newf; double d1,d2,d; int i;
     
     ASSERT("cnf/threadId", threadId < NUMTHREAD, threadId);
-    ASSERT("cnf/myVertexWork", myVertexWork == VertexWork + (threadId*VertexBitmapBlockSize), threadId);
+    ASSERT("cnf/myVertexWork", myVertexWork == absVertexWork + (threadId*VertexBitmapBlockSize), threadId);
     
     newf = 
 #ifdef USETHREADS
@@ -1465,13 +1465,13 @@ inline static void search_ridges_DIM2(int f1, int newvertex)
     for(f2=FacetPosnegList; (j=*f2)>=0; f2++){
         total=0; L1=FACET_adj(f1); L2=FACET_adj(j);
         for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
-            v=VertexWork[i] = (*L1)&(*L2);
+            v=absVertexWork[i] = (*L1)&(*L2);
             add_bitcount(v,total);
         }
         // facets f1 and j intersect in a vertex
         if(total!=0)
 #ifdef USETHREADS
-            create_new_facet(f1,j,newvertex,0,VertexWork);
+            create_new_facet(f1,j,newvertex,0,absVertexWork);
 #else
             create_new_facet(f1,j,newvertex);
 #endif
@@ -1529,8 +1529,8 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
                 thisvertex,
                 0,
                 PerThread_FacetWork(0), // == FacetWork,
-                PerThread_VertexWork(0), // == VertexWork,
-                PerThread_VertexList(0) // == VertexList
+                PerThread_VertexWork(0), // == absVertexWork,
+                PerThread_VertexList(0) // == absVertexList
             );
         }
         return;
@@ -1558,8 +1558,8 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
             thisvertex,
             0,
             PerThread_FacetWork(0), // == FacetWork,
-            PerThread_VertexWork(0), // == VertexWork,
-            PerThread_VertexList(0) // == VertexList
+            PerThread_VertexWork(0), // == absVertexWork,
+            PerThread_VertexList(0) // == absVertexList
         );
     }
 
@@ -1709,7 +1709,7 @@ void add_new_vertex(double *coords)
     for(vno=0;vno<NextVertex;vno++){ // clear the adjacency list of vertices
         intersect_VertexAdj_Fliving(vno);
     }
-    clear_Fwork(); // collect new facets in Fwork
+    clear_absFwork(); // collect new facets in Fwork
     // move new facets into free facet slots
     // Do it backward starting at NextFacet-1
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
@@ -1718,7 +1718,7 @@ void add_new_vertex(double *coords)
             while((fc&7)==0){ j+=3; fc>>=3; }
             if((fc&1)){
                 if(j>=newfacet) goto finish_compress;
-                move_lastfacet_to(j); set_facet_in_Fwork(j);
+                move_lastfacet_to(j); set_facet_in_absFwork(j);
                 if(NextFacet<=newfacet) goto finish_compress;
             }
             j++; fc>>=1;
@@ -1733,11 +1733,11 @@ void add_new_vertex(double *coords)
     }
     // from newfacet until NextFacet indicate that they are new facets
     while(newfacet<NextFacet){
-        set_facet_in_Fwork(newfacet); newfacet++;
+        set_facet_in_absFwork(newfacet); newfacet++;
     }
     // merge FacetWork to FacetLiving
     fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
-        j=fno; fc=FacetWork[i];
+        j=fno; fc=absFacetWork[i];
         while(fc){
             while((fc&7)==0){ j+=3; fc>>=3; }
             if(fc&1){ make_facet_living(j); }
