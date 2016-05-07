@@ -38,14 +38,109 @@
 #include "poly.h"
 #include "params.h"
 
-#define USETHREADS
+
+/************************************************************************
+ * Threads
+ */
 
 #ifdef USETHREADS
 
 #include<pthread.h>
 // Use gcc -pthread
 
-#define THREADNUM 3
+#define NUMTHREAD 3
+
+pthread_t ThreadObj[NUMTHREAD]; // 0 is unused
+pthread_barrier_t ThreadBarrierForking;
+pthread_barrier_t ThreadBarrierJoining;
+
+typedef struct {
+    int id;
+    int finalfacet;
+    int *facetlist;
+} thread_data_t;
+
+thread_data_t ThreadData[NUMTHREAD]; // 0 is unused
+int ThreadVertex;
+pthread_mutex_t ThreadCreateFacetLock;
+
+
+/*
+The thread logic is the following:
+
+MAIN THREAD
+
+    loop {
+        ...
+        distribute work (or ask threads to terminate)
+        --ThreadBarrierForking--
+        do 1/n of the parallel work
+        --ThreadBarrierJoining--
+        parallel work is done
+        ...
+    }
+
+EXTRA THREADS
+
+    loop {
+        --ThreadBarrierForking--
+        optionally exit if finalfacet == -1
+        get the work, and do it (1/n of the parallel work)
+        --ThreadBarrierJoining--
+    }
+
+*/
+
+void *extra_thread_code(void *arg);
+
+// Create the extra threads
+void create_threads(void){
+    int i, rc;
+    
+    printf("Using %d threads\n", NUMTHREAD);
+
+    for(i=1; i<NUMTHREAD; i++){
+        ThreadData[i].id = i;
+        if ((rc = pthread_create(ThreadObj+i, NULL, extra_thread_code, ThreadData+i))){
+            printf("error: pthread_create, rc: %d\n", rc);
+            exit(1);
+        }
+    }
+
+    if((rc = pthread_barrier_init(&ThreadBarrierJoining, NULL, NUMTHREAD))){
+        printf("error: pthread_barrier_init, rc: %d\n", rc);
+        exit(1);
+    }
+
+    if((rc = pthread_barrier_init(&ThreadBarrierForking, NULL, NUMTHREAD))){
+        printf("error: pthread_barrier_init, rc: %d\n", rc);
+        exit(1);
+    }
+
+    if((rc = pthread_mutex_init(&ThreadCreateFacetLock, NULL))){
+        printf("error: pthread_mutex_init, rc: %d\n", rc);
+        exit(1);
+    }
+}
+
+// Tell extra threads to exit and wait for (reap) them.
+// This blocks until all threads exit.
+void stop_threads(void){
+    int i;
+    
+    printf("Stopping threads...\n");
+
+    for(i=1; i<NUMTHREAD; i++){
+        ThreadData[i].finalfacet = -1;
+    }
+
+    pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
+
+    for(i=1; i<NUMTHREAD; i++){
+        pthread_join(ThreadObj[i], NULL); // TODO check return value?
+    }
+}
+
 
 #endif
 
@@ -91,14 +186,16 @@
 typedef enum { /* managed memory slots */
 M_vertexcoord	= 0,	/* vertex coordinates; StoreVertices */
 M_vertexadj,		/* adjacency list of vertices; VertexAdjList*/
+
 M_vertexwork,		/* vertex bitmap; VertexWork */
 M_vertexlist,		/* vertex indices in the intersection of two facets */
+M_facetwork,        /* facet bitmap; FacetWork */
+
 M_facetcoord,		/* facet coordinates; StoreFacets */
 M_facetadj,		/* adjacency list of facets; FacetAdjList */
 M_facetliving,		/* facet bitmap; FacetLiving */
 M_facetfinal,		/* facet bitmap; FacetFinal */
 M_facetposneg,		/* indices of positive/negative facets */
-M_facetwork,		/* facet bitmap; FacetWork */
 M_facetdist,		/* facet distances; StoreFacetDists */
 M_vertexarray,		/* calculating facet equations; VertexArray */
 M_MSLOTSTOTAL		/* total number of managed memory */
@@ -231,6 +328,7 @@ static int reallocmem(void)
 
 #define yalloc(type,slot,n,bsize)	\
     allocmem(slot,n,(bsize)*sizeof(type))
+
 #define yrequest(type,slot,n,bsize)	\
     requestmem(slot,n,(bsize)*sizeof(type))
 
@@ -329,6 +427,7 @@ static int
 *    vertex attribute with a single block storing MaxVertices bits. */
 #define FacetAdjList	\
     ((BITMAP_t*)memory_slots[M_facetadj].ptr)
+
 #define VertexWork	\
     ((BITMAP_t*)memory_slots[M_vertexwork].ptr)
 
@@ -353,6 +452,12 @@ static int
 *    the block of the facet adjacency list of vertex vno */
 #define VERTEX_adj(vno)	\
     (VertexAdjList+((vno)*FacetBitmapBlockSize))
+
+#ifdef USETHREADS
+#define PerThread_VertexList(i)  ( ((int*)(memory_slots[M_vertexlist].ptr)) + (MaxVertices*(i)) )
+#define PerThread_VertexWork(i)  ( ((BITMAP_t*)(memory_slots[M_vertexwork].ptr)) + (VertexBitmapBlockSize*(i)) )
+#define PerThread_FacetWork(i)   ( ((BITMAP_t*)(memory_slots[M_facetwork].ptr)) + (FacetBitmapBlockSize*(i)) )
+#endif
 
 /********************************************************************
 * F A C E T S
@@ -405,6 +510,7 @@ static int
 *    added vertex */
 #define FacetPosnegList	\
     ((int*)memory_slots[M_facetposneg].ptr)
+
 /* BITMAP_t *FacetWork
 *    auxiliary facet bitmaps used during the DD algorithm. */
 #define FacetWork	\
@@ -455,17 +561,27 @@ static int
 #define clear_Fwork()		\
     memset(FacetWork,0,FacetBitmapBlockSize*sizeof(BITMAP_t))
 
-/* void copy_Fliving_to_Fwork()
+/* void copy_Fliving_to_myFwork()
 *    copy the bitmap FacetLiving to FacetWork */
-#define copy_Fliving_to_Fwork()	  \
+#ifdef USETHREADS
+#define copy_Fliving_to_myFwork()     \
+    memcpy(myFacetWork,FacetLiving,FacetBitmapBlockSize*sizeof(BITMAP_t))
+#else
+#define copy_Fliving_to_myFwork()	  \
     memcpy(FacetWork,FacetLiving,FacetBitmapBlockSize*sizeof(BITMAP_t))
+#endif
 
-/* void clear_facet_in_Fwork(fno)
+/* void clear_facet_in_myFwork(fno)
 *    clear bit fno in the bitmap FacetWork */
-#define clear_facet_in_Fwork(fno) \
+#ifdef USETHREADS
+#define clear_facet_in_myFwork(fno) \
+    myFacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
+#else
+#define clear_facet_in_myFwork(fno) \
     FacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
+#endif
 
-/* void clear_facet_in_Fliging(fno)
+/* void clear_facet_in_Fliving(fno)
 *    clear bit fno in the bitmap FacetLiving */
 #define clear_facet_in_Fliving(fno) \
     FacetLiving[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
@@ -485,10 +601,15 @@ static int
 #define set_facet_in_Ffinal(fno)  \
     FacetFinal[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
 
-/* copy_VertexWork_to_facet(facetno)
-*    copy VertexWork as the adjacency matrix to facet facetno */
-#define copy_VertexWork_to_facet(fno) \
+/* copy_myVertexWork_to_facet(facetno)
+*    copy myVertexWork as the adjacency matrix to facet facetno */
+#ifdef USETHREADS
+#define copy_myVertexWork_to_facet(fno) \
+    memcpy(FACET_adj(fno),myVertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
+#else
+#define copy_myVertexWork_to_facet(fno) \
     memcpy(FACET_adj(fno),VertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
+#endif
 
 /* clear_FacetAdj_all(facetno)
 *    clear the adjacency list of this facet */
@@ -809,12 +930,18 @@ int init_dd(int dimension, double *coords)
     dd_stats.facets_allocated_no=1;
     dd_stats.facets_allocated=MaxFacets;
     yalloc(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize); // FacetAdjList
-    yalloc(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize); // VertexWork
     yalloc(BITMAP_t,M_facetfinal,1,FacetBitmapBlockSize); // FacetFinal
     yalloc(BITMAP_t,M_facetliving,1,FacetBitmapBlockSize); // FacetLiving
+#ifdef USETHREADS
+    yalloc(BITMAP_t,M_vertexwork,NUMTHREAD,VertexBitmapBlockSize); // VertexWork
+    yalloc(BITMAP_t,M_facetwork,NUMTHREAD,FacetBitmapBlockSize); // FacetWork
+    yalloc(int,M_vertexlist,MaxVertices*NUMTHREAD,1); // VertexList
+#else
+    yalloc(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize); // VertexWork
     yalloc(BITMAP_t,M_facetwork,1,FacetBitmapBlockSize); // FacetWork
-    yalloc(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize); // VertexAdjList
     yalloc(int,M_vertexlist,MaxVertices,1); // VertexList
+#endif
+    yalloc(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize); // VertexAdjList
     yalloc(int,M_facetposneg,MaxFacets,1); // FacetPosnegList
     yalloc(double,M_vertexcoord,MaxVertices,VertexSize); // StoreVertices
     yalloc(double,M_facetdist,AheadFacets,1); // StoreFacetDists
@@ -876,8 +1003,14 @@ static void allocate_vertex_block(void)
     // tell the memory handling part how much storage space we would need.
     yrequest(double,M_vertexcoord,MaxVertices,VertexSize);
     yrequest(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize);
+#ifdef USETHREADS
+    // We can treat the threads' blocks as a single block as they do not grow during one step
+    yrequest(int,M_vertexlist,MaxVertices*NUMTHREAD,1);
+    yrequest(BITMAP_t,M_vertexwork,NUMTHREAD,VertexBitmapBlockSize);
+#else
     yrequest(int,M_vertexlist,MaxVertices,1);
     yrequest(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize);
+#endif
     yrequest(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize);
     if(reallocmem()){  // out of memory, don't increase the values
         MaxVertices -= (DD_VERTEX_ADDBLOCK<<packshift);
@@ -889,8 +1022,13 @@ static void allocate_vertex_block(void)
 *    add space for DD_FACET_ADDBLOCK<<packshift more facets. Only
 *    increase storage place in StoreFacets and FacetAdjList, but
 *    do not change facet bitmaps. */
+#ifdef USETHREADS
+static void allocate_facet_block(int threadId)
+#else
 static void allocate_facet_block(void)
-{   if(OUT_OF_MEMORY) return;
+#endif
+{   
+    if(OUT_OF_MEMORY) return;
     dd_stats.facets_allocated_no ++;
     dd_stats.facets_allocated += DD_FACET_ADDBLOCK<<packshift;
     AheadFacets += DD_FACET_ADDBLOCK<<packshift;
@@ -913,7 +1051,12 @@ static void expand_facet_bitmaps(void)
     yrequest(double,M_facetdist,AheadFacets,1);
     yrequest(BITMAP_t,M_facetfinal,1,newblocksize);
     yrequest(BITMAP_t,M_facetliving,1,newblocksize);
+#ifdef USETHREADS
+    // We can treat the threads' blocks as a single block as they do not grow during one step
+    yrequest(BITMAP_t,M_facetwork,NUMTHREAD,newblocksize);
+#else
     yrequest(BITMAP_t,M_facetwork,1,newblocksize);
+#endif
     yrequest(BITMAP_t,M_vertexadj,MaxVertices,newblocksize);
     if(reallocmem()){ // out of memory
         return;
@@ -928,11 +1071,21 @@ static void expand_facet_bitmaps(void)
 *    return the new facet number, asking for memory if necessary.
 *    The return value is -1 if cannot allocate more memory.
 */
+#ifdef USETHREADS
+inline static int get_new_facetno(int threadId)
+#else
 inline static int get_new_facetno(void)
+#endif
 {int i;
     i=NextFacet; 
     if(NextFacet>=AheadFacets){
+printf("allocate\n"); fflush(stdout);
+#ifdef USETHREADS
+      allocate_facet_block(threadId);
+#else
       allocate_facet_block();
+#endif
+printf("allocate done\n"); fflush(stdout);
       if(OUT_OF_MEMORY) return -1;
     }
     NextFacet++; return i;
@@ -1132,6 +1285,18 @@ inline static int facet_intersection(int f1, int f2)
     return total;
 }
 
+
+inline void ASSERT(char* msg, int b, int threadId)
+{
+    if(!b){
+        fflush(stdout);
+        printf("Assert fail: %s on thread %d\n", msg, threadId);
+        fflush(stdout);
+        exit(1);
+    }
+}
+
+
 /* int is_ridge(f1,f2)
 *    combinatorial test to check whether the intersection of f1 and
 *    f2 forms a ridge. If there are <DIM-1 vertices both in f1 and
@@ -1147,55 +1312,100 @@ Global input:
 Global output:
     VertexWork
 Works with:
-    FacetWork (copy_Fliving_to_Fwork, clear_facet_in_Fwork)
+    FacetWork (copy_Fliving_to_myFwork, clear_facet_in_myFwork)
+    VertexList
+Calls:
+    facet_intersection
  */
+#ifdef USETHREADS
+inline static int is_ridge(int f1,int f2, int threadId, BITMAP_t *myFacetWork, BITMAP_t *myVertexWork, int *myVertexList)
+#else
 inline static int is_ridge(int f1,int f2)
+#endif
 {int vertexno,i,j,vlistlen; BITMAP_t v;
+    
+    ASSERT("threadId", threadId < NUMTHREAD, threadId);
+    ASSERT("myFacetWork", myFacetWork == FacetWork + (threadId*FacetBitmapBlockSize), threadId);
+    ASSERT("myVertexWork", myVertexWork == VertexWork + (threadId*VertexBitmapBlockSize), threadId);
+    ASSERT("myVertexList", myVertexList == VertexList + (threadId*MaxVertices), threadId);
+    
      // get vertices adjacent to both f1 and f2 into VertexWork
     if(facet_intersection(f1,f2) < DIM-1){
          return 0; // no - happens oftern
     }
-    copy_Fliving_to_Fwork();
+    copy_Fliving_to_myFwork();
     // only f1 and f2 should remain, if any other remains, the answer is no
-    clear_facet_in_Fwork(f1); clear_facet_in_Fwork(f2);
+    clear_facet_in_myFwork(f1); clear_facet_in_myFwork(f2);
     // loop through the intersection of FACET_adj(f1) and FACET_adj(f2)
     // store these vertices in VertexWork and VertexList
     vertexno=0; vlistlen=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
-        if((v = VertexWork[i] = (FACET_adj(f1)[i] & FACET_adj(f2)[i]))){
+        ASSERT("myVertexWork2", myVertexWork+i < VertexWork + (VertexBitmapBlockSize*NUMTHREAD), threadId);
+        if((v = myVertexWork[i] = (FACET_adj(f1)[i] & FACET_adj(f2)[i]))){
             j=vertexno;
             while(v){
                 while((v&7)==0){ j+=3; v>>=3; }
-                if(v&1){ VertexList[vlistlen]=j; vlistlen++; }
+                if(v&1){ 
+                    ASSERT("vlistlen", vlistlen < MaxVertices, threadId);
+                    ASSERT("vlistlenj", j < MaxVertices, threadId);
+                    myVertexList[vlistlen]=j; vlistlen++; 
+                }
                 j++; v>>=1;
             }
         }
         vertexno += (1<<packshift);
     }
+
 // ***********************************************************
 // CORRECT ME: this works only if DIM>=3, i.e. if vlistlen>=2
 // ***********************************************************
     for(i=0;i<FacetBitmapBlockSize;i++) if(
-      (v=FacetWork[i] & VERTEX_adj(VertexList[0])[i])
-      && (v &= VERTEX_adj(VertexList[1])[i])){
+      (v=myFacetWork[i] & VERTEX_adj(myVertexList[0])[i])
+      && (v &= VERTEX_adj(myVertexList[1])[i])){
         for(j=2;j<vlistlen;j++){
-            v &= VERTEX_adj(VertexList[j])[i];
+            v &= VERTEX_adj(myVertexList[j])[i];
         }
-        if(v) return 0; // no
+        if(v){
+            return 0; // no
+        }
     }
     return 1; // yes
 }
+
 
 /* void create_new_facet(f1,f2,vno)
 *    create a new facet through the ridge formed by f1 and f2, and
 *    the given vertex vno. f1*v is negative, f2*v is positive, and these
 *    values are stored in FACET_dist(). Recalculate the equation when
 *    ExactFacetEq parameter is set */
+/*
+Calls:
+    get_new_facetno
+    recalculate_facet_eq
+Global input:
+    VertexWork
+Global output:
+Modifies:
+    matrices
+ */
+#ifdef USETHREADS
+inline static void create_new_facet(int f1, int f2, int vno, int threadId, BITMAP_t *myVertexWork)
+#else
 inline static void create_new_facet(int f1, int f2, int vno)
+#endif
 {int newf; double d1,d2,d; int i;
-    newf=get_new_facetno();
+    
+    ASSERT("cnf/threadId", threadId < NUMTHREAD, threadId);
+    ASSERT("cnf/myVertexWork", myVertexWork == VertexWork + (threadId*VertexBitmapBlockSize), threadId);
+    
+    newf = 
+#ifdef USETHREADS
+        get_new_facetno(threadId);
+#else
+        get_new_facetno();
+#endif
     if(newf<0) return; // no memory
-    copy_VertexWork_to_facet(newf);
+    copy_myVertexWork_to_facet(newf);
     set_FacetAdj(newf,vno);
     // compute the coefficients, f1<0, f2 >0
     if(f2==0){ // ideal facet
@@ -1213,21 +1423,39 @@ inline static void create_new_facet(int f1, int f2, int vno)
     if(PARAMS(ExactFacetEq)) recalculate_facet_eq(newf);
 }
 
+
 /* void search_ridges_with(f1,vno)
 *    Vertex vno is on the negative side of f1; go over all positive
 *    facets and call create_new_facet() for ridges */
 /*
--> is_ridge
--> create_new_facet
+Calls:
+    is_ridge
+    create_new_facet
 Global input:
-    FacetPosnegList
+    FacetPosnegList (pos)
 Global output:
-Works with:
  */
+#ifdef USETHREADS
+inline static void search_ridges_with(int f1, int newvertex, int threadId, BITMAP_t *myFacetWork, BITMAP_t *myVertexWork, int *myVertexList)
+#else
 inline static void search_ridges_with(int f1, int newvertex)
+#endif
 {int *f2,j;
-    for(f2=FacetPosnegList; (j=*f2)>=0; f2++)
-        if(is_ridge(f1,j)) create_new_facet(f1,j,newvertex);
+    // Loop through the positive facets in FacetPosnegList
+    for(f2=FacetPosnegList; (j=*f2)>=0; f2++){
+#ifdef USETHREADS
+        ASSERT("posloop", (f2-FacetPosnegList) < MaxFacets, threadId);
+        if(is_ridge(f1,j,threadId,myFacetWork,myVertexWork,myVertexList)){
+            pthread_mutex_lock(&ThreadCreateFacetLock);
+            create_new_facet(f1,j,newvertex,threadId,myVertexWork);
+            pthread_mutex_unlock(&ThreadCreateFacetLock);
+        } 
+#else
+        if(is_ridge(f1,j)){
+            create_new_facet(f1,j,newvertex);  
+        } 
+#endif
+    }
 }
 
 /* void search_ridges_DIM2(f1,vno)
@@ -1241,7 +1469,12 @@ inline static void search_ridges_DIM2(int f1, int newvertex)
             add_bitcount(v,total);
         }
         // facets f1 and j intersect in a vertex
-        if(total!=0) create_new_facet(f1,j,newvertex);
+        if(total!=0)
+#ifdef USETHREADS
+            create_new_facet(f1,j,newvertex,0,VertexWork);
+#else
+            create_new_facet(f1,j,newvertex);
+#endif
     }
 }
 
@@ -1264,46 +1497,118 @@ static void make_facet_living(int fno)
 
 #ifdef USETHREADS
 
-pthread_t Threads[THREADNUM];
-
 /*
 Global inputs:
-    FacetPosnegList
+    FacetPosnegList (neg)
     MaxFacets
 Modifies:
-    FacetPosnegList
+    FacetPosnegList (neg)
+    ThreadVertex
+    ThreadData
+Calls:
+    search_ridges_with
 */
-void check_posneg_facets(int thisvertex, int pos_facet_num)
+void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
 {
-    int i,*ix,*ix0,step;
+    int i,*ix,step;
 
-    // Split the positive facets into ranges
+    // Distribute work - Split the facets into ranges
     // To make the loop in the threads very simple, we replace
-    // the last facet in the range in FacetPosnegList with -1
-    // and send the facet number to the thread separately
-    step = pos_facet_num / THREADNUM;
-    step--;
-    ix = FacetPosnegList;
-    for(i=0; i<THREADNUM-1; i++){
-        ix0 = ix; // ix0 is the beginning
-        ix += step; // ix is the end
-        final = *ix;
-        *ix = -1;
-        // Process 'final', and the facets from 'ix0' until -1
-        ix++;
-    }
-    // Process the facets from 'ix' until -1
-    
-        
-    
-/*    
-    int *NegIdx;
+    // the last facet in the range in FacetPosnegList with -1,
+    // and send the overwritten facet number to the thread separately.
 
-    NegIdx = FacetPosnegList+MaxFacets;
-    while((j=*--NegIdx)>=0) search_ridges_with(j,thisvertex);
-*/
+    step = neg_facet_num / NUMTHREAD;
+    ix = FacetPosnegList+MaxFacets;
+    
+    // Too few facets, use main thread only
+    if(step<2){
+        while((i=*--ix)>=0){
+            ASSERT("negloop0", ix>=FacetPosnegList, 0);
+            search_ridges_with(
+                i,
+                thisvertex,
+                0,
+                PerThread_FacetWork(0), // == FacetWork,
+                PerThread_VertexWork(0), // == VertexWork,
+                PerThread_VertexList(0) // == VertexList
+            );
+        }
+        return;
+    }
+    
+    for(i=1; i<NUMTHREAD; i++){
+        ThreadData[i].facetlist = ix; // the beginning
+        ix -= step; // ix is the end
+        ThreadData[i].finalfacet = *ix;
+        *ix = -1;
+    }
+
+    ThreadVertex = thisvertex;
+
+    // Start work on all threads
+    pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
+    
+    // In the main thread, process from ix until -1
+
+    // Loop through negative facets in FacetPosnegList {NEGLOOP}
+    while((i=*--ix)>=0){
+        ASSERT("negloop1", ix>=FacetPosnegList, 0);
+        search_ridges_with(
+            i,
+            thisvertex,
+            0,
+            PerThread_FacetWork(0), // == FacetWork,
+            PerThread_VertexWork(0), // == VertexWork,
+            PerThread_VertexList(0) // == VertexList
+        );
+    }
+
+    // Wait for all threads to finish working
+    pthread_barrier_wait(&ThreadBarrierJoining); // TODO check return value?
+    
 }
 
+// The code that runs in the extra (non-main) threads
+/*
+Global inputs:
+    FacetPosnegList pointer (neg)
+    ThreadData
+    ThreadVertex
+Calls:
+    search_ridges_with
+*/
+void *extra_thread_code(void *arg) {
+    thread_data_t *data = (thread_data_t *)arg;
+    int myId = data->id;
+    int i, *ix, *myVertexList;
+    BITMAP_t *myVertexWork, *myFacetWork;
+    
+    printf("Thread %d set up\n", myId);
+
+    while(1){
+        pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
+        
+        if(data->finalfacet < 0) break;
+
+        // We need to repeat this as the block size may change
+        myFacetWork = PerThread_FacetWork(myId);
+        myVertexWork = PerThread_VertexWork(myId);
+        myVertexList = PerThread_VertexList(myId);
+
+        ASSERT("finalfacet", data->finalfacet < MaxFacets, myId);
+        search_ridges_with(data->finalfacet, ThreadVertex, myId, myFacetWork, myVertexWork, myVertexList);
+        ix = data->facetlist;
+        // Loop through negative facets in FacetPosnegList {NEGLOOP}
+        while((i=*--ix)>=0){
+            ASSERT("negloopT", ix>=FacetPosnegList, myId);
+            search_ridges_with(i, ThreadVertex, myId, myFacetWork, myVertexWork, myVertexList);
+        }
+
+        pthread_barrier_wait(&ThreadBarrierJoining); // TODO check return value?
+    }
+
+    pthread_exit(NULL);
+}
 
 #endif
 
@@ -1332,7 +1637,7 @@ void add_new_vertex(double *coords)
     clear_VertexAdj_all(thisvertex); // clear the adjacency list
     
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
     // split facets into positive, negative and zero parts
     dd_stats.facet_pos=0; dd_stats.facet_neg=0; dd_stats.facet_zero=0;
     PosIdx = FacetPosnegList; // this goes ahead
@@ -1358,11 +1663,11 @@ void add_new_vertex(double *coords)
     dd_stats.avg_tests = (dd_stats.iterations-1)*dd_stats.avg_tests*(1.0/dd_stats.iterations)
       + (1.0/dd_stats.iterations)*d;
       
-///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
     // this is the critical part: for each positive/negative facet pair
     // compute whether this is a new facet.
     newfacet=NextFacet; // how many new facets are added at this step
-    // go through all negative facets
+    // go through all negative facets {NEGLOOP}
     if(DIM<=2){ // search_ridges_with() and check_posneg_facets() assume DIM>=3 
         NegIdx = FacetPosnegList+MaxFacets;
         while((j=*--NegIdx)>=0) search_ridges_DIM2(j,thisvertex);
@@ -1371,7 +1676,7 @@ void add_new_vertex(double *coords)
         NegIdx = FacetPosnegList+MaxFacets;
         while((j=*--NegIdx)>=0) search_ridges_with(j,thisvertex);
 #else
-        check_posneg_facets(thisvertex, PosIdx - FacetPosnegList); // the subtraction returns the number of elements (not bytes)
+        thread_check_posneg_facets(thisvertex, FacetPosnegList+MaxFacets-NegIdx-1); // the subtraction returns the number of elements (not bytes)
 #endif
     }
 

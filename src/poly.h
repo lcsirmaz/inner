@@ -49,6 +49,13 @@
 #define DD_FACET_ADDBLOCK	64
 #endif
 
+#define USETHREADS 1
+
+#ifdef USETHREADS
+void create_threads(void);
+void stop_threads(void);
+#endif
+
 /************************************************************************
 * Statistics
 *
