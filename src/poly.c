@@ -144,6 +144,18 @@ void stop_threads(void){
 
 #endif
 
+
+inline void ASSERT(char* msg, int b, int threadId)
+{
+    if(!b){
+        fflush(stdout);
+        printf("Assert fail: %s on thread %d\n", msg, threadId);
+        fflush(stdout);
+        exit(1);
+    }
+}
+
+
 /************************************************************************
 * Memory management routines
 *
@@ -171,7 +183,7 @@ void stop_threads(void){
 *   tries to allocate more memory if necessary. Return 1 if cannot
 *   get more memory, otherwise return 0.
 *
-* int reallocmem(void)
+* int reallocmem(int)
 *   allocate requested memory; if successful, adjust blocks to the
 *   given count and size. Return 1 if out of memory, otherwise 0.
 *
@@ -268,13 +280,20 @@ static inline void requestmem(memslot_t slot, size_t nno, size_t nsize)
 }    
 
 /* ask more memory and adjust the block structure
-* int reallocmem(void)
+* int reallocmem(int)
 *   return 0 if OK, 1 if out of memory
 */
-static int reallocmem(void)
+static int reallocmem(int in_thread, int threadId)
 {MEMSLOT *ms; int j,success; size_t total; void *ptr;
+    
     for(j=0,success=1,ms=&memory_slots[0];
-        success && j<M_MSLOTSTOTAL; j++,ms++) if(ms->newblocksize){
+        success && j<M_MSLOTSTOTAL; 
+        j++,ms++
+    ){
+    if(ms->newblocksize){
+        ASSERT("FacetWork-realloc", (!in_thread) || j!=M_facetwork, threadId);
+        ASSERT("VertexWork-realloc", (!in_thread) || j!=M_vertexwork, threadId);
+        ASSERT("VertexList-realloc", (!in_thread) || j!=M_vertexlist, threadId);
         total=ms->newblocksize*ms->newblockno;
         if(ms->rsize<total){
             dd_stats.memory_allocated_no++;
@@ -287,12 +306,20 @@ static int reallocmem(void)
             else { success=0; }
         }
     }
+    }
+    
     // one can try to defragment memory by writing out all
     // content, then freeing and reallocating memory
     if(!success){ OUT_OF_MEMORY=1; return 1; }
     // adjust block structure
     for(j=0,ms=&memory_slots[0];
-        j<M_MSLOTSTOTAL; j++,ms++) if(ms->newblocksize){
+        j<M_MSLOTSTOTAL; 
+        j++,ms++
+    ){
+    if(ms->newblocksize){
+        ASSERT("FacetWork-realloc", (!in_thread) || j!=M_facetwork, threadId);
+        ASSERT("VertexWork-realloc", (!in_thread) || j!=M_vertexwork, threadId);
+        ASSERT("VertexList-realloc", (!in_thread) || j!=M_vertexlist, threadId);
         if(ms->blocksize < ms->newblocksize){ // block size grow
             size_t i,n; char *bo,*bn; // pointer to old a new
             n=ms->newblockno; if(ms->blockno<n) n=ms->blockno;
@@ -322,6 +349,7 @@ static int reallocmem(void)
         ms->blockno=ms->newblockno;
         ms->newblocksize=0;
         ms->newblockno=0;
+    }
     }
     return 0;
 }
@@ -568,7 +596,7 @@ static int
     memcpy(myFacetWork,FacetLiving,FacetBitmapBlockSize*sizeof(BITMAP_t))
 #else
 #define copy_Fliving_to_myFwork()	  \
-    memcpy(FacetWork,FacetLiving,FacetBitmapBlockSize*sizeof(BITMAP_t))
+    memcpy(absFacetWork,FacetLiving,FacetBitmapBlockSize*sizeof(BITMAP_t))
 #endif
 
 /* void clear_facet_in_myFwork(fno)
@@ -578,7 +606,7 @@ static int
     myFacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 #else
 #define clear_facet_in_myFwork(fno) \
-    FacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
+    absFacetWork[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 #endif
 
 /* void clear_facet_in_Fliving(fno)
@@ -1012,7 +1040,7 @@ static void allocate_vertex_block(void)
     yrequest(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize);
 #endif
     yrequest(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize);
-    if(reallocmem()){  // out of memory, don't increase the values
+    if(reallocmem(0, -1)){  // out of memory, don't increase the values
         MaxVertices -= (DD_VERTEX_ADDBLOCK<<packshift);
         VertexBitmapBlockSize -= DD_VERTEX_ADDBLOCK;
     }
@@ -1027,14 +1055,14 @@ static void allocate_facet_block(int threadId)
 #else
 static void allocate_facet_block(void)
 #endif
-{   
+{
     if(OUT_OF_MEMORY) return;
     dd_stats.facets_allocated_no ++;
     dd_stats.facets_allocated += DD_FACET_ADDBLOCK<<packshift;
     AheadFacets += DD_FACET_ADDBLOCK<<packshift;
     yrequest(double,M_facetcoord,AheadFacets,FacetSize);
     yrequest(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize);
-    if(reallocmem()){ // out of memory
+    if(reallocmem(1, threadId)){ // out of memory
         AheadFacets -= DD_FACET_ADDBLOCK<<packshift;
     }
 }
@@ -1058,7 +1086,7 @@ static void expand_facet_bitmaps(void)
     yrequest(BITMAP_t,M_facetwork,1,newblocksize);
 #endif
     yrequest(BITMAP_t,M_vertexadj,MaxVertices,newblocksize);
-    if(reallocmem()){ // out of memory
+    if(reallocmem(0, -1)){ // out of memory
         return;
     }
     FacetBitmapBlockSize = newblocksize;
@@ -1077,18 +1105,26 @@ inline static int get_new_facetno(int threadId)
 inline static int get_new_facetno(void)
 #endif
 {int i;
+    
+#ifdef USETHREADS
+    pthread_mutex_lock(&ThreadCreateFacetLock);
+#endif
+
     i=NextFacet; 
     if(NextFacet>=AheadFacets){
-printf("allocate\n"); fflush(stdout);
 #ifdef USETHREADS
       allocate_facet_block(threadId);
 #else
       allocate_facet_block();
 #endif
-printf("allocate done\n"); fflush(stdout);
       if(OUT_OF_MEMORY) return -1;
     }
-    NextFacet++; return i;
+    NextFacet++;
+
+#ifdef USETHREADS
+    pthread_mutex_unlock(&ThreadCreateFacetLock);
+#endif
+    return i;
 }
 
 /***********************************************************************
@@ -1170,7 +1206,7 @@ static void recalculate_facet_eq(int fno)
                 if(an>=amax){
                     amax+=VERTEXARRAY_STEPSIZE;
                     yrequest(double,M_vertexarray,amax,DIM+1);
-                    if(reallocmem()) return; // out of memory
+                    if(reallocmem(1, -1)) return; // out of memory
                 }
                 memcpy(&(A(an,0)),VERTEX_coord(j),DIM*sizeof(double));
                 A(an,DIM)= j<DIM ? 0.0 : 1.0 ;
@@ -1283,17 +1319,6 @@ inline static int facet_intersection(int f1, int f2)
         add_bitcount(v,total);
     }
     return total;
-}
-
-
-inline void ASSERT(char* msg, int b, int threadId)
-{
-    if(!b){
-        fflush(stdout);
-        printf("Assert fail: %s on thread %d\n", msg, threadId);
-        fflush(stdout);
-        exit(1);
-    }
 }
 
 
@@ -1446,9 +1471,7 @@ inline static void search_ridges_with(int f1, int newvertex)
 #ifdef USETHREADS
         ASSERT("posloop", (f2-FacetPosnegList) < MaxFacets, threadId);
         if(is_ridge(f1,j,threadId,myFacetWork,myVertexWork,myVertexList)){
-            pthread_mutex_lock(&ThreadCreateFacetLock);
             create_new_facet(f1,j,newvertex,threadId,myVertexWork);
-            pthread_mutex_unlock(&ThreadCreateFacetLock);
         } 
 #else
         if(is_ridge(f1,j)){
@@ -1544,6 +1567,7 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
     }
 
     ThreadVertex = thisvertex;
+    ASSERT("ThreadVertex", ThreadVertex>=0 && ThreadVertex<MaxVertices, 0);
 
     // Start work on all threads
     pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
@@ -1552,7 +1576,7 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
 
     // Loop through negative facets in FacetPosnegList {NEGLOOP}
     while((i=*--ix)>=0){
-        ASSERT("negloop1", ix>=FacetPosnegList, 0);
+        ASSERT("negloop1", ix>=FacetPosnegList && ix<FacetPosnegList+MaxFacets, 0);
         search_ridges_with(
             i,
             thisvertex,
@@ -1583,6 +1607,7 @@ void *extra_thread_code(void *arg) {
     int i, *ix, *myVertexList;
     BITMAP_t *myVertexWork, *myFacetWork;
     
+    ASSERT("myId", myId>0 && myId<NUMTHREAD, myId);
     printf("Thread %d set up\n", myId);
 
     while(1){
@@ -1594,13 +1619,15 @@ void *extra_thread_code(void *arg) {
         myFacetWork = PerThread_FacetWork(myId);
         myVertexWork = PerThread_VertexWork(myId);
         myVertexList = PerThread_VertexList(myId);
-
-        ASSERT("finalfacet", data->finalfacet < MaxFacets, myId);
+        
+        ASSERT("ThreadVertex", ThreadVertex>=0 && ThreadVertex<MaxVertices, myId);
+        
+        ASSERT("finalfacet", data->finalfacet >= 0 && data->finalfacet < MaxFacets, myId);
         search_ridges_with(data->finalfacet, ThreadVertex, myId, myFacetWork, myVertexWork, myVertexList);
         ix = data->facetlist;
         // Loop through negative facets in FacetPosnegList {NEGLOOP}
         while((i=*--ix)>=0){
-            ASSERT("negloopT", ix>=FacetPosnegList, myId);
+            ASSERT("negloopT", ix>=FacetPosnegList && ix<FacetPosnegList+MaxFacets, myId);
             search_ridges_with(i, ThreadVertex, myId, myFacetWork, myVertexWork, myVertexList);
         }
 
