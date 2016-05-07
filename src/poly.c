@@ -506,6 +506,10 @@ static int
 #define PerThread_VertexList(i)  ( ((int*)(memory_slots[M_vertexlist].ptr)) + (MaxVertices*(i)) )
 #define PerThread_VertexWork(i)  ( ((BITMAP_t*)(memory_slots[M_vertexwork].ptr)) + (VertexBitmapBlockSize*(i)) )
 #define PerThread_FacetWork(i)   ( ((BITMAP_t*)(memory_slots[M_facetwork].ptr)) + (FacetBitmapBlockSize*(i)) )
+#else
+#define myVertexList absVertexList
+#define myVertexWork absVertexWork
+#define myFacetWork absFacetWork
 #endif
 
 /********************************************************************
@@ -1083,7 +1087,11 @@ static void allocate_facet_block(void)
     AheadFacets += DD_FACET_ADDBLOCK<<packshift;
     yrequest(double,M_facetcoord,AheadFacets,FacetSize);
     yrequest(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize);
+#ifdef USETHREADS
     if(reallocmem(1, threadId)){ // out of memory
+#else
+    if(reallocmem(1, -1)){ // out of memory
+#endif
         AheadFacets -= DD_FACET_ADDBLOCK<<packshift;
     }
 }
@@ -1457,12 +1465,14 @@ inline static void create_new_facet(int f1, int f2, int vno)
     ASSERT("cnf/threadId", threadId < NUMTHREAD, threadId);
     ASSERT("cnf/myVertexWork", myVertexWork == absVertexWork + (threadId*VertexBitmapBlockSize), threadId);
     
+#ifdef USETHREADS
     // Relinquish the processing lock from time to time -- do it here
     pthread_mutex_unlock(&ThreadMemshareProcess[threadId]);
     // Wait for the waiting lock so that the thread waiting could jump in
     pthread_mutex_lock(&ThreadMemshareWaiting);
     pthread_mutex_unlock(&ThreadMemshareWaiting);
     pthread_mutex_lock(&ThreadMemshareProcess[threadId]);
+#endif
 
     newf = 
 #ifdef USETHREADS
