@@ -80,7 +80,6 @@
 typedef enum { /* managed memory slots */
 M_vertexcoord	= 0,	/* vertex coordinates; StoreVertices */
 M_vertexadj,		/* adjacency list of vertices; VertexAdjList*/
-M_vertexwork,		/* vertex bitmap; VertexWork */
 M_vertexlist,		/* vertex indices in the intersection of two facets */
 M_facetcoord,		/* facet coordinates; StoreFacets */
 M_facetadj,		/* adjacency list of facets; FacetAdjList */
@@ -312,14 +311,11 @@ static int
 #define StoreVertices	\
     ((double*)memory_slots[M_vertexcoord].ptr)
 
-/* BITMAP_t *FacetAdjList, *VertexWork
-*    bitmaps with VertexBitmapBlockSize blocksize. FacetAdjList stores 
-*    the adjacency list of facets in MaxFacets blocks. VertexWork is a
-*    vertex attribute with a single block storing MaxVertices bits. */
+/* BITMAP_t *FacetAdjList
+*    bitmap with VertexBitmapBlockSize blocksize; stores the
+*    adjacency list of facets in MaxFacets blocks. */
 #define FacetAdjList	\
     ((BITMAP_t*)memory_slots[M_facetadj].ptr)
-#define VertexWork	\
-    ((BITMAP_t*)memory_slots[M_vertexwork].ptr)
 
 /* double *VertexArray
 *    store (the homogeneous coordinates) of vertices adjacent to a 
@@ -394,6 +390,7 @@ static int
 *    added vertex */
 #define FacetPosnegList	\
     ((int*)memory_slots[M_facetposneg].ptr)
+
 /* BITMAP_t *FacetWork
 *    auxiliary facet bitmaps used during the DD algorithm. */
 #define FacetWork	\
@@ -439,11 +436,6 @@ static int
 #define is_finalFacet(idx)	\
 	((FacetFinal[(idx)>>packshift]>>((idx)&packmask))&1)
 
-/* void clear_Fwork()
-*    clear all bits in FacetWork */
-#define clear_Fwork()		\
-    memset(FacetWork,0,FacetBitmapBlockSize*sizeof(BITMAP_t))
-
 /* void copy_Fliving_to_Fwork()
 *    copy the bitmap FacetLiving to FacetWork */
 #define copy_Fliving_to_Fwork()	  \
@@ -459,11 +451,6 @@ static int
 #define clear_facet_in_Fliving(fno) \
     FacetLiving[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 
-/* void set_facet_in_Fwork(fno)
-*    set bit fno in the bitmap FacetWork */
-#define set_facet_in_Fwork(fno)	  \
-    FacetWork[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
-
 /* void set_facet_in_Fliving(fno)
 *    set bit fno in bitmap FacetLiving */
 #define set_facet_in_Fliving(fno) \
@@ -473,11 +460,6 @@ static int
 *    set bit fno in bitmap Facetfinal */
 #define set_facet_in_Ffinal(fno)  \
     FacetFinal[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
-
-/* copy_VertexWork_to_facet(facetno)
-*    copy VertexWork as the adjacency matrix to facet facetno */
-#define copy_VertexWork_to_facet(fno) \
-    memcpy(FACET_adj(fno),VertexWork,VertexBitmapBlockSize*sizeof(BITMAP_t))
 
 /* clear_FacetAdj_all(facetno)
 *    clear the adjacency list of this facet */
@@ -571,17 +553,16 @@ static char bitcnt[] = {
     while(v){ total += bitcnt[(v)&bitcnt_mask]; (v)>>=bitcnt_shift; }
 
 void get_dd_facetno(void) // get the number living and final facets
-{int fno,i; BITMAP_t v;
+{int i; BITMAP_t v;
     dd_stats.living_facets_no=-1;
     dd_stats.final_facets_no=-1;
-    fno=0; for(i=0;i<FacetBitmapBlockSize;i++){
+    for(i=0;i<FacetBitmapBlockSize;i++){
         v=FacetLiving[i];
         if(v==~BITMAP0){ dd_stats.living_facets_no+=(1<<packshift); }
         else add_bitcount(v,dd_stats.living_facets_no);
         v=FacetFinal[i];
         if(v==~BITMAP0){ dd_stats.final_facets_no +=(1<<packshift); }
         else add_bitcount(v,dd_stats.final_facets_no);
-        fno += (1<<packshift);
     }
     if(dd_stats.final_facets_no<0) dd_stats.final_facets_no=0;
     if(dd_stats.living_facets_no<0) dd_stats.living_facets_no=0;
@@ -798,7 +779,6 @@ int init_dd(int dimension, double *coords)
     dd_stats.facets_allocated_no=1;
     dd_stats.facets_allocated=MaxFacets;
     yalloc(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize); // FacetAdjList
-    yalloc(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize); // VertexWork
     yalloc(BITMAP_t,M_facetfinal,1,FacetBitmapBlockSize); // FacetFinal
     yalloc(BITMAP_t,M_facetliving,1,FacetBitmapBlockSize); // FacetLiving
     yalloc(BITMAP_t,M_facetwork,1,FacetBitmapBlockSize); // FacetWork
@@ -866,7 +846,6 @@ static void allocate_vertex_block(void)
     yrequest(double,M_vertexcoord,MaxVertices,VertexSize);
     yrequest(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize);
     yrequest(int,M_vertexlist,MaxVertices,1);
-    yrequest(BITMAP_t,M_vertexwork,1,VertexBitmapBlockSize);
     yrequest(BITMAP_t,M_facetadj,AheadFacets,VertexBitmapBlockSize);
     if(reallocmem()){  // out of memory, don't increase the values
         MaxVertices -= (DD_VERTEX_ADDBLOCK<<packshift);
@@ -1130,7 +1109,6 @@ inline static int facet_intersection(int f1, int f2)
 *    and only if the intersection contains f1 and f2 only. */
 inline static int is_ridge(int f1,int f2)
 {int vertexno,i,j,vlistlen; BITMAP_t v;
-     // get vertices adjacent to both f1 and f2 into VertexWork
     if(facet_intersection(f1,f2) < DIM-1){
          return 0; // no - happens oftern
     }
@@ -1141,7 +1119,7 @@ inline static int is_ridge(int f1,int f2)
     // store these vertices in VertexList
     vertexno=0; vlistlen=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
-        if((v=VertexWork[i] = FACET_adj(f1)[i] & FACET_adj(f2)[i])){
+        if((v=FACET_adj(f1)[i] & FACET_adj(f2)[i])){
             j=vertexno;
             while(v){
                 while((v&7)==0){ j+=3; v>>=3; }
@@ -1173,7 +1151,8 @@ inline static void create_new_facet(int f1, int f2, int vno)
 {int newf; double d1,d2,d; int i;
     newf=get_new_facetno();
     if(newf<0) return; // no memory
-    copy_VertexWork_to_facet(newf);
+    for(i=0;i<VertexBitmapBlockSize;i++)
+        FACET_adj(newf)[i] = FACET_adj(f1)[i] & FACET_adj(f2)[i];
     set_FacetAdj(newf,vno);
     // compute the coefficients, f1<0, f2 >0
     if(f2==0){ // ideal facet
@@ -1207,7 +1186,7 @@ inline static void search_ridges_DIM2(int f1, int newvertex)
     for(f2=FacetPosnegList; (j=*f2)>=0; f2++){
         total=0; L1=FACET_adj(f1); L2=FACET_adj(j);
         for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
-            v=VertexWork[i] = (*L1)&(*L2);
+            v=(*L1)&(*L2);
             add_bitcount(v,total);
         }
         // facets f1 and j intersect in a vertex

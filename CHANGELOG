@@ -11,13 +11,15 @@ Version 1.5
    pool.
 
 Version 1.6
- - main.c: changing the SIGINT (Ctrl+C) signal to SIGUSR1
+ - main.c: changing the SIGINT (Ctrl+C) signal to SIGUSR1; can
+    be set during compile time by defining INNER_SIGNAL
  - poly.c: moving documentation before the procedures
  - poly.c: new (and faster) method is implemented; thanks to
     Elod Csirmaz (https://github.com/csirmaz)
  - poly.c: extending bitcount to 1023 *(10 bits) from 8 bits
- - inner.c: print the "non-default parameters" headline only if there was
-       some change
+ - unused memory slots are deleted
+ - inner.c: print the "non-default parameters" headline only
+       if there was some change
  - inner.c: check that the number of objectives is at least 2
  - inner.c: changing output channel from R_info to R_warn, and 
  - params.c: setting the default MessageLevel to 2
