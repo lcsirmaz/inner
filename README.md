@@ -99,11 +99,12 @@ Change tolerances with great care.
 
 | Algorithm parameters | |
 |:--------|:------------|
-|`RandomFacet=0`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
+|`RandomFacet=1`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
 |`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent <br> vertices. |
 |`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
-|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program is interrupted by Ctrl+C, continue extracting new vertices by asking <br> the oracle about every facet of the actual approximating polyhedron. Second Ctrl+C <br> aborts this post-processing. |
+|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
+|`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest number <br> of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool adds  <br> more work, but can simplify the approximating polytope. |
 |**Oracle parameters**| |
 |`OracleMessage=1`<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
 |`OracleMethod=0`<br>&nbsp;  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
@@ -115,13 +116,13 @@ Change tolerances with great care.
 |`ShuffleMatrix=1` <br>&nbsp; | 0 = no, 1 = yes <br> shuffle rows and columns of the constraint matrix randomly. |
 |`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle reports a result vertex, round its coordinates to the nearest rational <br> number with small denominator. |
 |**Reporting**| |
-|`MessageLevel=3` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. The command line option `-m[0..3]` overrides <br> this value. |
+|`MessageLevel=2` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. The command line option `-m[0..3]` overrides <br> this value. |
 |`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress <br> reports, or at least 5. The command line option `-p T` overrides this value. |
 |`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately when it is found. The command line <br> option `-y-` (no) or `-y+` (yes) overrides the value defined here. |
 |`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location, whenever they change, of the 11 memory blocks storing <br> the combinatorial data structure. |
 |`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominators <br> rather than floating point numerals. |
 |`PrintStistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print resources used (number of iterations, ridge tests, etc.) when the program stops. |
-|`PrintParams=0` <br>&nbsp; | 0 = no, 1 = yes <br> print algorithm parameters which are not equal to their default values. |
+|`PrintParams=1` <br>&nbsp; | 0 = no, 1 = yes <br> print algorithm parameters which are not equal to their default values. |
 |`PrintVertices=2` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print (again) all known vertices when the program terminates. |
 |`PrintFacets=0` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print all known (relevant) facets when the program terminates. |
 |`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after command <br> line option `-o`. For file specified after `-ov` both 0 and 1 means &quot;save on normal exit only&quot;. |
@@ -165,7 +166,7 @@ the number of *rows*, and the number of *columns*.  Each file starts with
 some comment lines.
 
 Solutions are in the 'solution' directory. The same file name with the extension
-`.res`contains the list of vertices and facets.  `.out` files contain
+`.res` contains the list of vertices and facets.  `.out` files contain
 progress reports, statistics, and parameter settings.
 
 
