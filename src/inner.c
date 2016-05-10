@@ -255,14 +255,14 @@ static void dump_and_save(int how)
       "   vertices # / upto     %d / %d\n"
       "   facets   # / upto     %d / %d\n"
       " facet manipulating\n"
-      "   compress / increase   %d / %d\n"
       "   added avg / max       %s / %s\n"
+      "   compressed            %d\n"
       " number of ridge tests\n"
       "   avg / max             %s / %s\n",
       dd_stats.vertices_allocated_no,dd_stats.vertices_allocated,
       dd_stats.facets_allocated_no,dd_stats.facets_allocated,
-      dd_stats.facets_compressed_no,dd_stats.expand_facetbitmaps_no,
       readable(dd_stats.avg_facetsadded,0),readable(dd_stats.max_facetsadded,1),
+      dd_stats.facets_compressed_no,
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
     }
     if(PARAMS(PrintParams)){
