@@ -64,12 +64,6 @@ thread_data_t ThreadData[NUMTHREAD]; // 0 is unused
 int ThreadVertex;
 pthread_mutex_t ThreadCreateFacetLock;
 
-// TODO Until threads write new facets into the common storage,
-// and we may need to reallocate the storage, we use the following
-// mutexes.
-pthread_mutex_t ThreadMemshareProcess[NUMTHREAD];
-pthread_mutex_t ThreadMemshareWaiting;
-
 /*
 The thread logic is the following:
 
@@ -125,18 +119,6 @@ void create_threads(void){
     if((rc = pthread_mutex_init(&ThreadCreateFacetLock, NULL))){
         printf("error: pthread_mutex_init, rc: %d\n", rc);
         exit(1);
-    }
-
-    
-    if((rc = pthread_mutex_init(&ThreadMemshareWaiting, NULL))){
-        printf("error: pthread_mutex_init, rc: %d\n", rc);
-        exit(1);
-    }
-    for(i=0; i<NUMTHREAD; i++){
-    if((rc = pthread_mutex_init(&ThreadMemshareProcess[i], NULL))){
-        printf("error: pthread_mutex_init, rc: %d\n", rc);
-        exit(1);
-    }
     }
     
 }
@@ -1142,21 +1124,7 @@ inline static int get_new_facetno(void)
     i=NextFacet; 
     if(NextFacet>=AheadFacets){
 #ifdef USETHREADS
-        // We need to make sure that no one else is processing before reallocating
-        pthread_mutex_lock(&ThreadMemshareWaiting);
-        for(p=0; p<NUMTHREAD; p++){
-            if(p!=threadId){ 
-                pthread_mutex_lock(&ThreadMemshareProcess[p]); 
-            }
-        }
-        
         allocate_facet_block(threadId);
-
-        for(p=0; p<NUMTHREAD; p++){
-            if(p!=threadId){ pthread_mutex_unlock(&ThreadMemshareProcess[p]); }
-        }
-        pthread_mutex_unlock(&ThreadMemshareWaiting);
-
 #else
         allocate_facet_block();
 #endif
@@ -1465,15 +1433,6 @@ inline static void create_new_facet(int f1, int f2, int vno)
     ASSERT("cnf/threadId", threadId < NUMTHREAD, threadId);
     ASSERT("cnf/myVertexWork", myVertexWork == absVertexWork + (threadId*VertexBitmapBlockSize), threadId);
     
-#ifdef USETHREADS
-    // Relinquish the processing lock from time to time -- do it here
-    pthread_mutex_unlock(&ThreadMemshareProcess[threadId]);
-    // Wait for the waiting lock so that the thread waiting could jump in
-    pthread_mutex_lock(&ThreadMemshareWaiting);
-    pthread_mutex_unlock(&ThreadMemshareWaiting);
-    pthread_mutex_lock(&ThreadMemshareProcess[threadId]);
-#endif
-
     newf = 
 #ifdef USETHREADS
         get_new_facetno(threadId);
@@ -1481,6 +1440,7 @@ inline static void create_new_facet(int f1, int f2, int vno)
         get_new_facetno();
 #endif
     if(newf<0) return; // no memory
+    
     copy_myVertexWork_to_facet(newf);
     set_FacetAdj(newf,vno);
     // compute the coefficients, f1<0, f2 >0
@@ -1599,8 +1559,6 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
     
     // Too few facets, use main thread only
     if(step<2){
-        pthread_mutex_lock(&ThreadMemshareProcess[0]);
-
         while((i=*--ix)>=0){
             ASSERT("negloop0", ix>=FacetPosnegList, 0);
             search_ridges_with(
@@ -1612,8 +1570,6 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
                 PerThread_VertexList(0) // == absVertexList
             );
         }
-        
-        pthread_mutex_unlock(&ThreadMemshareProcess[0]);
         return;
     }
     
@@ -1630,8 +1586,6 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
     // Start work on all threads
     pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
 
-    pthread_mutex_lock(&ThreadMemshareProcess[0]);
-    
     // In the main thread, process from ix until -1
     // Loop through negative facets in FacetPosnegList {NEGLOOP}
     while((i=*--ix)>=0){
@@ -1646,8 +1600,6 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
         );
     }
     
-    pthread_mutex_unlock(&ThreadMemshareProcess[0]);
-
     // Wait for all threads to finish working
     pthread_barrier_wait(&ThreadBarrierJoining); // TODO check return value?
     
@@ -1676,8 +1628,6 @@ void *extra_thread_code(void *arg) {
         
         if(data->finalfacet < 0) break;
         
-        pthread_mutex_lock(&ThreadMemshareProcess[myId]);
-
         // We need to repeat this as the block size may change
         myFacetWork = PerThread_FacetWork(myId);
         myVertexWork = PerThread_VertexWork(myId);
@@ -1693,8 +1643,6 @@ void *extra_thread_code(void *arg) {
             ASSERT("negloopT", ix>=FacetPosnegList && ix<FacetPosnegList+MaxFacets, myId);
             search_ridges_with(i, ThreadVertex, myId, myFacetWork, myVertexWork, myVertexList);
         }
-
-        pthread_mutex_unlock(&ThreadMemshareProcess[myId]);
 
         pthread_barrier_wait(&ThreadBarrierJoining); // TODO check return value?
     }
@@ -1760,14 +1708,8 @@ void add_new_vertex(double *coords)
     newfacet=NextFacet; // how many new facets are added at this step
     // go through all negative facets {NEGLOOP}
     if(DIM<=2){ // search_ridges_with() and check_posneg_facets() assume DIM>=3
-#ifdef USETHREADS
-        pthread_mutex_lock(&ThreadMemshareProcess[0]);
-#endif
         NegIdx = FacetPosnegList+MaxFacets;
         while((j=*--NegIdx)>=0) search_ridges_DIM2(j,thisvertex);
-#ifdef USETHREADS
-        pthread_mutex_unlock(&ThreadMemshareProcess[0]);
-#endif
     } else {
 #ifndef USETHREADS
         NegIdx = FacetPosnegList+MaxFacets;
