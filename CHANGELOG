@@ -21,6 +21,11 @@ Version 1.6
  - inner.c: print the "non-default parameters" headline only
        if there was some change
  - inner.c: check that the number of objectives is at least 2
- - inner.c: changing output channel from R_info to R_warn, and 
+ - inner.c: changing output channel from R_info to R_warn
  - params.c: setting the default MessageLevel to 2
+       added the undocumented keyword TrueRandom to ease testing
 
+Version 1.7
+ - poly.c: splitting memory handling to ease multithread porting
+       newly created facets are collected in a separate area and
+       move from there to their final place.

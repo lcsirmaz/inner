@@ -72,7 +72,6 @@ int vertices_allocated_no;  /* number of times vertex space was extended */
 int vertices_allocated;	    /* total number of vertices allocated */
 int facets_allocated_no;    /* number of times facet space was extended */
 int facets_allocated;	    /* total number of facets allocated */
-int expand_facetbitmaps_no; /* number of times facet bitmaps extended */
 int facets_compressed_no;   /* times facet compression is called */
 int facet_pos;              /* last number of positive facets */
 int facet_zero;             /* facets adjacent to this vertex */
