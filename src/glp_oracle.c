@@ -218,7 +218,7 @@ int read_vlp(void)
                     dir=-1.0; PARAMS(Direction)=1;
                     cnt=sscanf(inpline,"p vlp max %d %d %*d %d %*d",&rows,&cols,&objs);
                  }
-                 if(cnt!=3 || rows<=1 || cols<=1 || objs<=1 ){
+                 if(cnt!=3 || rows<=1 || cols<=1 || objs<1 ){
                     report(R_fatal,"read_vlp: wrong p line in %s\n   %s\n",
                                PARAMS(VlpFile),inpline); return 1;
                  }
