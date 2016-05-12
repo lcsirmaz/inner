@@ -334,7 +334,8 @@ int read_vlp(void)
 
 void set_oracle_parameters(void)
 {   glp_init_smcp(&parm);
-    parm.mobj=GLP_ON;		// multiobjective
+    // multiobjective
+    if(PARAMS(ProblemObjects)>1) parm.mobj=GLP_ON;
     // verbosity
     switch(PARAMS(OracleMessage)){
       case  0: parm.msg_lev=GLP_MSG_OFF; break;

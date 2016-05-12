@@ -522,10 +522,10 @@ int inner(void)
 {int i; int last_memreport;
     initialize_random(); // initialize random numbers
     if(read_vlp()) return 1; // data error before start
-    if(PARAMS(ProblemObjects)==1){
-        report(R_fatal,"The number of objectives is 1, please use an LP solver\n");
-        return 1;
-    }
+//    if(PARAMS(ProblemObjects)==1){
+//        report(R_fatal,"The number of objectives is 1, please use an LP solver\n");
+//        return 1;
+//    }
     if(check_outfiles()) return 1; // data error before start
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",
@@ -542,6 +542,12 @@ int inner(void)
     }
     progressdelay = 100*PARAMS(ProgressReport);
     report_new_vertex();  // take care of reporting
+    if(DIM<2){
+        PARAMS(PrintFacets)=0;
+        PARAMS(SaveFacets)=0;
+        dump_and_save(0);
+        return 0;
+    }
     if(init_dd(DIM,VertexOracleData.overtex)) return 2; // fatal error
     if(init_vertexpool()) return 2; // fatal error
     last_memreport=0; // in case memory report is requested
