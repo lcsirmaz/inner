@@ -200,7 +200,7 @@ M_NewFacetCoordStore,	/* (thread) new facet coordinates */
 M_NewFacetAdjStore,		/* (thread) adjacency list of new facets */
 		/* reserved slots for the rest of the threads */
 M_THREAD_RESERVED_PLACE,
-M_THREAD_RESERVED_PLACE_END = ((M_THREAD_RESERVED_PLACE-M_THREAD_SLOTS)*(NUMTHREADS-1))
+M_THREAD_RESERVED_PLACE_END = M_THREAD_SLOTS+((M_THREAD_RESERVED_PLACE-M_THREAD_SLOTS)*NUMTHREADS)
 } memslot_t;
 
 // The number of thread-specific memory slots
@@ -270,7 +270,6 @@ static int
 *    can store up to MaxFacets bits. FacetLiving tells whether a facet is 
 *    among the facets of the current approximation; FacetFinal tells
 *     whether the facet belongs to the final polytope. */
-// TODO Store this in global pointer to avoid one indexing
 #define VertexAdjStore   \
     ((BITMAP_t*)memory_slots[M_VertexAdjStore].ptr)
 
@@ -282,7 +281,6 @@ static int
 /* BITMAP_t *FacetAdjStore
 *    bitmap with VertexBitmapBlockSize blocksize; stores the
 *    adjacency list of facets in MaxFacets blocks. */
-// TODO Store this in global pointer to avoid one indexing
 #define FacetAdjStore    \
     ((BITMAP_t*)memory_slots[M_FacetAdjStore].ptr)
 
@@ -1139,7 +1137,7 @@ static int solve_lineq(int d, double *VertexArray)
 *    calculate facet equation form the vertices adjacent to it. Complain
 *    if out of memory, the system is degenerate, or the old and new coeffs
 *    are too far from each other. */
-static void recalculate_facet_eq(int fno,BITMAP_t *facetadj, double *facetcoords, memslot_t M_my_VertexArray)
+static void recalculate_facet_eq(int fno, BITMAP_t *facetadj, double *facetcoords, memslot_t M_my_VertexArray)
 {double v,s; int i,j,vno; int amax,an; BITMAP_t fc;
  double *VertexArray;    
 #define A(i,j)	VertexArray[(i)*(DIM+1)+(j)]
@@ -1421,7 +1419,7 @@ inline static void create_new_facet(int f1, int f2, int vno, int threadId)
 
     if(PARAMS(ExactFacetEq)){
         recalculate_facet_eq(
-            MaxFacets + newf, // TODO probably wrong index
+            newf, // TODO probably wrong index
             NewFacetAdj(newf),
             NewFacetCoords(newf),
             M_VertexArray_Th(threadId)
