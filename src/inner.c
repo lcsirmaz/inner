@@ -521,6 +521,9 @@ static int break_inner(void)
 int inner(void)
 {int i; int last_memreport;
     initialize_random(); // initialize random numbers
+#ifdef USETHREADS
+    create_threads();
+#endif
     if(read_vlp()) return 1; // data error before start
 //    if(PARAMS(ProblemObjects)==1){
 //        report(R_fatal,"The number of objectives is 1, please use an LP solver\n");
@@ -606,6 +609,9 @@ again:
     }
     goto again;
 #undef DIM
+#ifdef USETHREADS
+    stop_threads();
+#endif
     return 0;
 }
 
