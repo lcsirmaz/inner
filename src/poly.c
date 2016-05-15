@@ -148,10 +148,24 @@ void stop_threads(void){
 
 #endif
 
+static int DIM; // problem dimension = number of objectives
+
 // TODO
 #define DEBUGASSERT 1
 
 #ifdef DEBUGASSERT
+
+#define LOG(...) printf(__VA_ARGS__);fflush(stdout)
+
+#define LOGCOORDS(c) c,coords_checksum(c)
+inline double coords_checksum(double* c)
+{
+    int i;
+    double s=0;
+    for(i=0;i<DIM;i++) s+=c[i]/(i+1);
+    return s;
+}
+
 inline void ASSERT(char* msg, int b, int threadId)
 {
     if(!b){
@@ -163,6 +177,7 @@ inline void ASSERT(char* msg, int b, int threadId)
 }
 #else
 #define ASSERT(m,b,t)
+#define LOG(...)
 #endif
 
 
@@ -299,7 +314,8 @@ static int
 *    for each facet it contains the distance of the facet and
 *    the new vertex. It is fixed during the iteration.
 */
-static double* FacetDistStore;
+#define FacetDistStore \
+    ((double*)memory_slots[M_FacetDistStore].ptr)
 
 /* double FacetDist(fno)
 *    the distance associated with facet fno < MaxFacets */
@@ -598,8 +614,6 @@ static inline void* request_temp_mem(memslot_t slot,size_t nno)
 *
 * All indices start at 0, including vertices, facets, coordinates.
 */
-
-static int DIM; // problem dimension = number of objectives
 
 /**********************************************************************
 * B I T M A P S
@@ -1284,10 +1298,13 @@ int probe_vertex(double *coords)
 * void move_newfacet_to(double *coords, BITMAP_t *adj, fno)
 *   copy the facet at NextFacet to the given place, and decrease
 *   NextFacet */
-#define move_newfacet_to(coords,adj,fno)	\
+#define move_newfacet_to(coords, adj, fno)	\
   { memcpy(FacetCoords(fno),coords,FacetSize*sizeof(double)); \
     memcpy(FacetAdj(fno),adj,VertexBitmapBlockSize*sizeof(BITMAP_t)); }
 
+#define move_newfacet_from_th(threadId, fno) \
+    LOG("t%d move new facet from %d to %d (%p,%f)\n", threadId, NewFacet_Th[threadId], fno, LOGCOORDS(NewFacetCoords_Th(threadId,NewFacet_Th[threadId]))); \
+    move_newfacet_to(NewFacetCoords_Th(threadId,NewFacet_Th[threadId]), NewFacetAdj_Th(threadId,NewFacet_Th[threadId]), fno)
 
 /***********************************************************************
 * Get the next facet number
@@ -1333,12 +1350,12 @@ inline static int facet_intersection(int f1, int f2)
 *    VertexList, then take the intersection of living facets and 
 *    the facet adjacency lists in VertexList. This is a ridge if 
 *    and only if the intersection contains f1 and f2 only. */
-#ifdef USETHREADS
 inline static int is_ridge(int f1,int f2, int threadId, BITMAP_t *myFacetWork, int *myVertexList)
-#else
-inline static int is_ridge(int f1,int f2)
-#endif
-{int vertexno,i,j,vlistlen; BITMAP_t v;
+{
+    int vertexno,i,j,vlistlen;
+    BITMAP_t v;
+    
+    // LOG("t%d is_ridge f1=%d f2=%d\n", threadId, f1, f2);
     
     if(facet_intersection(f1,f2) < DIM-1){
          return 0; // no - happens oftern
@@ -1425,6 +1442,9 @@ inline static void create_new_facet(int f1, int f2, int vno, int threadId)
             M_VertexArray_Th(threadId)
         );
     }
+    
+    LOG("t%d create_new_facet f1=%d f2=%d vno=%d newf=%d (%p,%f)\n", threadId, f1, f2, vno, newf, LOGCOORDS(NewFacetCoords(newf)));
+
 }
 
 
@@ -1454,11 +1474,7 @@ inline static void search_ridges_DIM2(int f1, int newvertex)
         }
         // facets f1 and j intersect in a vertex
         if(total!=0)
-#ifdef USETHREADS
-            create_new_facet(f1,j,newvertex,0);
-#else
-            create_new_facet(f1,j,newvertex);
-#endif
+            create_new_facet(f1, j, newvertex, 0);
     }
 }
 
@@ -1540,14 +1556,6 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
 }
 
 // The code that runs in the extra (non-main) threads
-/*
-Global inputs:
-    FacetPosnegList pointer (neg)
-    ThreadData
-    ThreadVertex
-Calls:
-    search_ridges_with
-*/
 void *extra_thread_code(void *arg) {
     thread_data_t *data = (thread_data_t *)arg;
     int myId = data->id;
@@ -1602,13 +1610,16 @@ void add_new_vertex(double *coords)
     BITMAP_t fc; 
     double d;
     int *PosIdx, *NegIdx;
+    
+    LOG("add_new_vertex\n");
+    LOG("NextFacet: %d\n", NextFacet);
 
     dd_stats.iterations++;
     if(NextVertex >= MaxVertices){
         allocate_vertex_block();
     }
     // memory blocks for the outer loop
-    FacetDistStore = talloc(double,M_FacetDistStore,MaxFacets,1);
+    talloc(double, M_FacetDistStore, MaxFacets, 1);
     FacetPosnegList = talloc(int,M_FacetPosnegList,MaxFacets,1);
 
     for(threadId=0; threadId<NUMTHREADS; threadId++){
@@ -1679,6 +1690,7 @@ void add_new_vertex(double *coords)
     AllNewFacets = 0;
     for(threadId=NUMTHREADS-1; threadId>=0; threadId--){
         AllNewFacets += NewFacet_Th[threadId];
+        LOG("t%d new facets %d sum=%d\n", threadId, NewFacet_Th[threadId], AllNewFacets);
     }
 
     // calculate the number of facets of the new polytope
@@ -1702,11 +1714,7 @@ void add_new_vertex(double *coords)
         while(NewFacet_Th[threadId]>0 && NextFacet<MaxFacets){
             NewFacet_Th[threadId]--;
             AllNewFacets--;
-            move_newfacet_to(
-                NewFacetCoords_Th(threadId,NewFacet_Th[threadId]), 
-                NewFacetAdj_Th(threadId,NewFacet_Th[threadId]),
-                NextFacet
-            );
+            move_newfacet_from_th(threadId, NextFacet);
             make_facet_living(NextFacet);
             NextFacet++;
         }
@@ -1731,11 +1739,8 @@ void add_new_vertex(double *coords)
                 if(j>=MaxFacets) goto finish_compress;
                 NewFacet_Th[threadId]--;
                 AllNewFacets--;
-                move_newfacet_to(
-                    NewFacetCoords_Th(threadId, NewFacet_Th[threadId]),
-                    NewFacetAdj_Th(threadId, NewFacet_Th[threadId]),
-                    j
-                ); 
+                LOG("t%d (use free slot) ", threadId);
+                move_newfacet_from_th(threadId, j);
                 make_facet_living(j);
                 if(NewFacet_Th[threadId]==0) threadId--;
                 if(AllNewFacets==0) goto finish_compress;
@@ -1752,11 +1757,8 @@ void add_new_vertex(double *coords)
         while(AllNewFacets>0){
             NewFacet_Th[threadId]--;
             AllNewFacets--;
-            move_newfacet_to(
-                NewFacetCoords_Th(threadId, NewFacet_Th[threadId]),
-                NewFacetAdj_Th(threadId, NewFacet_Th[threadId]),
-                NextFacet
-            );
+            LOG("t%d (new memory) ", threadId);
+            move_newfacet_from_th(threadId, NextFacet);
             make_facet_living(NextFacet);
             NextFacet++;
             if(NewFacet_Th[threadId]==0) threadId--;
@@ -1764,6 +1766,7 @@ void add_new_vertex(double *coords)
         return;
     }
   fill_holes:
+    LOG("Before fill_holes NextFacet=%d\n", NextFacet);
     while( fno<NextFacet && is_livingFacet(fno) ) fno++;
     while( NextFacet > fno && !is_livingFacet(NextFacet-1) ) NextFacet--;
     if(fno < NextFacet){
@@ -1780,6 +1783,7 @@ void add_new_vertex(double *coords)
     for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
         intersect_VertexAdj_Fliving(i);
     }
+    
 }
 
 /*=====================================================================*/
