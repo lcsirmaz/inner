@@ -13,7 +13,7 @@
 
 /* Version and copyright */
 #define VERSION_MAJOR	1
-#define VERSION_MINOR	6
+#define VERSION_MINOR	7
 #define VERSION_STRING	mkstringof(VERSION_MAJOR.VERSION_MINOR)
 
 #define COPYRIGHT	\

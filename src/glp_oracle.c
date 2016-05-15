@@ -218,7 +218,7 @@ int read_vlp(void)
                     dir=-1.0; PARAMS(Direction)=1;
                     cnt=sscanf(inpline,"p vlp max %d %d %*d %d %*d",&rows,&cols,&objs);
                  }
-                 if(cnt!=3 || rows<=1 || cols<=1 || objs<=1 ){
+                 if(cnt!=3 || rows<=1 || cols<=1 || objs<1 ){
                     report(R_fatal,"read_vlp: wrong p line in %s\n   %s\n",
                                PARAMS(VlpFile),inpline); return 1;
                  }
@@ -334,7 +334,8 @@ int read_vlp(void)
 
 void set_oracle_parameters(void)
 {   glp_init_smcp(&parm);
-    parm.mobj=GLP_ON;		// multiobjective
+    // multiobjective
+    if(PARAMS(ProblemObjects)>1) parm.mobj=GLP_ON;
     // verbosity
     switch(PARAMS(OracleMessage)){
       case  0: parm.msg_lev=GLP_MSG_OFF; break;
