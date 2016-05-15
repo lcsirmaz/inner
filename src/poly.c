@@ -1652,16 +1652,16 @@ void add_new_vertex(double *coords)
         d = FacetDist(fno) = vertex_distance(coords, fno);
         if(d>DD_EPS_EQ){ // positive side 
             *PosIdx = fno; 
-            LOG(1, " pos facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
+            LOG(2, " pos facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
             ++PosIdx;
             dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative side
             --NegIdx; 
             *NegIdx=fno;
-            LOG(1, " neg facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
+            LOG(2, " neg facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
             dd_stats.facet_neg++;
         } else { // this is adjacent to our new vertex
-            LOG(1, " adj facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
+            LOG(2, " adj facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
             set_VertexAdj(thisvertex,fno);
             set_FacetAdj(fno,thisvertex);
             dd_stats.facet_zero++;
@@ -1749,8 +1749,8 @@ void add_new_vertex(double *coords)
                 LOG(1, "t%d (use free slot) ", threadId);
                 move_newfacet_from_th(threadId, j);
                 make_facet_living(j);
-                if(NewFacet_Th[threadId]==0) threadId++;
                 if(AllNewFacets==0) goto finish_compress;
+                while(NewFacet_Th[threadId]==0) threadId++;
             }
             j++; fc>>=1;
         }
@@ -1761,14 +1761,15 @@ void add_new_vertex(double *coords)
         allocate_facet_block(AllNewFacets);
         // if no memory, throw the newly generated facets
         if(OUT_OF_MEMORY) AllNewFacets = 0;
-        while(AllNewFacets>0){
+        while(1){
             NewFacet_Th[threadId]--;
             AllNewFacets--;
             LOG(1, "t%d (new memory) ", threadId);
             move_newfacet_from_th(threadId, NextFacet);
             make_facet_living(NextFacet);
             NextFacet++;
-            if(NewFacet_Th[threadId]==0) threadId++;
+            if(AllNewFacets==0) break;
+            while(NewFacet_Th[threadId]==0) threadId++;
         }
         return;
     }
