@@ -60,8 +60,8 @@ pthread_barrier_t ThreadBarrierJoining;
 
 typedef struct {
     int id;
-    int finalfacet;
-    int *facetlist;
+    int *facetlistbegin;
+    int *facetlistend;
 } thread_data_t;
 
 thread_data_t ThreadData[NUMTHREADS]; // 0 is unused
@@ -135,7 +135,7 @@ void stop_threads(void){
     printf("Stopping threads...\n");
 
     for(i=1; i<NUMTHREADS; i++){
-        ThreadData[i].finalfacet = -1;
+        ThreadData[i].facetlistbegin = NULL;
     }
 
     pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
@@ -150,8 +150,11 @@ void stop_threads(void){
 
 static int DIM; // problem dimension = number of objectives
 
-// TODO
-#define DEBUGASSERT 1
+/************************************************************************
+* Debug code
+*/
+
+// #define DEBUGASSERT 1
 
 #ifdef DEBUGASSERT
 
@@ -693,10 +696,10 @@ typedef uint64_t BITMAP_t;
 #define set_VertexAdj(vno,fno)	  \
     VertexAdj(vno)[(fno)>>packshift] |= BITMAP1 << ((fno)&packmask)
 
-/* intersect_VertexAdj_Fliving(vertexno)
+/* intersect_VertexAdj_FacetLiving(vertexno)
 *    clear bits in the adjacency list of vertexno which are not in
 *    FacetLiving */
-inline static void intersect_VertexAdj_Fliving(int vno)
+inline static void intersect_VertexAdj_FacetLiving(int vno)
 {int i;
     for(i=0;i<FacetBitmapBlockSize;i++){
         VertexAdj(vno)[i] &= FacetLiving[i];
@@ -1022,7 +1025,8 @@ int init_dd(int dimension, double *coords)
     FacetCoords(NextFacet)[DIM]=1.0;
     clear_FacetAdj_all(NextFacet);
     for(j=0;j<DIM;j++)set_FacetAdj(NextFacet,j);
-    set_in_FacetLiving(NextFacet); set_in_FacetFinal(NextFacet);
+    set_in_FacetLiving(NextFacet); 
+    set_in_FacetFinal(NextFacet);
     NextFacet++;
     // other facets
     for(i=0;i<DIM;i++){
@@ -1525,10 +1529,9 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
     }
     
     for(i=NUMTHREADS-1; i>0; i--){
-        ThreadData[i].facetlist = ix; // the beginning
+        ThreadData[i].facetlistbegin = ix; // the beginning
         ix -= step; // ix is the end
-        ThreadData[i].finalfacet = *ix;
-        *ix = -1;
+        ThreadData[i].facetlistend = ix;
     }
 
     ThreadVertex = thisvertex;
@@ -1559,7 +1562,7 @@ void thread_check_posneg_facets(int thisvertex, int neg_facet_num)
 void *extra_thread_code(void *arg) {
     thread_data_t *data = (thread_data_t *)arg;
     int myId = data->id;
-    int i, *ix, *myVertexList;
+    int *ix, *ixend, *myVertexList;
     BITMAP_t *myFacetWork;
     
     ASSERT("myId", myId>0 && myId<NUMTHREADS, myId);
@@ -1569,7 +1572,7 @@ void *extra_thread_code(void *arg) {
         pthread_barrier_wait(&ThreadBarrierForking); // TODO check return value?
 
         // Incoming data is in data
-        if(data->finalfacet < 0) break;
+        if(data->facetlistbegin == NULL) break;
         
         // We need to repeat this as the block size may change
         myFacetWork = FacetWork_Th(myId);
@@ -1577,19 +1580,19 @@ void *extra_thread_code(void *arg) {
         
         ASSERT("ThreadVertex", ThreadVertex>=0 && ThreadVertex<MaxVertices, myId);
         
-        ix = data->facetlist;
+        ix = data->facetlistbegin;
+        ixend = data->facetlistend;
         // Loop through negative facets in FacetPosnegList {NEGLOOP}
-        while((i=*--ix)>=0){
-            ASSERT("negloopT", ix>=FacetPosnegList && ix<FacetPosnegList+MaxFacets, myId);
-            search_ridges_with(i, ThreadVertex, myId, myFacetWork, myVertexList);
+        while(ix > ixend){
+            ix--;
+            ASSERT("negloop-in-thread", ix>=FacetPosnegList && ix<FacetPosnegList+MaxFacets, myId);
+            search_ridges_with(*ix, ThreadVertex, myId, myFacetWork, myVertexList);
         }
-
-        ASSERT("finalfacet", data->finalfacet >= 0 && data->finalfacet < MaxFacets, myId);
-        search_ridges_with(data->finalfacet, ThreadVertex, myId, myFacetWork, myVertexList);
 
         pthread_barrier_wait(&ThreadBarrierJoining); // TODO check return value?
     }
 
+    printf("Exiting thread %d\n", myId);
     pthread_exit(NULL);
 }
 
@@ -1646,14 +1649,19 @@ void add_new_vertex(double *coords)
     PosIdx = FacetPosnegList; // this goes ahead
     NegIdx = FacetPosnegList+MaxFacets; // this goes backward
     for(fno=0;fno<NextFacet;fno++) if(is_livingFacet(fno)){
-        d = FacetDist(fno) = vertex_distance(coords,fno);
+        d = FacetDist(fno) = vertex_distance(coords, fno);
         if(d>DD_EPS_EQ){ // positive side 
-            *PosIdx = fno; ++PosIdx;
+            *PosIdx = fno; 
+            LOG(1, " pos facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
+            ++PosIdx;
             dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative side
-            --NegIdx; *NegIdx=fno;
+            --NegIdx; 
+            *NegIdx=fno;
+            LOG(1, " neg facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
             dd_stats.facet_neg++;
         } else { // this is adjacent to our new vertex
+            LOG(1, " adj facet %d (%f) d=%f\n", fno, coords_checksum(FacetCoords(fno)), d);
             set_VertexAdj(thisvertex,fno);
             set_FacetAdj(fno,thisvertex);
             dd_stats.facet_zero++;
@@ -1672,11 +1680,11 @@ void add_new_vertex(double *coords)
     // go through all negative facets {NEGLOOP}
     if(DIM<=2){ // search_ridges_with() and check_posneg_facets() assume DIM>=3
         NegIdx = FacetPosnegList+MaxFacets;
-        while((j=*--NegIdx)>=0) search_ridges_DIM2(j,thisvertex);
+        while((j=*--NegIdx)>=0) search_ridges_DIM2(j, thisvertex);
     } else {
 #ifndef USETHREADS
         NegIdx = FacetPosnegList+MaxFacets;
-        while((j=*--NegIdx)>=0) search_ridges_with(j,thisvertex);
+        while((j=*--NegIdx)>=0) search_ridges_with(j, thisvertex, 0, FacetWork_Th(0), VertexList_Th(0));
 #else
         thread_check_posneg_facets(thisvertex, FacetPosnegList+MaxFacets-NegIdx-1); // the subtraction returns the number of elements (not bytes)
 #endif
@@ -1702,12 +1710,11 @@ void add_new_vertex(double *coords)
     }
     dd_stats.avg_facetsadded = (dd_stats.iterations-1)*dd_stats.avg_facetsadded*(1.0/dd_stats.iterations)
          + (1.0/dd_stats.iterations)*dd_stats.facet_new;
+         
     // delete negative facets from FacetLiving
     NegIdx = FacetPosnegList+MaxFacets;
     while((j=*--NegIdx)>=0) clear_in_FacetLiving(j);
-    // move new facets to NextFacet; this part can be skipped 
-
-
+    
     // Move new facets
 
     for(threadId=0; threadId<NUMTHREADS; threadId++){
@@ -1727,7 +1734,7 @@ void add_new_vertex(double *coords)
     dd_stats.facets_compressed_no ++;
     // clear adjacency list of vertices
     for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
-        intersect_VertexAdj_Fliving(i);
+        intersect_VertexAdj_FacetLiving(i);
     }
 
     // move new facets into free facet slots
@@ -1766,7 +1773,6 @@ void add_new_vertex(double *coords)
         return;
     }
   fill_holes:
-    LOG(3, "Before fill_holes NextFacet=%d\n", NextFacet);
     while( fno<NextFacet && is_livingFacet(fno) ) fno++;
     while( NextFacet > fno && !is_livingFacet(NextFacet-1) ) NextFacet--;
     if(fno < NextFacet){
@@ -1781,7 +1787,7 @@ void add_new_vertex(double *coords)
     for(i=0;i<FacetBitmapBlockSize;i++) FacetFinal[i] &= FacetLiving[i];
     // clear the adjacency list of vertices
     for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
-        intersect_VertexAdj_Fliving(i);
+        intersect_VertexAdj_FacetLiving(i);
     }
     
 }
