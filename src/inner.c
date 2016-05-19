@@ -522,10 +522,6 @@ int inner(void)
 {int i; int last_memreport;
     initialize_random(); // initialize random numbers
     if(read_vlp()) return 1; // data error before start
-//    if(PARAMS(ProblemObjects)==1){
-//        report(R_fatal,"The number of objectives is 1, please use an LP solver\n");
-//        return 1;
-//    }
     if(check_outfiles()) return 1; // data error before start
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",

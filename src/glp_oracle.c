@@ -203,7 +203,7 @@ int read_vlp(void)
     while(nextline(f)) switch(inpline[0]){ /* read next input line */
        case 'c': // comment line, print out nonempty comment lines before the first p line
                  if(rows==0 && inpline[1]){
-                     report(R_info,"C%s\n",inpline+1); 
+                     report(R_warn,"C%s\n",inpline+1); 
                  }
                  continue;
        case 'e': break; // end

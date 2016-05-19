@@ -788,13 +788,6 @@ int init_dd(int dimension, double *coords)
     yalloc(BITMAP_t,M_facetadj,MaxFacets,VertexBitmapBlockSize); // FacetAdjList
     yalloc(BITMAP_t,M_facetliving,1,FacetBitmapBlockSize); // FacetLiving
     yalloc(BITMAP_t,M_facetfinal,1,FacetBitmapBlockSize); // FacetFinal
-
-//    yalloc(double,M_facetdist,MaxFacets,1); // FACET_dist
-//    yalloc(int,M_facetposneg,MaxFacets,1); // FacetPostnegList
-//    yalloc(int,M_vertexlist,MaxVertices,1); // VertexList
-//    yalloc(BITMAP_t,M_facetwork,1,FacetBitmapBlockSize); // FacetWork
-//    yalloc(double,M_vertexarray,VERTEXARRAY_STEPSIZE,DIM+1); // VertexArray
-
     if(OUT_OF_MEMORY) return 1;
     dd_stats.memory_allocated_no=1;
     // vertices and facets
@@ -850,7 +843,6 @@ static void allocate_vertex_block(void)
     // tell the memory handling part how much storage space we would need.
     yrequest(double,M_vertexcoord,MaxVertices,VertexSize);
     yrequest(BITMAP_t,M_vertexadj,MaxVertices,FacetBitmapBlockSize);
-//    yrequest(int,M_vertexlist,MaxVertices,1);
     yrequest(BITMAP_t,M_facetadj,MaxFacets,VertexBitmapBlockSize);
     // and do the reallocation
     if(reallocmem()){  // out of memory, don't increase the values
