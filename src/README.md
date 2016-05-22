@@ -1,5 +1,8 @@
 ## Source files
 
+Special thanks to [https://github.com/csirmaz/inner](Elod Csirmaz) for supplying the thread
+routines.
+
 * glp_oracle.c, glp_oracle.h &ndash; implementing the vertex separation oracle based on glpk library
 * inner.c, inner.h &ndash; the main loop executing the inner approximation algorithm
 * main.c, main.h &ndash; the main program
