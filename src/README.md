@@ -1,6 +1,6 @@
 ## Source files
 
-Special thanks to [https://github.com/csirmaz/inner](Elod Csirmaz) for supplying the thread
+Special thanks to [Elod Csirmaz](https://github.com/csirmaz/inner) for supplying the thread
 routines.
 
 * glp_oracle.c, glp_oracle.h &ndash; implementing the vertex separation oracle based on glpk library
