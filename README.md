@@ -105,6 +105,7 @@ Change tolerances with great care.
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
 |`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
 |`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest number <br> of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool adds  <br> more work, but can simplify the approximating polytope. |
+|`Threads=3`<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero or 1 means don'tuse threads. |
 |**Oracle parameters**| |
 |`OracleMessage=1`<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
 |`OracleMethod=0`<br>&nbsp;  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
@@ -155,8 +156,11 @@ blocks.
 Changing to the directory `INNER/src`, the following command compiles
 **inner** linking the patched glpk routines statically:
 
-    gcc -O3 -W -I ../glpk-X.Y/src -o inner -DPROG=inner *.c ../glpk-X.Y/src/.libs/libglpk.a -lm
+    gcc -O3 -W -I ../glpk-X.Y/src -o inner *.c ../glpk-X.Y/src/.libs/libglpk.a -lm
 
+The threaded version requires defining `USETHREADS` and adding the flag `-pthread`:
+
+    gcc -O3 -W -I ../glpk-X.Y/src -o innerth -DUSETHREADS -pthread *.c ../glpk-X.Y/src/.libs/libglpk.a -lm
 
 #### EXAMPLES
 

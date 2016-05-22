@@ -29,3 +29,19 @@ Version 1.7
  - poly.c: splitting memory handling to ease multithread porting
        newly created facets are collected in a separate area and
        move from there to their final place.
+Version 2.0
+ Multithread support to speed up vertex enumeration.
+ - version.h: adding a T before the version string when compiled
+       with threads enabled.
+ - inner.c: starting threads when entering and stopping them
+       when leaving the inner() routine
+ - params.h: new keyword Threads
+ - params.h: #define MAX_THREADS gives the built-in bound on
+       thread numbers.
+ - params.c: defining Threads as a new keyword specifying how
+       many threads should start by default.
+ - params.c: formatting line length in the default config file
+ - poly.h: add prototype for create_threads() and stop_threads()
+ - poly.c: main rewriting, unifying variable and array names.
+       Thread specific code used when USETHREADS defined. The
+       port was done by E.P. Csirmaz

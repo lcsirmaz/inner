@@ -13,7 +13,6 @@
 
 #include "params.h"
 #include "report.h"
-#include "inner.h"
 #include "version.h"
 #include <stdio.h>
 
@@ -38,6 +37,8 @@
 #define DEF_ExtractAfterBreak	1	/* yes */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
+/* number of threads */
+#define DEF_Threads		3	/* number of threads */
 /* randomness */
 #define DEF_TrueRandom		1	/* yes */
 /* Tolerances */
@@ -112,15 +113,19 @@ CFG( CheckConsistency, INTEGER) \
 "#\n"\
 CFG( ExtractAfterBreak, BOOL) \
 "#    when the program receives a " mkstringof(INNER_SIGNAL) " signal, continue extracting\n"\
-"#    new vertices by asking the oracle about every facet of the actual\n"\
-"#    approximating polyhedron. Can be very time consuming. Second signal\n"\
-"#    aborts post-processing.\n"\
+"#    new vertices by asking the oracle about every facet of the\n"\
+"#    actual approximating polyhedron. Can be very time consuming.\n"\
+"#    Second signal aborts post-processing.\n"\
 "#\n"\
 CFG( VertexPoolSize, INTEGER) \
-"#    size of the vertex pool; add the vertex to the approximation which\n"\
-"#    discards the largest number of existing facets. Should be zero\n"\
-"#    (don't use it) or at least 5. Using vertex pool adds more work,\n"\
-"#    but can simplify the approximating polytopes.\n"\
+"#    size of the vertex pool; add the vertex to the approximation\n"\
+"#    which discards the largest number of existing facets. Should\n"\
+"#    be zero (don't use it) or at least 5. Using vertex pool adds\n"\
+"#    more work, but can simplify the approximating polytopes.\n"\
+"#\n"\
+CFG( Threads, INTEGER) \
+"#    number of threads to use; should be less than " mkstringof(MAX_THREADS) ". Zero or 1\n"\
+"#    means don't use threads.\n"\
 "#\n"\
 "##########################\n"\
 "#   ORACLE parameters    #\n"\
@@ -165,7 +170,7 @@ CFG( MessageLevel, "0 = quiet, 1 = error, 2 = all, 3 = verbose")\
 CFG( ProgressReport, INTEGER) \
 "#    minimum time between two progress reports (in seconds). Should\n"\
 "#    be zero (no progress report), or at least 5. Use command line\n"\
-"#    option -p T to override this value.\n"\
+"#    option -p <seconds> to override this value.\n"\
 "#\n"\
 CFG( VertexReport, BOOL) \
 "#    print out each vertex (extremal solution) immediately as it is\n"\
@@ -212,24 +217,24 @@ CFG( SaveFacets, BOOL2) \
 "#  >>> ... and don't forget to delete the leading # <<<\n"\
 "#\n"\
 "#" CFG( PolytopeEps, REAL) \
-"#    a facet and a vertex are considered adjacent if their distance is\n"\
-"#    smaller than this value.\n"\
+"#    a facet and a vertex are considered adjacent if their distance\n"\
+"#    is smaller than this value.\n"\
 "#\n"\
 "#" CFG( ScaleEps, REAL) \
-"#    coefficients in the scaled facet equation are rounded to the nearest\n"\
-"#    integer if they are closer to it than this value.\n"\
+"#    coefficients in the scaled facet equation are rounded to the\n"\
+"#    nearest integer if they are closer to it than this value.\n"\
 "#\n"\
 "#" CFG( LineqEps, REAL) \
-"#    when solving a system of linear equations for a facet equation, a\n"\
-"#    coefficient smaller than this is considered to be zero.\n"\
+"#    when solving a system of linear equations for a facet equation,\n"\
+"#    a coefficient smaller than this is considered to be zero.\n"\
 "#\n"\
 "#" CFG( RoundEps, REAL) \
-"#    if Oracle vertex reports are rounded (RoundVertices=1), the tolerance\n"\
-"#    in the rounding algorithm.\n"\
+"#    if Oracle vertex reports are rounded (RoundVertices=1), the\n"\
+"#    tolerance in the rounding algorithm.\n"\
 "#\n"\
 "#" CFG( FacetRecalcEps, REAL) \
-"#    when recalculating facet equations, report numerical instability if\n"\
-"#    the new and old coordinates differ at least that much.\n"\
+"#    when recalculating facet equations, report numerical instability\n"\
+"#    if the new and old coordinates differ at least that much.\n"\
 "#\n"\
 "# *** end of " PROGNAME ".cfg ***\n\n"
 
@@ -447,6 +452,7 @@ static struct int_params {
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
   CFG(VertexPoolSize,1000),
+  CFG(Threads,MAX_THREADS),
   CFG(OracleItLimit,10000000),
   CFG(OracleTimeLimit,1000000),
   {NULL,NULL,0,0,0}

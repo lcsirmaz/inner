@@ -12,9 +12,13 @@
  ***********************************************************************/
 
 /* Version and copyright */
-#define VERSION_MAJOR	1
-#define VERSION_MINOR	7
+#define VERSION_MAJOR	2
+#define VERSION_MINOR	0
+#ifdef USETHREADS
+#define VERSION_STRING	"T" mkstringof(VERSION_MAJOR.VERSION_MINOR)
+#else
 #define VERSION_STRING	mkstringof(VERSION_MAJOR.VERSION_MINOR)
+#endif
 
 #define COPYRIGHT	\
 "Copyright (C) 2016 Laszlo Csirmaz, Central European University, Budapest"

@@ -519,10 +519,13 @@ static int break_inner(void)
 
 /** the main algorithm **/
 int inner(void)
-{int i; int last_memreport;
+{int i; int last_memreport; int retvalue=0;
     initialize_random(); // initialize random numbers
-    if(read_vlp()) return 1; // data error before start
-    if(check_outfiles()) return 1; // data error before start
+#ifdef USETHREADS
+    if(create_threads()) return 1;
+#endif
+    if(read_vlp()){ retvalue=1; goto leave; } // data error before start
+    if(check_outfiles()){ retvalue=1; goto leave; } // data error before start
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",
        PARAMS(ProblemName),PARAMS(Direction)?"maximize":"minimize",
@@ -534,31 +537,35 @@ int inner(void)
     for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;
     if(ask_oracle_with_timer()){
         report(R_fatal,"Error getting the first optimal solution.\n");
-        return 2;
+        retvalue=2;
+        goto leave;
     }
     progressdelay = 100*PARAMS(ProgressReport);
     report_new_vertex();  // take care of reporting
-    if(init_dd(DIM,VertexOracleData.overtex)) return 2; // fatal error
+    if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; } // fatal error
     if(DIM<2){
         PARAMS(PrintFacets)=0;
         PARAMS(SaveFacets)=0;
         dump_and_save(0);
-        return 0;
+        retvalue=0;
+        goto leave;
     }
-    if(init_vertexpool()) return 2; // fatal error
+    if(init_vertexpool()){ retvalue=2; goto leave; } // fatal error
     last_memreport=0; // in case memory report is requested
 again:
     switch(find_next_vertex()){
       case 0: // no more vertices
         dump_and_save(0);
-        return 0; // terminated normally
+        retvalue=0;
+        goto leave; // terminated normally
       case 1: // break
-        i=break_inner();
+        retvalue=break_inner();
         dump_and_save(2);
-        return i;        
+        goto leave;
       case 2: // numerical error
-        dump_and_save(1); 
-        return 2; // error during computation
+        dump_and_save(1);
+        retvalue=2;
+        goto leave; // error during computation
       default: // next vertex returned
         break;
     }
@@ -572,7 +579,8 @@ again:
         recalculate_facets();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
             dump_and_save(1);
-            return 2; // error during computation
+            retvalue=2;
+            goto leave; // error during computation
         }
     }
     // check consistency if instructed
@@ -584,14 +592,16 @@ again:
         if(check_consistency()) { // error
             report(R_fatal,"Consistency error: data structure has numerical errors.\n");
             dump_and_save(1);
-            return 2; // error during computation
+            retvalue=2;
+            goto leave; // error during computation
         }
     }
     add_new_vertex(VertexOracleData.overtex);
     facetstat=1; progress_stat_if_expired();
     if(dd_stats.out_of_memory || dd_stats.numerical_error){
         dump_and_save(1);
-        return 2; // error during computation
+        retvalue=2;
+        goto leave; // error during computation
     }
     if(PARAMS(MemoryReport) && 
       last_memreport!=dd_stats.memory_allocated_no){
@@ -602,7 +612,11 @@ again:
     }
     goto again;
 #undef DIM
-    return 0;
+leave:
+#ifdef USETHREADS
+    stop_threads();
+#endif
+    return retvalue;
 }
 
 /* EOF */

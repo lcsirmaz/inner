@@ -49,6 +49,21 @@
 #define DD_FACET_ADDBLOCK	64
 #endif
 
+#ifdef USETHREADS
+/************************************************************************
+* Threads
+*
+* int create_threads(void)
+*    initialize all threads. Return non-zero in case of an error.
+*
+* void stop_threads(void)
+*    clear up threads
+*/
+int create_threads(void);
+void stop_threads(void);
+
+#endif /* USETHREADS */
+
 /************************************************************************
 * Statistics
 *
