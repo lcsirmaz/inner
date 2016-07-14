@@ -731,6 +731,11 @@ typedef uint64_t BITMAP_t;
 #define set_in_FacetFinal(fno)  \
     FacetFinal[(fno)>>packshift] |= BITMAP1<<((fno)&packmask)
 
+/* void clear_in_FacetFinal(fno)
+*    clear bit fno in the bitmap FacetFinal */
+#define clear_in_FacetFinal(fno) \
+    FacetFinal[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
+
 /* clear_FacetAdj_all(facetno)
 *    clear the adjacency list of this facet */
 #define clear_FacetAdj_all(fno)	  \
@@ -861,7 +866,8 @@ int get_next_facet(int from)
         }
         from=0; 
     }
-    else if((from>>packshift) >= FacetBitmapBlockSize)
+//    else if((from>>packshift) >= FacetBitmapBlockSize)
+    else if(from >= NextFacet)
     { return -1; }
     j=from & packmask;
     fno = from-j;
@@ -888,7 +894,7 @@ int get_next_facet(int from)
 /* void mark_facet_as_final(fno)
 *    mark the facets as final, i.e. facet of the final polytope. */
 void mark_facet_as_final(int fno)
-{    FacetFinal[fno>>packshift] |= BITMAP1 << (fno&packmask); }
+{   FacetFinal[fno>>packshift] |= BITMAP1 << (fno&packmask); }
 
 /* int vertex_num(void)
 *    number of vertices added so far (except the ideal ones) */
@@ -1704,8 +1710,15 @@ void add_new_vertex(double *coords)
             *PosIdx = fno; ++PosIdx;
             dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative side
-            --NegIdx; *NegIdx=fno;
-            dd_stats.facet_neg++;
+            if(is_finalFacet(fno)){
+                report(R_err,"Final facet %d is on the negative side of vertex %d (d=%lg); adjust PolytopeEps=%lg\n",fno,ThisVertex,d,DD_EPS_EQ);
+                set_VertexAdj(ThisVertex,fno);
+                set_FacetAdj(fno,ThisVertex);
+                dd_stats.facet_zero++;
+            } else {
+                --NegIdx; *NegIdx=fno;
+                dd_stats.facet_neg++;
+            }
         } else { // this is adjacent to our new vertex
             set_VertexAdj(ThisVertex,fno);
             set_FacetAdj(fno,ThisVertex);
