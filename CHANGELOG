@@ -1,34 +1,9 @@
-Version 1.5
- - Changing the default to ShowParams=1 and RandomFacet=1
- - When MessageLevel=3 the progress report shows three more
-   values: how many facets go through the vertex just added
-   (value after eq:), how many facets have been thrown (out:)
-   and how many new facets are added (new:)
- - New heuristics added: keep a vertex pool and choose the
-   vertex which produces the largest number of "out" facets.
-   The value of the new keyword VertexPoolSize determines the
-   size of the pool; the default value is 0, which means no
-   pool.
+Version 2.1
+ - poly.c: a new vertex should be on the non-negative side of
+        all final facets. This condition might be violated due
+        to rounding errors. It is checked and an error message
+        is issued.
 
-Version 1.6
- - main.c: changing the SIGINT (Ctrl+C) signal to SIGUSR1; can
-    be set during compile time by defining INNER_SIGNAL
- - poly.c: moving documentation before the procedures
- - poly.c: new (and faster) method is implemented; thanks to
-    Elod Csirmaz (https://github.com/csirmaz)
- - poly.c: extending bitcount to 1023 *(10 bits) from 8 bits
- - unused memory slots are deleted
- - inner.c: print the "non-default parameters" headline only
-       if there was some change
- - inner.c: check that the number of objectives is at least 2
- - inner.c: changing output channel from R_info to R_warn
- - params.c: setting the default MessageLevel to 2
-       added the undocumented keyword TrueRandom to ease testing
-
-Version 1.7
- - poly.c: splitting memory handling to ease multithread porting
-       newly created facets are collected in a separate area and
-       move from there to their final place.
 Version 2.0
  Multithread support to speed up vertex enumeration.
  - version.h: adding a T before the version string when compiled
@@ -45,3 +20,36 @@ Version 2.0
  - poly.c: main rewriting, unifying variable and array names.
        Thread specific code used when USETHREADS defined. The
        port was done by E.P. Csirmaz
+
+Version 1.7
+ - poly.c: splitting memory handling to ease multithread porting
+       newly created facets are collected in a separate area and
+       move from there to their final place.
+
+Version 1.6
+ - main.c: changing the SIGINT (Ctrl+C) signal to SIGUSR1; can
+    be set during compile time by defining INNER_SIGNAL
+ - poly.c: moving documentation before the procedures
+ - poly.c: new (and faster) method is implemented; thanks to
+    Elod Csirmaz (https://github.com/csirmaz)
+ - poly.c: extending bitcount to 1023 *(10 bits) from 8 bits
+ - unused memory slots are deleted
+ - inner.c: print the "non-default parameters" headline only
+       if there was some change
+ - inner.c: check that the number of objectives is at least 2
+ - inner.c: changing output channel from R_info to R_warn
+ - params.c: setting the default MessageLevel to 2
+       added the undocumented keyword TrueRandom to ease testing
+
+Version 1.5
+ - Changing the default to ShowParams=1 and RandomFacet=1
+ - When MessageLevel=3 the progress report shows three more
+   values: how many facets go through the vertex just added
+   (value after eq:), how many facets have been thrown (out:)
+   and how many new facets are added (new:)
+ - New heuristics added: keep a vertex pool and choose the
+   vertex which produces the largest number of "out" facets.
+   The value of the new keyword VertexPoolSize determines the
+   size of the pool; the default value is 0, which means no
+   pool.
+
