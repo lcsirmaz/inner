@@ -46,7 +46,7 @@ This MOLP solver finds the extremal vectors by *iteration*. In each
 step one more extremal vector is added to the final list. The
 time required for an iteration varies widely from a couple of microseconds
 to several days. After each iteration the solver checks if the process
-has been interrupted by an INT signal (^C).
+has been interrupted by an USR1 signal.
 If it has, it switches to a quick and dirty method which
 might find further extremal vectors (but not necessarily all of them).
 
@@ -104,7 +104,7 @@ Change tolerances with great care.
 |`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
 |`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
-|`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest number <br> of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool adds  <br> more work, but can simplify the approximating polytope. |
+|`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest <br> number of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool <br> adds more oracle calls, but can simplify the approximating polytope. |
 |`Threads=3`<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero or 1 means don'tuse threads. |
 |**Oracle parameters**| |
 |`OracleMessage=1`<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
