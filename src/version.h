@@ -13,7 +13,7 @@
 
 /* Version and copyright */
 #define VERSION_MAJOR	2
-#define VERSION_MINOR	1
+#define VERSION_MINOR	2
 #ifdef USETHREADS
 #define VERSION_STRING	"T" mkstringof(VERSION_MAJOR.VERSION_MINOR)
 #else

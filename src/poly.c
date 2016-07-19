@@ -130,7 +130,7 @@ int i;
         ThreadData[i].quit = 1;
     }
     pthread_barrier_wait(&ThreadBarrierForking);
-    for(i=0;i<PARAMS(Threads);i++){
+    for(i=1;i<PARAMS(Threads);i++){
         pthread_join(ThreadData[i].obj,NULL);
     }
 }
@@ -836,6 +836,9 @@ void get_dd_facetno(void) // get the number living and final facets
         if(v==~BITMAP0){ dd_stats.living_facets_no+=(1<<packshift); }
         else add_bitcount(v,dd_stats.living_facets_no);
         v=FacetFinal[i];
+        if(v & ~FacetLiving[i]){ /* consistency checking */
+             report(R_err,"Consistency error: final but not living facet around %d\n",i<<packshift);
+        }
         if(v==~BITMAP0){ dd_stats.final_facets_no +=(1<<packshift); }
         else add_bitcount(v,dd_stats.final_facets_no);
     }
@@ -912,7 +915,7 @@ int facet_num(void)
 }
 
 /* double round(double x)
-*    round x to an integer of closer than SCALE_EPS */
+*    round x to an integer if closer than SCALE_EPS */
 #define SCALE_EPS	PARAMS(ScaleEps)
 static double round(double x)
 {double res,y;
@@ -960,7 +963,7 @@ static int denum(double x)
 
 /* void get_facet_into(fno, double v[0:dim])
 *    store the facet equation to the provided space. The equation is 
-*    scaled and rounded to the closet integer when the difference is 
+*    scaled and rounded to the closest integer when the difference is 
 *    small */
 void get_facet_into(int fno, double *v)
 {int j,d;
@@ -1903,7 +1906,7 @@ int check_consistency(void)
             f=FacetCoords(fno); v=VertexCoords(vno); w=0.0;
             for(i=0;i<DIM;i++,f++,v++){ w += (*f)*(*v); }
             w += (*f); if(w<-DD_EPS_EQ){ 
-               report(R_err,"Consistency error 3: vertex %d is on the negative side of facet %d\n",vno,fno);
+               report(R_err,"Consistency error 3: vertex %d is on the negative side of facet %d (%lg)\n",vno,fno,w);
                errno++;
             }
             if(w>DD_EPS_EQ){ // not adjacent
