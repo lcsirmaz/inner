@@ -1,3 +1,8 @@
+Version 2.2
+ - poly.c: in stop_threads() the main thread (numbered zero) should
+        not be released by calling pthread_join().
+        Correcting some typos in comments
+
 Version 2.1
  - poly.c: a new vertex should be on the non-negative side of
         all final facets. This condition might be violated due
