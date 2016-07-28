@@ -37,8 +37,9 @@
 #define DEF_ExtractAfterBreak	1	/* yes */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
+#define DEF_OracleCallLimit	1	/* stop after the first unsuccessful call */
 /* number of threads */
-#define DEF_Threads		3	/* number of threads */
+#define DEF_Threads		0	/* number of threads */
 /* randomness */
 #define DEF_TrueRandom		1	/* yes */
 /* Tolerances */
@@ -120,12 +121,18 @@ CFG( ExtractAfterBreak, BOOL) \
 CFG( VertexPoolSize, INTEGER) \
 "#    size of the vertex pool; add the vertex to the approximation\n"\
 "#    which discards the largest number of existing facets. Should\n"\
-"#    be zero (don't use it) or at least 5. Using vertex pool adds\n"\
-"#    more work, but can simplify the approximating polytopes.\n"\
+"#    be zero (don't use it) or at least 5. Using vertex pool makes\n"\
+"#    additional oracle calls, but can simplify the approximating\n"\
+"#    polytopes. See OracleCallLimit. Should be less than " mkstringof(MAX_VERTEX_POOL) ".\n"\
+"#\n"\
+CFG( OracleCallLimit, INTEGER ) \
+"#    the maximal number of unsuccessful oracle calls during an\n"\
+"#    iteration when filling the vertex pool. Zero means no limit;\n"\
+"#    otherwise should be less than " mkstringof(MAX_OCALL_LIMIT)  ".\n"\
 "#\n"\
 CFG( Threads, INTEGER) \
-"#    number of threads to use; should be less than " mkstringof(MAX_THREADS) ". Zero or 1\n"\
-"#    means don't use threads.\n"\
+"#    number of threads to use; should be less than " mkstringof(MAX_THREADS) ". Zero means\n"\
+"#    use as many as are available; 1 means don't use threads.\n"\
 "#\n"\
 "##########################\n"\
 "#   ORACLE parameters    #\n"\
@@ -269,7 +276,7 @@ static void short_help(void) {printf(
 "Some of the options are:\n"
 "  -h               display this short help\n"
 "  --help           display all options\n"
-"  -c <config file> specify configuration file\n"
+"  -c <config-file> specify configuration file\n"
 "  -o <file>        save the solution to <file>\n"
 "  -q               quiet, no messages, no statistics\n"
 "  -p0              no progress report\n"
@@ -288,8 +295,8 @@ static void long_help(void){ printf(
 "  --help=out       describe output format\n"
 "  --version        version and copyright information\n"
 "  --dump           dump the default config file and quit\n"
-"  --config=<config file>\n"
-"  -c <config file> read configuration from the given file (see --dump)\n"
+"  --config=<config-file>\n"
+"  -c <config-file> read configuration from the given file (see --dump)\n"
 "  -o <file>        save result (both vertices and facets) to <file>\n"
 "  -ov <file>       save vertices to <file>\n"
 "  -of <file>       save facets to <file>\n"
@@ -451,8 +458,9 @@ static struct int_params {
   CFG(ProgressReport,1000000),
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
-  CFG(VertexPoolSize,1000),
+  CFG(VertexPoolSize,MAX_VERTEX_POOL),
   CFG(Threads,MAX_THREADS),
+  CFG(OracleCallLimit,MAX_OCALL_LIMIT),
   CFG(OracleItLimit,10000000),
   CFG(OracleTimeLimit,1000000),
   {NULL,NULL,0,0,0}
@@ -572,7 +580,8 @@ static int nextline(FILE *f)
 
 static void read_config_file(void)
 {FILE *f;
-    if(PARAMS(ConfigFile)==NULL) return; // no config file 
+    if(PARAMS(ConfigFile)==NULL) return; // no config file
+    if(!*PARAMS(ConfigFile)) return; // empty string
     f=fopen(PARAMS(ConfigFile),"r");
     if(!f){
         report(R_fatal,"Cannot open config file %s\n",PARAMS(ConfigFile));
@@ -655,6 +664,8 @@ static int handle_options(int argc, const char *argv[])
             PARAMS(ConfigFile)=argv[c]+9; // check if not \0
         } else if(strncmp(argv[c],"--name=",7)==0){
             PARAMS(ProblemName)=argv[c]+7;
+        } else if(strncmp(argv[c],"--boot=",7)==0){
+            PARAMS(BootFile)=argv[c]+7;
         } else { // --KEYWORD=value
             int r=treat_keyword(argv[c]+2);
             if(r==-1){
@@ -742,7 +753,7 @@ static int handle_options(int argc, const char *argv[])
             report(R_fatal,"Unknown option: %s\n",argv[c]);
             config_error++; return -1;
     }
-    if(!PARAMS(VlpFile)){
+    if(!PARAMS(VlpFile) || !*PARAMS(VlpFile)){
         report(R_fatal,"Missing input vlp file\n");
         config_error++; return -1;
     }
@@ -777,6 +788,11 @@ static void postprocess_parameters(void)
     if(PARAMS(ARGp_set)){ // -p T
         PARAMS(ProgressReport) = PARAMS(ARGp);
     }
+    // empty strings are replaced by NULL
+    if(PARAMS(BootFile) && !*PARAMS(BootFile)) PARAMS(BootFile)=0;
+    if(PARAMS(SaveFile) && !*PARAMS(SaveFile)) PARAMS(SaveFile)=0;
+    if(PARAMS(SaveVertexFile) && !*PARAMS(SaveVertexFile)) PARAMS(SaveVertexFile)=0;
+    if(PARAMS(SaveFacetFile) && !*PARAMS(SaveFacetFile)) PARAMS(SaveFacetFile)=0;
     if(PARAMS(SaveFile)){ // -o <file>
         if(PARAMS(SaveVertexFile) && 
            strcmp(PARAMS(SaveFile),PARAMS(SaveVertexFile))==0){
@@ -847,6 +863,7 @@ void show_parameters(char *hdr)
     CFG(RandomFacet);		/* pick next facet randomly */
     CFG(ExactFacetEq);		/* recompute facet equation immediately */
     CFG(VertexPoolSize);	/* use vertex pool */
+    CFG(OracleCallLimit);	/* oracle call limit per iteration */
     CFG(RecalculateFacets);	/* how ofter recalculate facets */
 #undef CFG
     /* double parameters */

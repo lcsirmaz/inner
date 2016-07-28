@@ -57,6 +57,7 @@ struct params_t {
     Threads,		/* number of threads to use, only when USETHREADS defined */
     OracleItLimit,	/* iteration limit, >=1000; =0: unlimited */
     OracleTimeLimit,	/* time limit in seconds, >=5; =0: unlimited */
+    OracleCallLimit,	/* limit of oracle calls in each iteration */
     ProblemColumns,	/* problem columns, set by the Oracle */
     ProblemRows,	/* problem rows, set by the Oracle */
     ProblemObjects,	/* problem objects (dimension), set by the Oracle */
@@ -74,6 +75,7 @@ struct params_t {
 
   const char		/* string parameters */
     *VlpFile,		/* the input vlp file */
+    *BootFile,		/* initial list of vertices */
     *ProblemName,	/* the problem name, typically the base of the vlp file */
     *ConfigFile,	/* configuration file name */
     *SaveFile,		/* -o <file> option */
@@ -121,11 +123,16 @@ void show_parameters(char *hdr);
 #endif
 
 /************************************************************************
-* Maximal number of threads allowed
+* Maximal values for some parameters
 */
 #ifndef MAX_THREADS
-#define MAX_THREADS	64
+#define MAX_THREADS	64 	/* number of threads allowed */
 #endif
-
+#ifndef MAX_VERTEX_POOL
+#define MAX_VERTEX_POOL	3000	/* maximum size of the vertex pool */
+#endif
+#ifndef MAX_OCALL_LIMIT
+#define MAX_OCALL_LIMIT	100	/* unsuccessfull oracle calls per iteration */
+#endif
 /* EOF */
 

@@ -65,6 +65,7 @@
 */
 
 #include <pthread.h>
+#include <sys/sysinfo.h>  /* get_nprocs() */
 
 /************************************************************************
 * Variables used by threads
@@ -93,10 +94,14 @@ static void *extra_thread(void *arg);
 *    wait until they get their first assignment. */
 int create_threads(void){
 int i,rc;
-    if(PARAMS(Threads)<2){
+    if(PARAMS(Threads)<=0){ // figure out the number of CPU's
+        PARAMS(Threads)=get_nprocs();
+    }
+    if(PARAMS(Threads)<=1){
         PARAMS(Threads)=1;
         return 0; // nothing to do
     }
+    if(PARAMS(Threads)>MAX_THREADS){ PARAMS(Threads)=MAX_THREADS; }
     // barriers
     if((rc = pthread_barrier_init(&ThreadBarrierJoining, NULL, PARAMS(Threads)))){
         report(R_fatal,"error: pthread_barrier_init, rc: %d\n", rc);
