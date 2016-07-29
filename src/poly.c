@@ -1016,7 +1016,7 @@ void print_vertices(report_type where)
 void print_facets(report_type where)
 {int i,j,d;
     for(i=1;i<NextFacet;i++)if(is_livingFacet(i)){
-        report(where,"F ");
+        report(where,"%c ",is_finalFacet(i)?'F':'f');
         d=1; for(j=0;d<130000 &&j<=DIM;j++)d=lcm(d,denum(FacetCoords(i)[j]));
         for(j=0;j<=DIM;j++)
            report(where," %.14lg",round(d*FacetCoords(i)[j]));
@@ -1085,11 +1085,6 @@ int init_dd(int dimension, double *coords)
         for(j=0;j<DIM;j++) if(i!=j)set_VertexAdj(NextVertex,j+1);
         NextVertex++;
     }
-    // the very first real vertex
-    for(j=0;j<DIM;j++) VertexCoords(NextVertex)[j]=coords[j];
-    clear_VertexAdj_all(NextVertex);
-    for(j=0;j<DIM;j++)set_VertexAdj(NextVertex,j+1);
-    NextVertex++;
     // the ideal facet
     FacetCoords(NextFacet)[DIM]=1.0;
     clear_FacetAdj_all(NextFacet);
@@ -1097,6 +1092,11 @@ int init_dd(int dimension, double *coords)
     set_in_FacetLiving(NextFacet);
     set_in_FacetFinal(NextFacet);
     NextFacet++;
+    // the very first real vertex
+    for(j=0;j<DIM;j++) VertexCoords(NextVertex)[j]=coords[j];
+    clear_VertexAdj_all(NextVertex);
+    for(j=0;j<DIM;j++)set_VertexAdj(NextVertex,j+1);
+    NextVertex++;
     // other facets
     for(i=0;i<DIM;i++){
         FacetCoords(NextFacet)[i]=1.0;

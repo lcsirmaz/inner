@@ -150,12 +150,12 @@ static void progress_stat(unsigned long dtime)
         dd_stats.iterations+1,
         dd_stats.final_facets_no,
         dd_stats.living_facets_no-dd_stats.final_facets_no);
+    if(poolstat){ report(R_txt,", pool: %d",poolstat); poolstat=0; }
     if(facetstat){
         report(R_info,", eq: %d, out: %d, in: %d",
            dd_stats.facet_zero, dd_stats.facet_neg,dd_stats.facet_new);
         facetstat=0;
     }
-    if(poolstat){ report(R_info,", pool: %d",poolstat); poolstat=0; }
     report(R_txt,"\n");
 }
 
@@ -547,13 +547,13 @@ again:
 }
 
 static int find_next_vertex(void)
-{int i,ii,maxi; int w,maxw; int oracle_calls;
+{int i,ii,maxi,cnt; int w,maxw; int oracle_calls;
     if(PARAMS(VertexPoolSize)<5 || dd_stats.iterations < VertexPoolAfter)
         return next_vertex_coords(0);
     /* find the weight of stored vertices */
-    maxi=-1; maxw=0; poolstat=0;
+    maxi=-1; maxw=0; cnt=0;
     for(i=0;i<PARAMS(VertexPoolSize);i++)if(vertexpool[i].occupied){
-        poolstat++;
+        cnt++;
         w=probe_vertex(vertexpool[i].coords);
         if(maxi<0 || maxw<w){ maxi=i; maxw=w; }
     }
@@ -573,7 +573,7 @@ static int find_next_vertex(void)
                 memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
                 w=probe_vertex(vertexpool[i].coords);
                 vertexpool[i].occupied=1;
-                poolstat++;
+                cnt++;
                 if(maxi<0 || maxw < w){ maxi=i; maxw=w; }
             } else { // got back the same vertex, save the newer values
                 memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
@@ -586,7 +586,8 @@ static int find_next_vertex(void)
         }
     }
 pool_out:
-    if(maxi<0) return 0; /* no more vertices */
+    if(maxi<0) return 0; // no more vertices
+    poolstat=cnt; // set pool size
     vertexpool[maxi].occupied=0;
     memcpy(VertexOracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
     return 4; /* next vertex is in VertexOracleData.overtex */
