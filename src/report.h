@@ -31,6 +31,13 @@
 *    check that all result files are writable. Do it before starting
 *    any serious computation as we don't want "cannot write file"
 *    after a day's work.
+*
+* void open_checpoint(int version)
+*    create the checkpoint file with the given version number; use 
+*    PARAMS(CheckPointStub) as the stub,
+*
+* void close_checkpoint(void)
+*    close the most recently opened checkpoint file.
 */
 
 /* report type */
@@ -41,7 +48,8 @@ R_warn,		/* warning  + flush */
 R_txt,		/* report message */
 R_info,		/* info + flush */
 R_savefacet,	/* save facets, go to result file */
-R_savevertex	/* save vertices, go to result file */
+R_savevertex,	/* save vertices, go to result file */
+R_chk		/* checkpoint file */
 } report_type;
 
 /** report the message to the given channel */
@@ -59,6 +67,11 @@ void flush_report(void);
 
 /** check files if they are writable **/
 int check_outfiles(void);
+
+/** open and close checkpoint files **/
+void open_checkpoint(int version);
+void close_checkpoint(void);
+
 
 /* EOF */
 

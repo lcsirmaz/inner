@@ -79,7 +79,10 @@ of the problem in vlp format. Accepted options are
 | `-o <file>`  | save results (both vertices and facets) to \<file\> |
 | `-ov <file>` | save vertices to \<file\> |
 | `-of <file>` | save facets to \<file\> |
+| `-oc <stub>` | file stub for checkpoint files |
 | `--name=NAME` or <br> `-n NAME`    | specify the problem name |
+| `--boot=<vertex-list>` | start the algorithm with these vertices |
+| `--resume=<chk-file>` | resume computation from a checkpoint file |
 | `-m[0..3]`   | set message level: 0: none, 1: errors, 2: all, 3: verbose |
 | `-q`         | quiet, same as `-m0`. Implies `--PrintStatistics=0` |
 | `-p T`       | progress report in every T seconds (default: T=5) |
@@ -105,8 +108,9 @@ Change tolerances with great care.
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
 |`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
 |`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest <br> number of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool <br> adds more oracle calls, but can simplify the approximating polytope. |
+|`CheckPoint=10000`<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp; | positive integer <br> frequency (in seconds) for creating checkpoint files when the option <br> `-oc <filestub>` is given. The filename is got from the stub by appending `NNN.chk` where `NNN` starts <br> with 000 and increases. The computation can be resumed from a checkpoint file <br> by calling inner with `--resume=<checkpoint>` The value should be more than 500. |
 |`OracleCallLimit=1`<br>&nbsp;<br>&nbsp; | non-negative integer <br> the maximal number of unsuccessful oracle calls during an iteration when filling the <br> vertex pool. Zero means no limit; otherwise should be less than 100. |
-|`Threads=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero means use as many threads as are available; <br> 1 means don't use threads. |
+|`Threads=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero means use as many threads as <br> are available; 1 means don't use threads. |
 |**Oracle parameters**| |
 |`OracleMessage=1`<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
 |`OracleMethod=0`<br>&nbsp;  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
@@ -123,7 +127,7 @@ Change tolerances with great care.
 |`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately when it is found. The command line <br> option `-y-` (no) or `-y+` (yes) overrides the value defined here. |
 |`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location, whenever they change, of the 11 memory blocks storing <br> the combinatorial data structure. |
 |`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominators <br> rather than floating point numerals. |
-|`PrintStistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print resources used (number of iterations, ridge tests, etc.) when the program stops. |
+|`PrintStatistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print resources used (number of iterations, ridge tests, etc.) when the program stops. |
 |`PrintParams=1` <br>&nbsp; | 0 = no, 1 = yes <br> print algorithm parameters which are not equal to their default values. |
 |`PrintVertices=2` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print (again) all known vertices when the program terminates. |
 |`PrintFacets=0` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print all known (relevant) facets when the program terminates. |

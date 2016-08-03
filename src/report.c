@@ -63,7 +63,7 @@ int check_outfiles(void)
 * int pending_output
 *    non-zero if there is a pending output on stdout
 *
-* FILE *savefile, *savevertexfile, *savefacetfile
+* FILE *savefile, *savevertexfile, *savefacetfile, *chkfile
 *    either NULL or the opened stream handle for that channel.
 *
 * int open_vertexfile(void)
@@ -75,7 +75,8 @@ int check_outfiles(void)
 *    the save as savevertexfile, and that has been opened.
 */
 static int pending_output=0;
-static FILE *savefile=NULL, *savevertexfile=NULL, *savefacetfile=NULL;
+static FILE *savefile=NULL, *savevertexfile=NULL, 
+            *savefacetfile=NULL, *chkfile=NULL;
 
 static int open_vertexfile(void)
 {   if(savevertexfile) return 1;
@@ -129,8 +130,7 @@ void report(report_type level, const char *fmt,...)
         if(PARAMS(SaveFacetFile) && open_facetfile()){
             va_start(arg,fmt); vfprintf(savefacetfile,fmt,arg); va_end(arg);
         }
-    }
-    if(level==R_savevertex){
+    } else if(level==R_savevertex){
         if(PARAMS(SaveFile) && PARAMS(SaveVertices)){
             if(!savefile) savefile=fopen(PARAMS(SaveFile),"w");
             if(savefile){
@@ -139,6 +139,10 @@ void report(report_type level, const char *fmt,...)
         }
         if(PARAMS(SaveVertexFile) && open_vertexfile()){
             va_start(arg,fmt); vfprintf(savevertexfile,fmt,arg); va_end(arg);
+        }
+    } else if(level==R_chk){
+        if(chkfile){
+          va_start(arg,fmt); vfprintf(chkfile,fmt,arg); va_end(arg);
         }
     }
 }
@@ -155,6 +159,20 @@ void close_savefiles(void)
 void flush_report(void)
 {   if(pending_output){ pending_output=0; fflush(stdout); } }
 
+void open_checkpoint(int version)
+{static char *buf=NULL;
+    if(version<0 || version>999 ) version=0;
+    if(chkfile){ fclose(chkfile); chkfile=NULL;}
+    if(buf==NULL){
+        buf=malloc(10+strlen(PARAMS(CheckPointStub)));
+        if(!buf) return; // out of memory
+    }
+    sprintf(buf,"%s%03d.chk",PARAMS(CheckPointStub),version);
+    chkfile=fopen(buf,"w"); // truncate or create
+}
+
+void close_checkpoint(void)
+{   if(chkfile){ fclose(chkfile); chkfile=NULL; } }
 
 /* EOF */
 

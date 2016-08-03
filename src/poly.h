@@ -81,6 +81,7 @@ typedef struct {
 /** statistics **/
 int iterations;		    /* number of iterations which is the same as
 			       the number of vertices added */
+int vertexno;               /* vertices generated so far */
 int facetenquires;	    /* number of times a facet was requested */
 int probevertex;	    /* number of time vertices were probed */
 int vertices_allocated_no;  /* number of times vertex space was extended */
@@ -114,8 +115,16 @@ void get_dd_facetno(void);
 /************************************************************************
 * Iterations of the double description algorithm
 *
+* int init_dd_structure(int dim, int maxvertex, int maxfacet)
+*    initialize DD algorithm structure allocating space to accomodate
+*    the given number of vertices and facets.
+*    Return value:
+*     0:  initialization is succesful
+*     1:  either dimension is too large, or out of memory.
+*
 * int init_dd(int dim, double v[0:dim-1])
-*    initialize the DD algorithm, supplying the very first vertex.
+*    initialize the DD algorithm, supplying the very first vertex 
+*    allocation the initial number of vertices and facets.
 *    The algorithms is tailored to MOLP minimization; the positive
 *    endpoints of coordinate axes (the *ideal* vertices) are assumed
 *    to be feasible solutions. Arguments:
@@ -124,6 +133,16 @@ void get_dd_facetno(void);
 *    Return value:
 *     0:  initialization is successful
 *     1:  either the dimension is too large, or out of memory.
+*
+* int initial_vertex(double coords[0..dim-1])
+* int initial_facet(int final, double coords[0..dim])
+*    add initial vertex and facet with the given coords. For a facet,
+*    flag final is set if the facet is final. Check that there is enough
+*    room for the new item; compute and set incidence. No vertex should
+*    be on the negative side of any facet.
+*    Return value:
+*     0:  OK
+*     1:  some error, error message issued.
 *
 * int get_next_facet(int from)
 *    Get the index of a facet of the actual approximation which is
@@ -149,7 +168,12 @@ void get_dd_facetno(void);
 */
 
 /** initialize data structures with the first vertex **/
+int init_dd_structure(int dim, int maxvertex, int maxfacet);
 int init_dd(int dim, double *coords);
+
+/** add initial vertex and facet **/
+int initial_vertex(double coords[]);
+int initial_facet(int final, double coords[]);
 
 /** index of the next living but not final facet **/
 int get_next_facet(int from);
@@ -229,6 +253,9 @@ int check_consistency(void);
 *
 * void report_memory_usage(void)
 *    report memory usage of the inner approximation algorithm.
+*
+* void make_checkpoint(void)
+*    create the next checkpoint file. Do not report any problem.
 */
 
 /** reporting vertices **/
@@ -238,9 +265,11 @@ void print_vertices(report_type channel);
 /** reporting facets **/
 void print_facets(report_type channel);
 
-/* report memory usage **/
+/** report memory usage **/
 void report_memory_usage(void);
 
+/* create checkpoint files **/
+void make_checkpoint(void);
 
 /* EOF */
 

@@ -3,6 +3,7 @@
 Special thanks to [Elod Csirmaz](https://github.com/csirmaz/inner) for supplying the thread
 routines.
 
+* data.c, data.h &ndash; parsing and reading character input
 * glp_oracle.c, glp_oracle.h &ndash; implementing the vertex separation oracle based on glpk library
 * inner.c, inner.h &ndash; the main loop executing the inner approximation algorithm
 * main.c, main.h &ndash; the main program

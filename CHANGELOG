@@ -1,3 +1,30 @@
+Version 2.4
+ - data.h, data.c: new modules to handle character input for --boot
+      and for --resume files
+ - params.h: new keyword CheckPoint, and argument CheckPointStub
+ - params.c: added CheckPoint keyword; -oc <filestub> and 
+      --resume=<checkpoint-file> command line arguments
+ - inner.c:
+      a) chktime, chkdelay now check when the checkpoint files should
+         be written
+      b) next_vertex_coords() reads vertices from the boot file until
+         there are vertices in it
+      c) handle_new_vertex() no makes checkpoints when expired
+      d) in inner(), inp_type stores the input type: it is from a boot
+         file, form a checkpoint file, or none. Added new logic to handle
+         these cases
+ - poly.h: added dd_stats.vertexno, and new routines to store initial
+         set of vertices and facets.
+ - poly.c:
+      a) procedire facet_num() uses a faster counting method
+      b) new procedures make_checkpoint(), initial_vertex(), initial_facet()
+      c) init_dd() is split into init_dd_structure() and adding 
+         the initial vertex and facets when starting with a single point.
+      d) dd_stats.vertexno counts the number of vertices, 
+         dd_stats.iterations counts the number of iterations.
+ - report.h: new output channel R_chk
+ - report.c: new routines open_checkpoint() and close_checkpoint()
+
 Version 2.3
  - params.h: added constants MAX_VERTEX_POOL and MAX_OCALL_LIMIT and
        string parameters BootFile and ResumeFile

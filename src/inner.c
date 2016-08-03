@@ -17,6 +17,7 @@
 #include "main.h"
 #include "report.h"
 #include "inner.h"
+#include "data.h"
 #include "params.h"
 #include "poly.h"
 #include "glp_oracle.h"
@@ -116,7 +117,11 @@ inline static int ask_oracle_with_timer(void)
 *
 * unsigned long progresstime, progressdelay
 *    when the last progress report was made
-*    minimum delay between two reports, in 0.01 seconds (set in inner)
+*    minimum delay between two reports, in 0.01 seconds
+*
+* unsignel long chktime, chkdelay
+*    when the last checkpoint was created, and the minimum delay
+*    between two checkpoints
 *
 * int poolstat
 *    number of entries in VertexPool, set by find_next_vertex()
@@ -138,6 +143,7 @@ inline static int ask_oracle_with_timer(void)
 *    when total memory allocated changes, call report_memory_usage()
 */
 static unsigned long progresstime=0, progressdelay=0;
+static unsigned long chktime=0, chkdelay=0;
 
 static int poolstat=0, facetstat=0;
 
@@ -147,7 +153,7 @@ static void progress_stat(unsigned long dtime)
     report(R_txt,"I%8.2f] Elapsed: %s, vertices: %d, facets final: %d, pending: %d",
         0.01*(double)dtime,
         showtime(dtime),
-        dd_stats.iterations+1,
+        dd_stats.vertexno,
         dd_stats.final_facets_no,
         dd_stats.living_facets_no-dd_stats.final_facets_no);
     if(poolstat){ report(R_txt,", pool: %d",poolstat); poolstat=0; }
@@ -310,118 +316,6 @@ static void dump_and_save(int how)
     close_savefiles();
 }
 
-#ifdef BOOTPARAM
-/**************************************************************************
-* Read vertices from BootFile
-*
-* int BOOT_LINELEN=1000
-*   maximum length of a line in BootFile
-* char bootline[BOOT_LINELEN]
-*   next line from BootFile
-* FILE *bootf
-*   filehandle for BootFile
-*
-* int nextVline(void)
-*   read the next line starting with V into bootline[]. If no more lines,
-*   close the filehandle.
-*   Return values:
-*    1: next line is in bootline[]
-*    0: no more lines
-*
-* int parse_num(char *str, double *v)
-*   check if str[] starts with a (floating) number. If yes, store the
-*   value in *v, and return the length of the matching part.
-*   Return value:
-*     0: no more value, end of string hit
-*    -1: syntax error
-*    >0: the length of the matching part
-*
-* int parse_real(char *str, double *v)
-*   check whether str[] starts with a number, or number/number. If yes,
-*   store the value in *v and return the length of the matching part.
-*   Return value is the same as for the previous routine.
-*
-* int parseVline(void)
-*   stores the next vertex in BootFile into VertexOracleData.overtex
-*   Return values:
-*    0: OK
-*    1: some error
-*
-* int check_bootfile(void)
-*   opens BootFile for reading, and parses the first V line
-*   Return values:
-*    0: no BootFile
-*    1: first V line of BootFile is in bootline[];
-*    2: some error, error message issued
-*/
-
-static FILE *bootf=NULL;
-#define BOOT_LINELEN	1000
-static char *bootline=NULL;
-
-static int nextVline(void)
-{int i,sp,ch;
-    if(bootf==NULL) return 0;
-    i=0;sp=0; memset(bootline,0,BOOT_LINELEN+1);
-    while((ch=getc(bootf))>=0){
-        if(ch=='\n'){ if(i<=0){ sp=0; i=0; continue; } return 1; }
-        if(i<0) continue; // skip this line
-        if(i==0 && sp==0){ if(ch=='V'){ sp=1; } else {i=-1;} continue; }
-        if(ch==' '||ch=='\t'){ sp=1; continue; }
-        if(ch<=0x20 || ch>126) continue; /* ignore these characters */
-        if(sp && i>0){ if(i<BOOT_LINELEN){bootline[i]=' '; i++; } }
-        sp=0; if(i<BOOT_LINELEN){bootline[i]=ch; i++; }
-    }
-    /* EOF */
-    if(i>0) return 1;
-    fclose(bootf); bootf=NULL;
-    return 0;
-}
-static int parse_num(char *str, double *v)
-{int i; char *s;
-    if(!*str) return 0; // no more input
-    for(i=0,s=str;('0'<=*s && *s<='9')|| *s=='+'||*s=='-'
-                ||*s=='.'||*s=='e'; i++,s++);
-    if(i==0) return -1; // syntax error
-    if(sscanf(str,"%lf",v)!=1) return -1; //syntax error
-    return i;
-}
-static int parse_real(char *str, double *v)
-{int i,ret; double d;
-    i=0; if(*str==' '){ str++; i++; }
-    ret=parse_num(str,v);
-    if(ret<=0) return ret; // 0 or -1
-    i+=ret; str+=ret;
-    if(*str=='/'){
-        str++; i++; d=*v;
-        ret=parse_num(str,v);
-        if(ret<=0) return -1; // syntax error
-        i+=ret; *v = d/(*v);
-    }
-    return i;
-}
-static int parseVline(void)
-{char *str; int i,ret;
-    str=bootline;
-    for(i=0;i<PARAMS(ProblemObjects);i++){
-        ret=parse_real(str,&VertexOracleData.overtex[i]);
-        if(ret<=0) return 1; // error
-        str+=ret;
-    }
-    if(*str) return 1;
-    return 0;
-}
-static int check_bootfile(void)
-{
-    if(!PARAMS(BootFile)) return 0; // no BootFile
-    bootline=malloc(BOOT_LINELEN+4);
-    if(!bootline){ report(R_fatal,"Out of memory (check_bootfile)\n"); return 2; }
-    bootf=fopen(PARAMS(BootFile),"r");
-    if(!bootf){ report(R_fatal,"Cannot open boot file %s for reading\n",PARAMS(BootFile)); return 2; }
-    if(!nextVline()){ report(R_fatal,"Boot file %s does not contain any V line\n",PARAMS(BootFile)); return 2; }
-    return 1;
-}
-#endif
 /**************************************************************************
 * Find the next vertex to be added
 *
@@ -508,19 +402,17 @@ inline static int same_vec(double f1[], double f2[])
 }
 
 static int next_vertex_coords(int checkVertexPool)
-{int i,j; double d;
+{int i,j; double d; int boottype;
 again:
     if(dobreak) return 1; /* break meanwhile */
-#ifdef BOOTPARAM
-    if(nextVline()){ // read next vertex from BootFile
-        if(parseVline()){
-            report(R_fatal,"Error parsing vertex line in file %s\n%s\n",PARAMS(BootFile),bootline);
+    // boot file
+    while(nextline(&boottype)) if(boottype==1){ // V line
+        if(parseline(PARAMS(ProblemObjects),VertexOracleData.overtex)){
             return 2; // error
         }
         memset(VertexOracleData.ofacet,0,DIM*sizeof(double));
         return 4;
     }
-#endif
     j=get_next_facet(-1);
     if(j<0) return 0; /* terminated successfully */
     get_facet_into(j,VertexOracleData.ofacet);
@@ -548,7 +440,7 @@ again:
 
 static int find_next_vertex(void)
 {int i,ii,maxi,cnt; int w,maxw; int oracle_calls;
-    if(PARAMS(VertexPoolSize)<5 || dd_stats.iterations < VertexPoolAfter)
+    if(PARAMS(VertexPoolSize)<5 || dd_stats.vertexno < VertexPoolAfter)
         return next_vertex_coords(0);
     /* find the weight of stored vertices */
     maxi=-1; maxw=0; cnt=0;
@@ -622,7 +514,8 @@ pool_out:
 *
 * int handle_new_vertex(void)
 *   the new vertex is in VertexOracleData.overtex; make reports, add as
-*   a new vertex by calling add_new_vertex()
+*   a new vertex by calling add_new_vertex(), take care of timed actions
+*   such as reports and checkpoints.
 *   Return values:
 *     1:  OK
 *     0:  error during computation (cannot continue)
@@ -685,7 +578,11 @@ static int break_inner(void)
 
 static int handle_new_vertex(void)
 {   // progress report plus info about the new vertex
-   report_new_vertex();
+    report_new_vertex();
+    // make checkpoint if expired
+    if(PARAMS(CheckPointStub) && chktime+chkdelay<=gettime100()){
+        make_checkpoint(); chktime=gettime100();
+    }
     // recalculate facets if instructed so
     if(PARAMS(RecalculateFacets)>=5 &&
        ((1+dd_stats.iterations)%PARAMS(RecalculateFacets))==0){
@@ -718,45 +615,96 @@ static int handle_new_vertex(void)
 }
 
 /** the main algorithm **/
+typedef enum {
+inp_none,	/* no special input is given */
+inp_boot,	/* reading verives from --boot */
+inp_resume	/* vertices and facets form --resume */
+} input_type_t;
+
 int inner(void)
-{int i; int retvalue=0; int is_bootfile=0;
+{int i; int retvalue=0; input_type_t inp_type=inp_none;// is_bootfile=0;
     initialize_random(); // initialize random numbers
-#ifdef USETHREADS
-    if(create_threads()) return 1;
-#endif
-    if(read_vlp()){ retvalue=1; goto leave; } // data error before start
-    if(check_outfiles()){ retvalue=1; goto leave; } // data error before start
-#ifdef BOOTPARAM
-    is_bootfile=check_bootfile();
-    if(is_bootfile>1){ retvalue=1; goto leave; } // error in BootFile
-#endif
+    if(read_vlp()){ return 1; } // data error before start
+    if(check_outfiles()){ return 1;}
+    if(PARAMS(BootFile)){ // we have a bootfile
+        if(init_reading(PARAMS(BootFile))){ return 1; } // error
+        inp_type=inp_boot;
+    } else if(PARAMS(ResumeFile)){ // we have a resume file
+        if(init_reading(PARAMS(ResumeFile))){ return 1; }
+        inp_type=inp_resume;
+    }
     report(R_info,"C MOLP problem=%s, %s\n"
        "C rows=%d, columns=%d, objectives=%d\n",
        PARAMS(ProblemName),PARAMS(Direction)?"maximize":"minimize",
        PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
     set_oracle_parameters();
     gettime100(); // initialize elapsed time, reading vlp not included
-#define DIM	PARAMS(ProblemObjects) /* problem dimension */
-    if(init_vertexpool()){ retvalue=2; goto leave; } // fatal error
-    progressdelay = 100*PARAMS(ProgressReport);
-    if(is_bootfile){
-#ifdef BOOTPARAM
-      // read vertices from the bootfile until there are any
-      if(parseVline()){
-        report(R_fatal,"Error parsing first vertex line from file %s\n",PARAMS(BootFile));
-        retvalue=2; goto leave;
-      }
+    if(init_vertexpool()){ return 2; } // fatal error
+#ifdef USETHREADS
+    if(create_threads()) return 1;
 #endif
-    } else {
-      // first vertex, all directions are 1.0
-      for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;
-      if(ask_oracle_with_timer()){
-        report(R_fatal,"Error getting the first optimal solution.\n");
-        retvalue=2; goto leave;
-      }
+    progressdelay = 100*(unsigned long)PARAMS(ProgressReport);
+    chkdelay = 100*(unsigned long)PARAMS(CheckPoint);
+#define DIM	PARAMS(ProblemObjects) /* problem dimension */
+    if(inp_type==inp_boot){ // read first vertex from bootfile
+       int linetype=0;
+       while(nextline(&linetype) && linetype!=1); // next V line
+       if(linetype!=1){ // error
+           report(R_fatal,"No vertex line was found in boot file %s\n",PARAMS(BootFile));
+           retvalue=2; goto leave;
+       }
+       if(parseline(DIM,VertexOracleData.overtex)){
+           retvalue=2; goto leave; // error
+       }
+       report_new_vertex(); // take care of reporting
+       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
+    } else if(inp_type==inp_resume){
+       int linetype=0; double args[5];
+       if(! nextline(&linetype) || linetype!= 4 || parseline(5,&args[0]) ){
+           report(R_fatal,"Argument line is missing from the resume file %s\n",PARAMS(ResumeFile));
+           retvalue=2; goto leave;
+       }
+       // rows, columns, objects
+       if(args[2]!=(double)PARAMS(ProblemRows) ||
+          args[3]!=(double)PARAMS(ProblemColumns) ||
+          args[4]!=(double)PARAMS(ProblemObjects)) {
+           report(R_fatal,"The resume file belongs to a different MOLP problem\n");
+           retvalue=2; goto leave; 
+       }
+       init_dd_structure(DIM,(int)args[0],(int)args[1]);
+       while(nextline(&linetype)) switch(linetype){
+         case 1:   // V
+            if(parseline(DIM,VertexOracleData.overtex) || 
+               initial_vertex(VertexOracleData.overtex)){
+                retvalue=2; goto leave; // error
+            }
+            break;
+         case 2:   // F
+            if(parseline(DIM+1,VertexOracleData.ofacet) ||
+               initial_facet(1,VertexOracleData.ofacet)){
+                retvalue=2; goto leave; // error
+            }
+            break;
+         case 3:   // f
+            if(parseline(DIM+1,VertexOracleData.ofacet) ||
+               initial_facet(0,VertexOracleData.ofacet)){
+                retvalue=2; goto leave; // error
+            }
+            break;
+         default:  // ignore
+            break;
+       }
+       progress_stat(gettime100());
+    } else { // inp_type==inp_none
+       // first vertex, all directions are 1.0
+       for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;
+       if(ask_oracle_with_timer()){
+           report(R_fatal,"Error getting the first optimal solution.\n");
+           retvalue=2; goto leave;
+       }
+       report_new_vertex(); // take care of reporting
+       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
     }
-    report_new_vertex(); // take care of reporting
-    if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
     if(DIM<2){
         PARAMS(PrintFacets)=0;
         PARAMS(SaveFacets)=0;
@@ -764,6 +712,7 @@ int inner(void)
         retvalue=0;
         goto leave;
     }
+    chktime=gettime100(); // last checktime
 again:
     switch(find_next_vertex()){
       case 0: // no more vertices

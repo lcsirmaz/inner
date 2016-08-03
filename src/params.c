@@ -37,6 +37,7 @@
 #define DEF_ExtractAfterBreak	1	/* yes */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
+#define DEF_CheckPoint		10000	/* delay for creating dumps */
 #define DEF_OracleCallLimit	1	/* stop after the first unsuccessful call */
 /* number of threads */
 #define DEF_Threads		0	/* number of threads */
@@ -124,6 +125,14 @@ CFG( VertexPoolSize, INTEGER) \
 "#    be zero (don't use it) or at least 5. Using vertex pool makes\n"\
 "#    additional oracle calls, but can simplify the approximating\n"\
 "#    polytopes. See OracleCallLimit. Should be less than " mkstringof(MAX_VERTEX_POOL) ".\n"\
+"#\n"\
+CFG( CheckPoint, POSINT ) \
+"#    frequency (in seconds) for creating checkpoint files when the\n"\
+"#    option -oc <filestub> is given. The filename is got by appending\n"\
+"#    DDD.cpt to the filestub, where DDD starts with 000 and increases\n"\
+"#    by one. The computation can be resumed from a checkpoint file by\n"\
+"#    calling the program with the --resume=<checkpoint> argument. The\n"\
+"#    value should be at least 500.\n"\
 "#\n"\
 CFG( OracleCallLimit, INTEGER ) \
 "#    the maximal number of unsuccessful oracle calls during an\n"\
@@ -297,15 +306,20 @@ static void long_help(void){ printf(
 "  --dump           dump the default config file and quit\n"
 "  --config=<config-file>\n"
 "  -c <config-file> read configuration from the given file (see --dump)\n"
+"  --boot=<vertex-list>\n"
+"                   start the algorithm with these vertices\n"
+"  -m[0..3]         set message level: 0: none, 3: verbose\n"
+"  --name=NAME\n"
+"  -n NAME          specify the problem name\n"
 "  -o <file>        save result (both vertices and facets) to <file>\n"
 "  -ov <file>       save vertices to <file>\n"
 "  -of <file>       save facets to <file>\n"
-"  --name=NAME\n"
-"  -n NAME          specify the problem name\n"
-"  -m[0..3]         set message level: 0: none, 3: verbose\n"
-"  -q               quiet, same as -m0. Implies --PrintStatistics=0\n"
+"  -oc <filestub>   file stub for checkpoint files\n"
 "  -p T             progress report in every T seconds (default: T=5)\n"
 "  -p 0             no progress report\n"
+"  -q               quiet, same as -m0. Implies --PrintStatistics=0\n"
+"  --resume=<checkpoint-file>\n"
+"                   resume computation with new parameters\n"
 "  -y+              report vertices immediately when generated (default)\n"
 "  -y-              do not report vertices when generated\n"
 "  --KEYWORD=value  change value of a config keyword (see --dump)\n"
@@ -459,6 +473,7 @@ static struct int_params {
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
   CFG(VertexPoolSize,MAX_VERTEX_POOL),
+  CFG(CheckPoint,1000000),
   CFG(Threads,MAX_THREADS),
   CFG(OracleCallLimit,MAX_OCALL_LIMIT),
   CFG(OracleItLimit,10000000),
@@ -666,6 +681,8 @@ static int handle_options(int argc, const char *argv[])
             PARAMS(ProblemName)=argv[c]+7;
         } else if(strncmp(argv[c],"--boot=",7)==0){
             PARAMS(BootFile)=argv[c]+7;
+        } else if(strncmp(argv[c],"--resume=",9)==0){
+            PARAMS(ResumeFile)=argv[c]+9;
         } else { // --KEYWORD=value
             int r=treat_keyword(argv[c]+2);
             if(r==-1){
@@ -691,7 +708,7 @@ static int handle_options(int argc, const char *argv[])
             break;
         case 'o': // output file
             val=argv[c][2];
-            if(val && ((val!='v' && val!='f') || argv[c][3])){
+            if(val && ((val!='v' && val!='f' && val!='c') || argv[c][3])){
                 report(R_fatal,"Unknown option: %s\n",argv[c]);
                 config_error++; return -1;
             }
@@ -701,6 +718,7 @@ static int handle_options(int argc, const char *argv[])
             }
             c++; if(val=='v') PARAMS(SaveVertexFile)=argv[c];
             else if(val=='f') PARAMS(SaveFacetFile)=argv[c];
+            else if(val=='c') PARAMS(CheckPointStub)=argv[c];
             else PARAMS(SaveFile)=argv[c];
             break;
         case 'n': // problem name
@@ -808,6 +826,11 @@ static void postprocess_parameters(void)
         if(!PARAMS(SaveVertexFile)) PARAMS(SaveVertices)=0;
         if(!PARAMS(SaveFacetFile)) PARAMS(SaveFacets)=0;
     }
+    if(PARAMS(ResumeFile) && !*PARAMS(ResumeFile)) PARAMS(ResumeFile)=0;
+    if(PARAMS(ResumeFile) && PARAMS(BootFile) ){
+        report(R_fatal,"No --boot can be specified when resuming computation\n");
+        config_error++;
+    }
     // do we have any output?
     if(!PARAMS(VertexReport) && !PARAMS(PrintVertices)
        && !PARAMS(SaveVertices) && !PARAMS(SaveVertexFile)
@@ -817,6 +840,10 @@ static void postprocess_parameters(void)
     }
     if(PARAMS(SaveFile) && !PARAMS(SaveVertices) && !PARAMS(SaveFacets)){
         report(R_fatal,"No content is specified for the output file, it would be empty...\n");
+        config_error++; return;
+    }
+    if(PARAMS(CheckPoint)<500){ // too small value
+        report(R_fatal,"CheckPoint value must exceed 500, it was set to %d\n",PARAMS(CheckPoint));
         config_error++; return;
     }
     // create problem name

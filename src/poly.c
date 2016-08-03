@@ -914,9 +914,16 @@ int vertex_num(void)
 *    this is the number of facets of the final polytope when the algorithm
 *    terminates */
 int facet_num(void)
-{int i,j;
-    j=0; for(i=1;i<NextFacet;i++)if(is_livingFacet(i)) j++;
-    return j;
+{int i,total; BITMAP_t v;
+    total=-1;
+    for(i=0;i<FacetBitmapBlockSize;i++){
+        v=FacetLiving[i];
+        if(v==~BITMAP0){ total += (1<<packshift); }
+        else add_bitcount(v,total);
+    }
+    return total;
+//    j=0; for(i=1;i<NextFacet;i++)if(is_livingFacet(i)) j++;
+//    return j;
 }
 
 /* double round(double x)
@@ -1024,23 +1031,40 @@ void print_facets(report_type where)
     }
 }
 
+/* void make_checkpoint(void)
+*    create the next checkpoint file. Fail silently */
+void make_checkpoint(void)
+{static int version=0; // version number, increase at each iteration
+    open_checkpoint(version);
+    report(R_chk,"C checkpoint file #%03d for %s\n", version, PARAMS(ProblemName));
+    version++;
+    report(R_chk,"C vertices facets rows colums objects\n");
+    report(R_chk,"N %d %d %d %d %d\n",NextVertex,facet_num()+1,
+           PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
+    print_vertices(R_chk); print_facets(R_chk);
+    close_checkpoint();
+}
+
 /***********************************************************************
 * initialize all data structures and add the very first vertex
 *
 * int VERTEXARRAY_STEPSIZE
 *   the step size of VertexArray which stores vertices.
 *
-* int init_dd(int dim, double coords[0:dim-1])
-*   dim:    the dimension of the problem; should be not too large
-*   coords: coordinates of the very first vertex.
-* return value
-*   0:  OK
-*   1:  some error: dimension is too large, or not enough memory
+* double DD_EPS_EQ
+*   tolerance for adjacency of vertices and facets
 */
-
 #define VERTEXARRAY_STEPSIZE	(3*DIM)
 
-int init_dd(int dimension, double *coords)
+#define DD_EPS_EQ	PARAMS(PolytopeEps)
+
+/* int init_dd_structure(int dim, int vno, int fno)
+*   allocate memory for the dd structure.
+*   Return value:
+*     0: OK
+*     1: some error, error message issued as R_fatal
+*/
+int init_dd_structure(int dimension, int vno, int fno)
 {int i,j;
     DIM=dimension; // set the dimension
     if(DIM<1||DIM>MAXIMAL_ALLOWED_DIMENSION){
@@ -1048,8 +1072,10 @@ int init_dd(int dimension, double *coords)
            dimension,MAXIMAL_ALLOWED_DIMENSION);
            return 1;
     }
-    MaxVertices = DD_INITIAL_VERTEXNO;
-    MaxFacets = DD_INITIAL_FACETNO;
+    MaxVertices=vno;
+    if(MaxVertices<DD_INITIAL_VERTEXNO) MaxVertices=DD_INITIAL_VERTEXNO;    
+    MaxFacets=fno;
+    if(MaxFacets<DD_INITIAL_FACETNO) MaxFacets=DD_INITIAL_FACETNO;
     while(MaxVertices+5<DIM) MaxVertices += (DD_VERTEX_ADDBLOCK<<packshift);
     // how many doubles store a facet and a vertex
     FacetSize=DIM+1; VertexSize=DIM;
@@ -1062,6 +1088,7 @@ int init_dd(int dimension, double *coords)
     dd_stats.vertices_allocated=MaxVertices;
     dd_stats.facets_allocated_no=1;
     dd_stats.facets_allocated=MaxFacets;
+    dd_stats.vertexno=0; // the ideal vertex is not counted
     // allocate memory for the main slots
     initialize_memory_slots();
     yalloc(double,M_VertexCoordStore,MaxVertices,VertexSize); // VertexCoordStore
@@ -1076,13 +1103,11 @@ int init_dd(int dimension, double *coords)
     // vertices and facets
     NextVertex=0;
     NextFacet=0;
-    /** create the ideal vertices **/
+    // the ideal vertices with index 0..DIM-1
     for(i=0;i<DIM;i++){ // the i-th ideal vertex
         VertexCoords(NextVertex)[i]=1.0;
         clear_VertexAdj_all(NextVertex);
         set_VertexAdj(NextVertex,0); // it is on the ideal facet
-        // and on all facets except the i-th one
-        for(j=0;j<DIM;j++) if(i!=j)set_VertexAdj(NextVertex,j+1);
         NextVertex++;
     }
     // the ideal facet
@@ -1092,21 +1117,101 @@ int init_dd(int dimension, double *coords)
     set_in_FacetLiving(NextFacet);
     set_in_FacetFinal(NextFacet);
     NextFacet++;
-    // the very first real vertex
+    return 0;
+}
+
+/* int init_dd(int dim, double coords[0:dim-1])
+*   dim:    the dimension of the problem; should be not too large
+*   coords: coordinates of the very first vertex.
+* return value
+*   0:  OK
+*   1:  some error: dimension is too large, or not enough memory
+*/
+
+int init_dd(int dimension, double *coords)
+{int i,j;
+    if(init_dd_structure(dimension,0,0)) return 1; // some error
+    // set up the first vertex
     for(j=0;j<DIM;j++) VertexCoords(NextVertex)[j]=coords[j];
     clear_VertexAdj_all(NextVertex);
-    for(j=0;j<DIM;j++)set_VertexAdj(NextVertex,j+1);
-    NextVertex++;
-    // other facets
+    // and DIM facets
     for(i=0;i<DIM;i++){
         FacetCoords(NextFacet)[i]=1.0;
         FacetCoords(NextFacet)[DIM]=-coords[i];
         clear_FacetAdj_all(NextFacet);
-        set_FacetAdj(NextFacet,DIM);
-        for(j=0;j<DIM;j++) if(i!=j) set_FacetAdj(NextFacet,j);
+        set_FacetAdj(NextFacet,NextVertex); set_VertexAdj(NextVertex,NextFacet);
+        for(j=0;j<DIM;j++) if(i!=j){
+            set_FacetAdj(NextFacet,j); set_VertexAdj(j,NextFacet);
+        }
         set_in_FacetLiving(NextFacet);
         NextFacet++;
     }
+    NextVertex++;
+    return 0;
+}
+
+int initial_vertex(double coords[/* 0..DIM-1 */])
+{int j; double dir;
+    if(NextVertex>=MaxVertices){
+        report(R_fatal,"Resume: more vertices are in the file than specified\n");
+        return 1; 
+    }
+    if(NextFacet>1){
+        report(R_fatal,"Resume: vertices should come before the facets\n");
+        return 1;
+    }
+    dir = PARAMS(Direction) ? -1.0 : +1.0; 
+    for(j=0;j<DIM;j++){
+        VertexCoords(NextVertex)[j]=dir*coords[j];
+    }
+    clear_VertexAdj_all(NextVertex);
+    NextVertex++;
+    dd_stats.vertexno++;
+    return 0;
+}
+
+int initial_facet(int final, double coords[/* 0..DIM */])
+{int i,j; double w;
+    if(NextFacet>=MaxFacets){
+        report(R_fatal,"Resume: more facets than specified\n");
+        return 1;
+    }
+    w=0.0; for(j=0;j<DIM;j++){
+        w+=coords[j];
+        if(coords[j]<0.0){
+            report(R_fatal,"Resume: facet %d has negative coefficient\n",NextFacet);
+            return 1;
+        }
+    }
+    if(w<DD_EPS_EQ){
+        report(R_fatal,"Resume: facet %d has all zero coefficients\n",NextFacet);
+        return 1;
+    }
+    w=1.0/w;
+    for(j=0;j<=DIM;j++){
+        coords[j] *= w; 
+        FacetCoords(NextFacet)[j]=coords[j];
+    }
+    set_in_FacetLiving(NextFacet);
+    if(final) set_in_FacetFinal(NextFacet);
+    clear_FacetAdj_all(NextFacet);
+    for(i=0;i<DIM;i++){ // ideal vertices
+        if(coords[i]<DD_EPS_EQ){
+            set_FacetAdj(NextFacet,i); set_VertexAdj(i,NextFacet);
+        }
+    }
+    for(i=DIM;i<NextVertex;i++){ // other vertices
+        w=coords[DIM];
+        for(j=0;j<DIM;j++){ w += coords[j]*VertexCoords(i)[j]; }
+        if(w<-DD_EPS_EQ){
+            report(R_fatal,"Resume: facet %d is on the negative side of facet %d (%lg)\n",NextFacet,i,w);
+            return 1;
+        }
+        if(w<DD_EPS_EQ){ // adjacent
+            set_FacetAdj(NextFacet,i); set_VertexAdj(i,NextFacet);
+        }
+    }
+    NextFacet++;
     return 0;
 }
 
@@ -1286,7 +1391,6 @@ void recalculate_facets(void)
 * double vertex_distance(double *coords, int fno)
 *    compute the distance of the vertex given as the first argument
 *    from the facet given with its number */
-#define DD_EPS_EQ	PARAMS(PolytopeEps)
 
 inline static double vertex_distance(double *coords, int fno)
 {double d=0.0; int i; double *fcoords;
@@ -1312,7 +1416,7 @@ int store_vertex(double *coords) /* store vertex if new */
         }
         if(j==DIM) return 0; /* this is the same as the one stored */
     }
-    dd_stats.iterations++;
+    dd_stats.vertexno++;
     if(NextVertex>=MaxVertices){
         allocate_vertex_block();
         if(OUT_OF_MEMORY) return 1; // out of memory
@@ -1678,6 +1782,7 @@ void add_new_vertex(double *coords)
 {int i,j,fno; BITMAP_t fc; double d;
  int *PosIdx, *NegIdx;
     dd_stats.iterations++;
+    dd_stats.vertexno++;
     if(NextVertex >= MaxVertices){
         allocate_vertex_block();
     }

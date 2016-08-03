@@ -54,6 +54,7 @@ struct params_t {
     RecalculateFacets,	/* after that many iterations do it */
     CheckConsistency,	/* after that many iterations do it */
     VertexPoolSize,	/* vertex pool size, 0 means no vertex pool */
+    CheckPoint,		/* frequency in seconds of dumping vertices and facets */
     Threads,		/* number of threads to use, only when USETHREADS defined */
     OracleItLimit,	/* iteration limit, >=1000; =0: unlimited */
     OracleTimeLimit,	/* time limit in seconds, >=5; =0: unlimited */
@@ -76,8 +77,10 @@ struct params_t {
   const char		/* string parameters */
     *VlpFile,		/* the input vlp file */
     *BootFile,		/* initial list of vertices */
+    *ResumeFile,	/* resume from this checkpoint file */
     *ProblemName,	/* the problem name, typically the base of the vlp file */
     *ConfigFile,	/* configuration file name */
+    *CheckPointStub,	/* -oc <stub> option */
     *SaveFile,		/* -o <file> option */
     *SaveVertexFile,	/* -ov <file> option */
     *SaveFacetFile;	/* -of <file> option */
