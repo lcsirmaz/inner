@@ -34,7 +34,7 @@
 *
 * void report(report_type, format, ...)
 *    send the value to the given channel; suppress message depending
-*    on PARAMS(). Flush immediately for R_warn and R_info; save on
+*    on PARAMS(). Flush immediately for R_info; save on
 *    other types. Channels R_savefacet and R_savevertex open files
 *    specified in PARAMS().
 *
@@ -109,7 +109,7 @@ void report(report_type level, const char *fmt,...)
       case R_fatal:
       case R_txt:  y=1; break;
       case R_err:  if(PARAMS(MessageLevel)>0) y=1; break;
-      case R_warn: if(PARAMS(MessageLevel)>1) { y=1; flush=1; } break;
+      case R_warn: if(PARAMS(MessageLevel)>1) y=1; break;
       default:     y=-1; break;
     }
     if(y>=0){

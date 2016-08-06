@@ -129,10 +129,10 @@ CFG( VertexPoolSize, INTEGER) \
 CFG( CheckPoint, POSINT ) \
 "#    frequency (in seconds) for creating checkpoint files when the\n"\
 "#    option -oc <filestub> is given. The filename is got by appending\n"\
-"#    DDD.cpt to the filestub, where DDD starts with 000 and increases\n"\
+"#    NNN.chk to the filestub, where NNN starts as 000 and increases\n"\
 "#    by one. The computation can be resumed from a checkpoint file by\n"\
-"#    calling the program with the --resume=<checkpoint> argument. The\n"\
-"#    value should be at least 500.\n"\
+"#    calling inner with the --resume=<checkpoint> argument. The value\n"\
+"#    should be at least 500.\n"\
 "#\n"\
 CFG( OracleCallLimit, INTEGER ) \
 "#    the maximal number of unsuccessful oracle calls during an\n"\

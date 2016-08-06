@@ -13,6 +13,7 @@ Version 2.4
       d) in inner(), inp_type stores the input type: it is from a boot
          file, form a checkpoint file, or none. Added new logic to handle
          these cases
+      e) VertexPool saved, not only printed 
  - poly.h: added dd_stats.vertexno, and new routines to store initial
          set of vertices and facets.
  - poly.c:
@@ -24,6 +25,7 @@ Version 2.4
          dd_stats.iterations counts the number of iterations.
  - report.h: new output channel R_chk
  - report.c: new routines open_checkpoint() and close_checkpoint()
+         R_warn does not flushes the output, only R_info
 
 Version 2.3
  - params.h: added constants MAX_VERTEX_POOL and MAX_OCALL_LIMIT and

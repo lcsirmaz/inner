@@ -209,7 +209,7 @@ inline static void report_memory(void)
 *    or out of memory), 2 - interrupt. Prints statistics as well.
 */
 
-static void print_vertexpool_content(void); /* forward declaration */
+static void print_vertexpool_content(report_type rt); /* forward declaration */
 
 #define EQSEP   "================================"
 #define DASHSEP "--------------------------------"
@@ -225,7 +225,7 @@ static void dump_and_save(int how)
         print_vertices(R_txt);
         if(partial && PARAMS(VertexPoolSize)>=5 ){
             report(R_txt,"\nAdditional vertices in the pool:\n");
-            print_vertexpool_content();
+            print_vertexpool_content(R_txt);
         }
     }
     if(PARAMS(PrintFacets) > partial){
@@ -301,6 +301,10 @@ static void dump_and_save(int how)
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
           vertex_num(), facet_num());
         print_vertices(R_savevertex);
+        if(partial && PARAMS(VertexPoolSize)>=5 ){
+            report(R_savevertex,"\nC additional vertices in the pool:\n");
+            print_vertexpool_content(R_savevertex);
+        }
         report(R_savevertex,"\n");
     }
     if(PARAMS(SaveFacets)>partial || (partial==0 && PARAMS(SaveFacetFile))){
@@ -383,11 +387,11 @@ static int init_vertexpool(void) /* call only when DIM has been set */
     return 0;
 }
 
-static void print_vertexpool_content(void)
+static void print_vertexpool_content(report_type rt)
 {int i; double dir;
     dir= PARAMS(Direction) ? -1.0 : 1.0;
     for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied){
-        print_vertex(R_txt,dir,vertexpool[i].coords);
+        print_vertex(rt,dir,vertexpool[i].coords);
     }
 }
 
