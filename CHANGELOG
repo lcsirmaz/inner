@@ -1,3 +1,11 @@
+Version 2.5
+ - inner.c: filling vertexpool is done in a separate routine, which
+      is called when using the --resume=<chk-file> argument
+      some cosmetic changes in comments
+ - params.c: some cosmetic changes in the help texts
+ - poly.c: abort computation when the new vertex is not outside of the
+      approximating polytope.
+
 Version 2.4
  - data.h, data.c: new modules to handle character input for --boot
       and for --resume files

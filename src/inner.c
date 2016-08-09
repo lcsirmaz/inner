@@ -351,6 +351,13 @@ static void dump_and_save(int how)
 *     3:  facet was encountered before
 *     4:  next vertex is VertexOracleData.overtex[]
 *
+* int fill_vertexpool(int limit)
+*   fill the vertex pool, limiting unsuccessful oracle calles to limit.
+*   Return value:
+*     0:  pool is filled (maybe empty if no more vertex)
+*     1:  interrupt
+*     2:  numerical error
+*
 * int find_next_vertex(void)
 *   finds the next vertex to be added to the approximating polytope.
 *   Without the vertex pool it returns next_vertex_coords().
@@ -442,10 +449,39 @@ again:
     return 4;
 }
 
+static int fill_vertexpool(int limit)
+{int i,ii; int oracle_calls=0;
+    for(i=0;i<PARAMS(VertexPoolSize);i++)if(!vertexpool[i].occupied){
+        switch(next_vertex_coords(1)){
+      case 0: return 0; /* no more vertices, done */
+      case 1: return 1; /* break */
+      case 2: return 2; /* numerical error */
+      case 3: break;    /* same facet encountered again, skip it */
+      default:
+              for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[i].occupied
+                 && same_vec(VertexOracleData.overtex,vertexpool[ii].coords)) break;
+              if(ii==PARAMS(VertexPoolSize)){ // new vertex
+                  memcpy(vertexpool[i].coords,VertexOracleData.overtex,DIM*sizeof(double));
+                  memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
+                  vertexpool[i].occupied=1;
+              } else { // got the same vertex; save the newer values
+                  memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
+                  memcpy(vertexpool[ii].facet,VertexOracleData.ofacet,DIM*sizeof(double));
+                  // and check how many unsuccessful calls we have made
+                  oracle_calls++;
+                  if(limit && oracle_calls>=limit) return 0; // done
+              }
+    }}
+    return 0;
+}
+
 static int find_next_vertex(void)
-{int i,ii,maxi,cnt; int w,maxw; int oracle_calls;
+{int i,maxi,cnt; int w,maxw;
     if(PARAMS(VertexPoolSize)<5 || dd_stats.vertexno < VertexPoolAfter)
         return next_vertex_coords(0);
+    // fill the vertex pool
+    i=fill_vertexpool(PARAMS(OracleCallLimit));
+    if(i) return i; // break or numerical error
     /* find the weight of stored vertices */
     maxi=-1; maxw=0; cnt=0;
     for(i=0;i<PARAMS(VertexPoolSize);i++)if(vertexpool[i].occupied){
@@ -453,40 +489,12 @@ static int find_next_vertex(void)
         w=probe_vertex(vertexpool[i].coords);
         if(maxi<0 || maxw<w){ maxi=i; maxw=w; }
     }
-    /* fill the pool */
-    oracle_calls=0;
-    for(i=0;i<PARAMS(VertexPoolSize);i++)if(!vertexpool[i].occupied){
-        switch(next_vertex_coords(1)){
-      case 0: goto pool_out; /* no more vertices */
-      case 1: return 1;      /* break */
-      case 2: return 2;      /* numerical error */
-      case 3: break;         /* same facet encountered again */
-      default:               /* next vertex is in VertexOracleData.overtex */
-            for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
-               && same_vec(VertexOracleData.overtex,vertexpool[ii].coords)) break;
-            if(ii==PARAMS(VertexPoolSize)){ // new vertex
-                memcpy(vertexpool[i].coords,VertexOracleData.overtex,DIM*sizeof(double));
-                memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
-                w=probe_vertex(vertexpool[i].coords);
-                vertexpool[i].occupied=1;
-                cnt++;
-                if(maxi<0 || maxw < w){ maxi=i; maxw=w; }
-            } else { // got back the same vertex, save the newer values
-                memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
-                memcpy(vertexpool[ii].facet,VertexOracleData.ofacet,DIM*sizeof(double));
-                // and check how many unsuccessful calls we have made
-                oracle_calls++;
-                if(PARAMS(OracleCallLimit) && oracle_calls >= PARAMS(OracleCallLimit))
-                    goto pool_out;
-            }
-        }
-    }
-pool_out:
+    poolstat=cnt;
     if(maxi<0) return 0; // no more vertices
-    poolstat=cnt; // set pool size
     vertexpool[maxi].occupied=0;
     memcpy(VertexOracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
-    return 4; /* next vertex is in VertexOracleData.overtex */
+    return 4; // next vertex is in VertexOracleData.overtex
+
 }
 
 #undef DIM
@@ -662,7 +670,7 @@ int inner(void)
        }
        report_new_vertex(); // take care of reporting
        if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
-    } else if(inp_type==inp_resume){
+    } else if(inp_type==inp_resume){ // resume an earlier computation
        int linetype=0; double args[5];
        if(! nextline(&linetype) || linetype!= 4 || parseline(5,&args[0]) ){
            report(R_fatal,"Argument line is missing from the resume file %s\n",PARAMS(ResumeFile));
@@ -672,24 +680,25 @@ int inner(void)
        if(args[2]!=(double)PARAMS(ProblemRows) ||
           args[3]!=(double)PARAMS(ProblemColumns) ||
           args[4]!=(double)PARAMS(ProblemObjects)) {
-           report(R_fatal,"The resume file belongs to a different MOLP problem\n");
+           report(R_fatal,"Resume file %s belongs to a different MOLP problem\n",PARAMS(ResumeFile));
            retvalue=2; goto leave; 
        }
        init_dd_structure(DIM,(int)args[0],(int)args[1]);
+       // read the resume file
        while(nextline(&linetype)) switch(linetype){
-         case 1:   // V
+         case 1:   // V line
             if(parseline(DIM,VertexOracleData.overtex) || 
                initial_vertex(VertexOracleData.overtex)){
                 retvalue=2; goto leave; // error
             }
             break;
-         case 2:   // F
+         case 2:   // F line
             if(parseline(DIM+1,VertexOracleData.ofacet) ||
                initial_facet(1,VertexOracleData.ofacet)){
                 retvalue=2; goto leave; // error
             }
             break;
-         case 3:   // f
+         case 3:   // f line
             if(parseline(DIM+1,VertexOracleData.ofacet) ||
                initial_facet(0,VertexOracleData.ofacet)){
                 retvalue=2; goto leave; // error
@@ -699,6 +708,10 @@ int inner(void)
             break;
        }
        progress_stat(gettime100());
+       if(PARAMS(VertexPoolSize)>=5 && fill_vertexpool(0)){
+          report(R_fatal,"Error while filling the vertex pool\n");
+          retvalue=2; goto leave;
+       }
     } else { // inp_type==inp_none
        // first vertex, all directions are 1.0
        for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;

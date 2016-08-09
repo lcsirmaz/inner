@@ -126,13 +126,12 @@ CFG( VertexPoolSize, INTEGER) \
 "#    additional oracle calls, but can simplify the approximating\n"\
 "#    polytopes. See OracleCallLimit. Should be less than " mkstringof(MAX_VERTEX_POOL) ".\n"\
 "#\n"\
-CFG( CheckPoint, POSINT ) \
+CFG( CheckPoint, POSINT ", at least 500" ) \
 "#    frequency (in seconds) for creating checkpoint files when the\n"\
 "#    option -oc <filestub> is given. The filename is got by appending\n"\
 "#    NNN.chk to the filestub, where NNN starts as 000 and increases\n"\
 "#    by one. The computation can be resumed from a checkpoint file by\n"\
-"#    calling inner with the --resume=<checkpoint> argument. The value\n"\
-"#    should be at least 500.\n"\
+"#    calling the program with the --resume=<checkpoint-file> argument.\n"\
 "#\n"\
 CFG( OracleCallLimit, INTEGER ) \
 "#    the maximal number of unsuccessful oracle calls during an\n"\
@@ -319,7 +318,7 @@ static void long_help(void){ printf(
 "  -p 0             no progress report\n"
 "  -q               quiet, same as -m0. Implies --PrintStatistics=0\n"
 "  --resume=<checkpoint-file>\n"
-"                   resume computation with new parameters\n"
+"                   resume computation with the actual parameters\n"
 "  -y+              report vertices immediately when generated (default)\n"
 "  -y-              do not report vertices when generated\n"
 "  --KEYWORD=value  change value of a config keyword (see --dump)\n"

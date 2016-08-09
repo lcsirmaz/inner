@@ -1828,6 +1828,8 @@ void add_new_vertex(double *coords)
                 set_VertexAdj(ThisVertex,fno);
                 set_FacetAdj(fno,ThisVertex);
                 dd_stats.facet_zero++;
+                // should we abort?
+                // dd_stats.numerical_error++;
             } else {
                 --NegIdx; *NegIdx=fno;
                 dd_stats.facet_neg++;
@@ -1837,6 +1839,12 @@ void add_new_vertex(double *coords)
             set_FacetAdj(fno,ThisVertex);
             dd_stats.facet_zero++;
         }
+    }
+    if(dd_stats.facet_neg==0){
+        report(R_err,"Vertex %d is inside the approximation (on: %d, pos: %d, neg: %d)\n", ThisVertex, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
+        dd_stats.facet_new=0;
+        dd_stats.numerical_error++;
+        return;
     }
     *PosIdx = -1; --NegIdx; *NegIdx=-1;
     // add statistics:
