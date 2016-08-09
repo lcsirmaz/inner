@@ -2,6 +2,7 @@ Version 2.5
  - inner.c: filling vertexpool is done in a separate routine, which
       is called when using the --resume=<chk-file> argument
       some cosmetic changes in comments
+      report_new_vertex() calls flush_report() only when printed something
  - params.c: some cosmetic changes in the help texts
  - poly.c: abort computation when the new vertex is not outside of the
       approximating polytope.

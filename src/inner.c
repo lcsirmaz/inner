@@ -175,16 +175,19 @@ static void progress_stat_if_expired(void)
 }
 
 static void report_new_vertex(void)
-{unsigned long thistime;
+{unsigned long thistime; int flush=0;
     if(PARAMS(ProgressReport)==0 && !PARAMS(VertexReport)) return;
     thistime=gettime100();
-    if(PARAMS(ProgressReport) && thistime-progresstime >= progressdelay)
+    if(PARAMS(ProgressReport) && thistime-progresstime >= progressdelay){
         progress_stat(thistime);
+        flush=1;
+    }
     if(PARAMS(VertexReport)){
       report(R_txt,"[%8.2f] ",0.01*(double)thistime);
       print_vertex(R_txt,(PARAMS(Direction) ? -1.0 : +1.0),VertexOracleData.overtex);
+      flush=1;
     }
-    flush_report();
+    if(flush)flush_report();
 }
 
 inline static void report_memory(void)
