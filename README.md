@@ -100,7 +100,7 @@ overwritten by the values in the config file (if specified), and those
 values are overwritten by the `--KEYWORD=value` command line options.
 Change tolerances with great care.
 
-| Algorithm parameters | |
+|**Algorithm parameters**| |
 |:--------|:------------|
 |`RandomFacet=1`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
 |`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent <br> vertices. |
@@ -133,7 +133,7 @@ Change tolerances with great care.
 |`PrintFacets=0` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print all known (relevant) facets when the program terminates. |
 |`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after command <br> line option `-o`. For file specified after `-ov` both 0 and 1 means &quot;save on normal exit only&quot;. |
 |`SaveFacets=1` <br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known (relevant) facets to the file specified after <br> the command line option `-o`. For the file specified after `-of` both 0 and 1 means &quot;save on <br> normal exit only&quot;. |
-|**Tolerances**| |
+|**Tolerances**|**Change these values with care**|
 |`PolytopeEps=1.3e-8` <br>&nbsp; | positive real number <br> a facet and a vertex are considered adjacent if their distance is smaller than this value. |
 |`ScaleEps=3e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> coefficients in the scaled facet equation are rounded to the nearest integer if they are <br> closer to it than this value. |
 |`LineqEps=8e-8` <br>&nbsp;<br>&nbsp; | positive real number <br> when solving a system of linear equations for a facet equation, a coefficient smaller <br> than this is considered to be zero. |
