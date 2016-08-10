@@ -187,7 +187,7 @@ static void report_new_vertex(void)
       print_vertex(R_txt,(PARAMS(Direction) ? -1.0 : +1.0),VertexOracleData.overtex);
       flush=1;
     }
-    if(flush)flush_report();
+    if(flush) flush_report();
 }
 
 inline static void report_memory(void)

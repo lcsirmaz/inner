@@ -160,7 +160,7 @@ M_FacetCoordStore,		/* facet coordinates; FacetCoordStore */
 M_VertexAdjStore,		/* adjacency list of vertices; VertexAdjStore*/
 M_FacetAdjStore,		/* adjacency list of facets; FacetAdjStore */
 M_FacetLiving,			/* facet bitmap; FacetLiving */
-M_facetfinal,			/* facet bitmap; FacetFinal */
+M_FacetFinal,			/* facet bitmap; FacetFinal */
 M_MAINSLOTS,			/* last main slot index */
 		/* temporary memory slots - threads read these */
 M_FacetDistStore=M_MAINSLOTS,	/* facet distances; FacetDistStore */
@@ -192,241 +192,6 @@ M_MSLOTSTOTAL
 #define M_thread(slot,threadId)		\
     ((slot)+(threadId)*NUM_M_THREAD_SLOTS)
 
-/* void *thread_slots(slot,threadId)
-*    memory slot variant assigned to the the given thread */
-#define thread_slots(slot,threadId)	\
-    memory_slots[M_thread(slot,threadId)]
-
-#endif /* USETHREADS */
-
-/************************************************************************
-*  V E R T I C E S
-*
-* int VertexSize
-*    number of double values to store the coordinates of a vertex
-* int NextVertex
-*    the index of the first free slot to store a new vertex. The actual
-*    number of vertices is NextVertex, and they are indexed from 0 to
-*    NextVertex-1
-* int ThisVertex
-*    the index of the vertex we are working on
-* int MaxVertices
-*    the maximal available slot for vertices; NextVertex <= MaxVertices.
-*    Vertex bitmaps can store up to MaxVertices bits.
-* int VertexBitmapBlockSize
-*    number of BITMAP_t words in a vertex bitmap */
-static int
-  VertexSize,		// size of the vertex coordinate block
-  NextVertex,		// next free slot for a vertex
-  ThisVertex,		// vertex we are working on
-  MaxVertices,		// upper bound for vertex numbers
-  VertexBitmapBlockSize;// size of the vertex bitmap block
-
-/* double *VertexCoordStore
-*    where vertices are stored; each vertex is a block of VertexSize
-*    doubles, and there is a room for MaxVertices vertex */
-#define VertexCoordStore	\
-    ((double*)memory_slots[M_VertexCoordStore].ptr)
-
-/* double *VertexCoords(vno)
-*    The block of VertexSize coordinates of the vertex vno */
-#define VertexCoords(vno)\
-    (VertexCoordStore+((vno)*VertexSize))
-
-/************************************************************************
-*  F A C E T S
-*
-* int FacetSize
-*    number of double values to store a facet equation
-* int NextFacet
-*    living facets has index smaller than NextFacet
-* int MaxFacets
-*    number of bits in a facet bitmap, NextFacet <= MaxFacets
-* int FacetBitmapBlockSize
-*    number of BITMAP_t words in a facet bitmap */
-static int
-  FacetSize,		// size of the facet equation block
-  NextFacet,		// next free slot for a facet
-  MaxFacets,		// number of bits in a facet bitmap
-  FacetBitmapBlockSize;	// size of the facet bitmap block
-
-/* double *FacetCoordStore
-*    where facets are stored as block of FacetSize doubles. There is
-*    space to store MaxFacets such blocks. */
-#define FacetCoordStore	\
-    ((double*)memory_slots[M_FacetCoordStore].ptr)
-
-/* double *FacetCoords(fno)
-*    the facet equation; each equation occupies FacetSize doubles,
-*    and fno < MaxFacets */
-#define FacetCoords(fno)\
-    (FacetCoordStore+((fno)*FacetSize))
-
-/************************************************************************
-*  B I T M A P S
-*
-* BITMAP_t *VertexAdjStore
-*    bitmap with FacetBitmapBlockSize BITMAP_t blocksize and with
-*    MaxVertices blocks. Stores the adjacency list of vertices. */
-#define VertexAdjStore	\
-    ((BITMAP_t*)memory_slots[M_VertexAdjStore].ptr)
-
-/* BITMAP_t *VertexAdj(vno)
-*    the block of the facet adjacency list of vertex vno */
-#define VertexAdj(vno)	\
-    (VertexAdjStore+((vno)*FacetBitmapBlockSize))
-
-/* BITMAP_t *FacetAdjStore
-*    bitmap with VertexBitmapBlockSize blocksize; stores the
-*    adjacency list of facets in MaxFacets blocks. */
-#define FacetAdjStore	\
-    ((BITMAP_t*)memory_slots[M_FacetAdjStore].ptr)
-
-/* BITMAP_t *FacetAdj(fno)
-*    the vertex adjacency list of the facet fno < MaxFacets */
-#define FacetAdj(fno)	\
-    (FacetAdjStore+((fno)*VertexBitmapBlockSize))
-
-/* BITMAP_t *FacetLiving, *FacetFinal
-*    single block bitmaps storing up to MaxFacets bits. FacetLiving
-*    tells whether a facet is among the facets of the current
-*    approximation; FacetFinal tells whether the facet belongs to 
-*    the final polytope. */
-#define FacetLiving	\
-    ((BITMAP_t*)memory_slots[M_FacetLiving].ptr)
-
-#define FacetFinal	\
-    ((BITMAP_t*)memory_slots[M_facetfinal].ptr)
-
-/************************************************************************
-*  I T E R A T I O N
-*
-* The main iteration adds a new vertex to the actual approximation.
-* Variables and memory blocks used only during this iteration.
-*
-* double FacetDistStore[MaxFacets]
-*    for each facet it contains the distance of the facet and
-*    the new vertex. It is fixed during the iteration.
-*/
-#define FacetDistStore \
-    ((double*)memory_slots[M_FacetDistStore].ptr)
-
-/* double FacetDist(fno)
-*    the distance associated with facet fno < MaxFacets */
-#define FacetDist(fno)  \
-    FacetDistStore[fno]
-
-/* int *FacetPosnegList[MaxFacets]
-*    indices of positive (starting from the beginning) and negative
-*    (starting from the end) facets when compared to the newly
-*    added vertex. It is fixed during the iteration. */
-#define FacetPosnegList	\
-    ((int*)memory_slots[M_FacetPosnegList].ptr)
-
-#ifdef USETHREADS
-/* int VertexList_Th(threadId)[MaxVertices]
-*    list to store vertex indices in the intersection of the two
-*    facets. Used in is_ridge() only. The size is fixed, the
-*    content changes. */
-#define VertexList_Th(threadId)	\
-    ((int*)thread_slots(M_VertexList,threadId).ptr)
-
-/* BITMAP_t* FacetWork_Th(threadId)
-*    auxiliary facet bitmap, it stores living facets minus the two
-*    facets whose intersection we are testing. Used in is_ridge()
-*    only. The size is fixed, the content changes.
-*/
-#define FacetWork_Th(threadId)	\
-    ((BITMAP_t*)thread_slots(M_FacetWork,threadId).ptr)
-
-/* int NewFacet_Th[MAX_THREADS]
-*    number of newly created facets
-*  int MaxNewFacets_Th[MAX_THREADS]
-*    have storage space for that many newly created facets */
-static int 
-  NewFacet_Th[MAX_THREADS],	// number of newly created facets
-  MaxNewFacets_Th[MAX_THREADS];	// available space
-
-/* double NewFacetCoordStore_Th(threadId)
-*    coordinates of the newly created facets are stored here.
-*    There is a space to store MaxNewFacets such blocks. */
-#define NewFacetCoordStore_Th(threadId)	\
-    ((double*)thread_slots(M_NewFacetCoordStore,threadId).ptr)
-
-/* double *NewFacetCoords(fno)
-*    the facet equation; each equation occupies FacetSize doubles.
-*    Uses locally defined base NewFacetCoordStore */
-#define NewFacetCoords(fno)	\
-    (NewFacetCoordStore+((fno)*FacetSize))    
-
-/* double *NewFacetCoords_Th(threadId,fno)
-*    the facet equation stored at threadId */
-#define NewFacetCoords_Th(threadId,fno)	\
-    (NewFacetCoordStore_Th(threadId)+((fno)*FacetSize))
-
-/* BITMAP_t *NewFacetAdjStore_Th(threadId)
-*    the vertex adjacency bitmap of the newly generated facet */
-#define  NewFacetAdjStore_Th(threadId)	\
-    ((BITMAP_t*)thread_slots(M_NewFacetAdjStore,threadId).ptr)
-
-/* BITMAP_t *NewFacetAdj(fno)
-*    vertex adjacency bitmap of facet fno using locally
-*    defined base NewFacetAdjStore  */
-#define NewFacetAdj(fno)	\
-    (NewFacetAdjStore+((fno)*VertexBitmapBlockSize))
-
-/* BITMAP_t *NewFacetAdj_Th(threadId,fno)
-*    the vertex adjacency list of the facet fno < MaxNewFacets */
-#define NewFacetAdj_Th(threadId,fno)	\
-    (NewFacetAdjStore_Th(threadId)+((fno)*VertexBitmapBlockSize))
-
-#else /* !USETHREADS */
-
-/* int VertexList[MaxVertices]
-*    list to store vertex indices in the intersection of the two
-*    facets. Used in is_ridge() only. The size is fixed, the
-*    content changes. */
-#define VertexList	\
-    ((int*)memory_slots[M_VertexList].ptr)
-
-/* BITMAP_t* FacetWork
-*    auxiliary facet bitmap, it stores living facets minus the two
-*    facets whose intersection we are testing. Used in is_ridge()
-*    only. The size is fixed, the content changes.
-*/
-#define FacetWork \
-    ((BITMAP_t*)memory_slots[M_FacetWork].ptr)
-
-/* int NewFacet
-*    number of newly created facets
-*  int MaxNewFacets
-*    have storage space for that many newly created facets */
-static int 
-  NewFacet,			// number of newly created facets
-  MaxNewFacets;			// available space
-
-/* double NewFacetCoordStore
-*    coordinates of the newly created facets are stored here.
-*    There is a space to store MaxNewFacets such blocks. */
-#define NewFacetCoordStore	\
-    ((double*)memory_slots[M_NewFacetCoordStore].ptr)
-
-/* double *NewFacetCoords(fno)
-*    the facet equation; each equation occupies FacetSize doubles,
-*    and fno < MaxFacets */
-#define NewFacetCoords(fno)\
-    (NewFacetCoordStore+((fno)*FacetSize))
-
-/* BITMAP_t NewFacetAdjStore
-*    the vertex adjacency list of the newly generated facet */
-#define  NewFacetAdjStore	\
-    ((BITMAP_t*)memory_slots[M_NewFacetAdjStore].ptr)
-
-/* BITMAP_t *NewFacetAdj(fno)
-*    the vertex adjacency list of the facet fno < MaxFacets */
-#define NewFacetAdj(fno)	\
-    (NewFacetAdjStore+((fno)*VertexBitmapBlockSize))
-
 #endif /* USETHREADS */
 
 /************************************************************************
@@ -453,6 +218,11 @@ static MEMSLOT memory_slots[M_MSLOTSTOTAL]; /* memory slots */
 /* bool OUT_OF_MEMORY
 *    flag indicating whether we are out of memory. */
 #define OUT_OF_MEMORY	dd_stats.out_of_memory
+
+/* type *get_memory_ptr(type,slot)
+*    the actual memory block in the given slot. */
+#define get_memory_ptr(type,slot)	\
+    ((type *)memory_slots[slot].ptr)
 
 /* void report_memory_usage(void)
 *    for each used slot report the blocksize, number of blocks,
@@ -587,16 +357,16 @@ static int reallocmem(void)
     return 0;
 }
 
-/* void* init_temp_slot(memslot_t slot, int nno, int nsize)
+/* void init_temp_slot(memslot_t slot, int nno, int nsize)
 *    requests nno blocks, each of size nsize at the given slot.
-*    The returned memory is not cleared; should check OUT_OF_MEMORY */
-static void* init_temp_slot(memslot_t slot, size_t nno, size_t nsize)
+*    The memory is not cleared; should check OUT_OF_MEMORY */
+static void init_temp_slot(memslot_t slot, size_t nno, size_t nsize)
 {size_t total; MEMSLOT *ms;
-    if(OUT_OF_MEMORY) return NULL;
+    if(OUT_OF_MEMORY) return;
     ms=&memory_slots[slot];
     ms->blocksize=nsize; ms->blockno=nno;
     total=nno*nsize;
-    if(total <= ms->rsize) return ms->ptr;
+    if(total <= ms->rsize) return;
     if(ms->ptr){ 
         free(ms->ptr);
         dd_stats.total_memory -= ms->rsize;
@@ -608,42 +378,268 @@ static void* init_temp_slot(memslot_t slot, size_t nno, size_t nsize)
         report(R_fatal,"Out of memory for slot=%d, blocksize=%zu, n=%zu\n",
             slot,nsize,nno);
         OUT_OF_MEMORY=1;
-        return NULL;
     }
-    return ms->ptr;
 }
 
-/* type *talloc(type,slot,n,bsize)
+/* void talloc(type,slot,n,bsize)
 *    request initial memory for a temporary slot. There are n blocks,
 *    each block is an array of bsize elements of the given type.
-*    Returns a pointer to the allocated memory, which is not cleared. */
+*    The allocated memory is not cleared. */
 #define talloc(type,slot,n,bsize)	\
-    (type*) init_temp_slot(slot,n,(bsize)*sizeof(type))
+    init_temp_slot(slot,n,(bsize)*sizeof(type))
 
-/* void* request_temp_mem(memslot_t slot,size_t nno)
+/* void request_temp_mem(memslot_t slot,size_t nno)
 *    request more blocks for the initialized temporary memory slot */
-static inline void* request_temp_mem(memslot_t slot,size_t nno)
+static inline void request_temp_mem(memslot_t slot,size_t nno)
 {size_t total; MEMSLOT *ms; void *ptr;
     ms=&memory_slots[slot];
-    if(OUT_OF_MEMORY) return ms->ptr;
+    if(OUT_OF_MEMORY) return;
     total = ms->blocksize*nno;
-    if(total<=ms->rsize) return ms->ptr;
+    if(total<=ms->rsize) return;
     dd_stats.memory_allocated_no++;
     ptr=realloc(ms->ptr,total);
-    if(!ptr){ OUT_OF_MEMORY=1; return ms->ptr; }
+    if(!ptr){ OUT_OF_MEMORY=1; return; }
     dd_stats.total_memory += total - ms->rsize;
     ms->rsize=total;
     ms->blockno=nno;
     ms->ptr=ptr;
-    return ms->ptr;
 }
 
-/* type *trequest(type,slot n)
+/* void trequest(slot,n)
 *    expand the temporary slot to n block, keep the previous block
-*    size. The new memory is not cleared. Returns a pointer to the
-*    expanded memory block (can be different from the original one). */
-#define trequest(type,slot,n)		\
-    (type*) request_temp_mem(slot,n)
+*    size. The new memory is not cleared. */
+#define trequest(slot,n)		\
+    request_temp_mem(slot,n)
+
+/************************************************************************
+*  V E R T I C E S
+*
+* int VertexSize
+*    number of double values to store the coordinates of a vertex
+* int NextVertex
+*    the index of the first free slot to store a new vertex. The actual
+*    number of vertices is NextVertex, and they are indexed from 0 to
+*    NextVertex-1
+* int ThisVertex
+*    the index of the vertex we are working on
+* int MaxVertices
+*    the maximal available slot for vertices; NextVertex <= MaxVertices.
+*    Vertex bitmaps can store up to MaxVertices bits.
+* int VertexBitmapBlockSize
+*    number of BITMAP_t words in a vertex bitmap */
+static int
+  VertexSize,		// size of the vertex coordinate block
+  NextVertex,		// next free slot for a vertex
+  ThisVertex,		// vertex we are working on
+  MaxVertices,		// upper bound for vertex numbers
+  VertexBitmapBlockSize;// size of the vertex bitmap block
+
+/* double *VertexCoordStore
+*    where vertices are stored; each vertex is a block of VertexSize
+*    doubles, and there is a room for MaxVertices vertex */
+#define VertexCoordStore	\
+    get_memory_ptr(double,M_VertexCoordStore)
+
+/* double *VertexCoords(vno)
+*    The block of VertexSize coordinates of the vertex vno */
+#define VertexCoords(vno)\
+    (VertexCoordStore+((vno)*VertexSize))
+
+/************************************************************************
+*  F A C E T S
+*
+* int FacetSize
+*    number of double values to store a facet equation
+* int NextFacet
+*    living facets has index smaller than NextFacet
+* int MaxFacets
+*    number of bits in a facet bitmap, NextFacet <= MaxFacets
+* int FacetBitmapBlockSize
+*    number of BITMAP_t words in a facet bitmap */
+static int
+  FacetSize,		// size of the facet equation block
+  NextFacet,		// next free slot for a facet
+  MaxFacets,		// number of bits in a facet bitmap
+  FacetBitmapBlockSize;	// size of the facet bitmap block
+
+/* double *FacetCoordStore
+*    where facets are stored as block of FacetSize doubles. There is
+*    space to store MaxFacets such blocks. */
+#define FacetCoordStore	\
+    get_memory_ptr(double,M_FacetCoordStore)
+
+/* double *FacetCoords(fno)
+*    the facet equation; each equation occupies FacetSize doubles,
+*    and fno < MaxFacets */
+#define FacetCoords(fno)\
+    (FacetCoordStore+((fno)*FacetSize))
+
+/************************************************************************
+*  B I T M A P S
+*
+* BITMAP_t *VertexAdjStore
+*    bitmap with FacetBitmapBlockSize BITMAP_t blocksize and with
+*    MaxVertices blocks. Stores the adjacency list of vertices. */
+#define VertexAdjStore	\
+    get_memory_ptr(BITMAP_t,M_VertexAdjStore)
+
+/* BITMAP_t *VertexAdj(vno)
+*    the block of the facet adjacency list of vertex vno */
+#define VertexAdj(vno)	\
+    (VertexAdjStore+((vno)*FacetBitmapBlockSize))
+
+/* BITMAP_t *FacetAdjStore
+*    bitmap with VertexBitmapBlockSize blocksize; stores the
+*    adjacency list of facets in MaxFacets blocks. */
+#define FacetAdjStore	\
+    get_memory_ptr(BITMAP_t,M_FacetAdjStore)
+
+/* BITMAP_t *FacetAdj(fno)
+*    the vertex adjacency list of the facet fno < MaxFacets */
+#define FacetAdj(fno)	\
+    (FacetAdjStore+((fno)*VertexBitmapBlockSize))
+
+/* BITMAP_t *FacetLiving, *FacetFinal
+*    single block bitmaps storing up to MaxFacets bits. FacetLiving
+*    tells whether a facet is among the facets of the current
+*    approximation; FacetFinal tells whether the facet belongs to 
+*    the final polytope. */
+#define FacetLiving	\
+    get_memory_ptr(BITMAP_t,M_FacetLiving)
+
+#define FacetFinal	\
+    get_memory_ptr(BITMAP_t,M_FacetFinal)
+
+/************************************************************************
+*  I T E R A T I O N
+*
+* The main iteration adds a new vertex to the actual approximation.
+* Variables and memory blocks used only during this iteration.
+*
+* double FacetDistStore[MaxFacets]
+*    for each facet it contains the distance of the facet and
+*    the new vertex. It is fixed during the iteration.
+*/
+#define FacetDistStore \
+    get_memory_ptr(double,M_FacetDistStore)
+
+/* double FacetDist(fno)
+*    the distance associated with facet fno < MaxFacets */
+#define FacetDist(fno)  \
+    FacetDistStore[fno]
+
+/* int *FacetPosnegList[MaxFacets]
+*    indices of positive (starting from the beginning) and negative
+*    (starting from the end) facets when compared to the newly
+*    added vertex. It is fixed during the iteration. */
+#define FacetPosnegList	\
+    get_memory_ptr(int,M_FacetPosnegList)
+
+#ifdef USETHREADS
+/* int VertexList_Th(threadId)[MaxVertices]
+*    list to store vertex indices in the intersection of the two
+*    facets. Used in is_ridge() only. The size is fixed, the
+*    content changes. */
+#define VertexList_Th(threadId)	\
+    get_memory_ptr(int,M_thread(M_VertexList,threadId))
+
+/* BITMAP_t* FacetWork_Th(threadId)
+*    auxiliary facet bitmap, it stores living facets minus the two
+*    facets whose intersection we are testing. Used in is_ridge()
+*    only. The size is fixed, the content changes.
+*/
+#define FacetWork_Th(threadId)	\
+    get_memory_ptr(BITMAP_t,M_thread(M_FacetWork,threadId))
+
+/* int NewFacet_Th[MAX_THREADS]
+*    number of newly created facets
+*  int MaxNewFacets_Th[MAX_THREADS]
+*    have storage space for that many newly created facets */
+static int 
+  NewFacet_Th[MAX_THREADS],	// number of newly created facets
+  MaxNewFacets_Th[MAX_THREADS];	// available space
+
+/* double NewFacetCoordStore_Th(threadId)
+*    coordinates of the newly created facets are stored here.
+*    There is a space to store MaxNewFacets such blocks. */
+#define NewFacetCoordStore_Th(threadId)	\
+    get_memory_ptr(double,M_thread(M_NewFacetCoordStore,threadId))
+
+/* double *NewFacetCoords(fno)
+*    the facet equation; each equation occupies FacetSize doubles.
+*    Uses locally defined base NewFacetCoordStore */
+#define NewFacetCoords(fno)	\
+    (NewFacetCoordStore+((fno)*FacetSize))    
+
+/* double *NewFacetCoords_Th(threadId,fno)
+*    the facet equation stored at threadId */
+#define NewFacetCoords_Th(threadId,fno)	\
+    (NewFacetCoordStore_Th(threadId)+((fno)*FacetSize))
+
+/* BITMAP_t *NewFacetAdjStore_Th(threadId)
+*    the vertex adjacency bitmap of the newly generated facet */
+#define  NewFacetAdjStore_Th(threadId)	\
+    get_memory_ptr(BITMAP_t,M_thread(M_NewFacetAdjStore,threadId))
+
+/* BITMAP_t *NewFacetAdj(fno)
+*    vertex adjacency bitmap of facet fno using locally
+*    defined base NewFacetAdjStore  */
+#define NewFacetAdj(fno)	\
+    (NewFacetAdjStore+((fno)*VertexBitmapBlockSize))
+
+/* BITMAP_t *NewFacetAdj_Th(threadId,fno)
+*    the vertex adjacency list of the facet fno < MaxNewFacets */
+#define NewFacetAdj_Th(threadId,fno)	\
+    (NewFacetAdjStore_Th(threadId)+((fno)*VertexBitmapBlockSize))
+
+#else /* !USETHREADS */
+
+/* int VertexList[MaxVertices]
+*    list to store vertex indices in the intersection of the two
+*    facets. Used in is_ridge() only. The size is fixed, the
+*    content changes. */
+#define VertexList	\
+    get_memory_ptr(int,M_VertexList)
+
+/* BITMAP_t* FacetWork
+*    auxiliary facet bitmap, it stores living facets minus the two
+*    facets whose intersection we are testing. Used in is_ridge()
+*    only. The size is fixed, the content changes.
+*/
+#define FacetWork \
+    get_memory_ptr(BITMAP_t,M_FacetWork)
+
+/* int NewFacet
+*    number of newly created facets
+*  int MaxNewFacets
+*    have storage space for that many newly created facets */
+static int 
+  NewFacet,			// number of newly created facets
+  MaxNewFacets;			// available space
+
+/* double NewFacetCoordStore
+*    coordinates of the newly created facets are stored here.
+*    There is a space to store MaxNewFacets such blocks. */
+#define NewFacetCoordStore	\
+    get_memory_ptr(double,M_NewFacetCoordStore)
+
+/* double *NewFacetCoords(fno)
+*    the facet equation; each equation occupies FacetSize doubles,
+*    and fno < MaxFacets */
+#define NewFacetCoords(fno)\
+    (NewFacetCoordStore+((fno)*FacetSize))
+
+/* BITMAP_t NewFacetAdjStore
+*    the vertex adjacency list of the newly generated facet */
+#define  NewFacetAdjStore	\
+    get_memory_ptr(BITMAP_t,M_NewFacetAdjStore)
+
+/* BITMAP_t *NewFacetAdj(fno)
+*    the vertex adjacency list of the facet fno < MaxFacets */
+#define NewFacetAdj(fno)	\
+    (NewFacetAdjStore+((fno)*VertexBitmapBlockSize))
+
+#endif /* USETHREADS */
 
 /***********************************************************************
 * The combinatorial Double Description method
@@ -874,7 +870,6 @@ int get_next_facet(int from)
         }
         from=0; 
     }
-//    else if((from>>packshift) >= FacetBitmapBlockSize)
     else if(from >= NextFacet)
     { return -1; }
     j=from & packmask;
@@ -922,8 +917,6 @@ int facet_num(void)
         else add_bitcount(v,total);
     }
     return total;
-//    j=0; for(i=1;i<NextFacet;i++)if(is_livingFacet(i)) j++;
-//    return j;
 }
 
 /* double round(double x)
@@ -1096,7 +1089,7 @@ int init_dd_structure(int dimension, int vno, int fno)
     yalloc(BITMAP_t,M_VertexAdjStore,MaxVertices,FacetBitmapBlockSize); // VertexAdjStore
     yalloc(BITMAP_t,M_FacetAdjStore,MaxFacets,VertexBitmapBlockSize); // FacetAdjStore
     yalloc(BITMAP_t,M_FacetLiving,1,FacetBitmapBlockSize); // FacetLiving
-    yalloc(BITMAP_t,M_facetfinal,1,FacetBitmapBlockSize); // FacetFinal
+    yalloc(BITMAP_t,M_FacetFinal,1,FacetBitmapBlockSize); // FacetFinal
 
     if(OUT_OF_MEMORY) return 1;
     dd_stats.memory_allocated_no=1;
@@ -1255,7 +1248,7 @@ static void allocate_facet_block(int count)
     yrequest(BITMAP_t,M_VertexAdjStore,MaxVertices,FacetBitmapBlockSize);
     yrequest(BITMAP_t,M_FacetAdjStore,MaxFacets,VertexBitmapBlockSize);
     yrequest(BITMAP_t,M_FacetLiving,1,FacetBitmapBlockSize);
-    yrequest(BITMAP_t,M_facetfinal,1,FacetBitmapBlockSize);
+    yrequest(BITMAP_t,M_FacetFinal,1,FacetBitmapBlockSize);
     if(reallocmem()){ // out of memory
         FacetBitmapBlockSize -= (MaxFacets+packmask)>>packshift;
         MaxFacets -= total;
@@ -1335,7 +1328,8 @@ static void recalculate_facet_eq(int fno,BITMAP_t *facetadj, double *facetcoords
 #define A(i,j)	VertexArray[(i)*(DIM+1)+(j)]
     // collect all vertices adjacent to facet fno
     amax=VERTEXARRAY_STEPSIZE; /* we have at least that many slots */
-    VertexArray = talloc(double,M_my_VertexArray,amax,DIM+1);
+    talloc(double,M_my_VertexArray,amax,DIM+1);
+    VertexArray=get_memory_ptr(double,M_my_VertexArray);
     an=0; vno=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
         j=vno; fc=facetadj[i];
@@ -1343,7 +1337,8 @@ static void recalculate_facet_eq(int fno,BITMAP_t *facetadj, double *facetcoords
             if(fc&1){ /* store vertex j to A */
                 if(an>=amax){
                     amax+=VERTEXARRAY_STEPSIZE;
-                    VertexArray = trequest(double,M_my_VertexArray,amax);
+                    trequest(M_my_VertexArray,amax);
+                    VertexArray=get_memory_ptr(double,M_my_VertexArray);
                     if(OUT_OF_MEMORY) return; // out of memory
                 }
                 memcpy(&(A(an,0)),VertexCoords(j),DIM*sizeof(double));
@@ -1512,8 +1507,8 @@ inline static int get_new_facetno(int threadId)
     i=NewFacet_Th[threadId];
     if(NewFacet_Th[threadId]>=MaxNewFacets_Th[threadId]){ // no more space, ask memory
         MaxNewFacets_Th[threadId] += DD_FACET_ADDBLOCK<<packshift;
-        trequest(double,M_thread(M_NewFacetCoordStore,threadId),MaxNewFacets_Th[threadId]);
-        trequest(BITMAP_t,M_thread(M_NewFacetAdjStore,threadId),MaxNewFacets_Th[threadId]);
+        trequest(M_thread(M_NewFacetCoordStore,threadId),MaxNewFacets_Th[threadId]);
+        trequest(M_thread(M_NewFacetAdjStore,threadId),MaxNewFacets_Th[threadId]);
         if(OUT_OF_MEMORY) {
             MaxNewFacets_Th[threadId] -= DD_FACET_ADDBLOCK<<packshift;
             return -1;
@@ -1528,8 +1523,8 @@ inline static int get_new_facetno(void)
     i=NewFacet; 
     if(NewFacet>=MaxNewFacets){ // no more space, ask memory
         MaxNewFacets += DD_FACET_ADDBLOCK<<packshift;
-        trequest(double,M_NewFacetCoordStore,MaxNewFacets);
-        trequest(BITMAP_t,M_NewFacetAdjStore,MaxNewFacets);
+        trequest(M_NewFacetCoordStore,MaxNewFacets);
+        trequest(M_NewFacetAdjStore,MaxNewFacets);
         if(OUT_OF_MEMORY) {
             MaxNewFacets -= DD_FACET_ADDBLOCK<<packshift;
             return -1;

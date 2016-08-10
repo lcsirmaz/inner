@@ -4,8 +4,13 @@ Version 2.5
       some cosmetic changes in comments
       report_new_vertex() calls flush_report() only when printed something
  - params.c: some cosmetic changes in the help texts
- - poly.c: abort computation when the new vertex is not outside of the
-      approximating polytope.
+ - poly.c: 
+      a) abort computation when the new vertex is not outside of the 
+         approximating polytope.
+      b) move forward memory handling routines.
+      c) thread memory handling talloc and trequest do not return values
+      d) new macro get_memory_ptr() is used to retrieve the memory in
+         the slots.
 
 Version 2.4
  - data.h, data.c: new modules to handle character input for --boot
