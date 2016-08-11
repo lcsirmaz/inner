@@ -3,6 +3,7 @@ Version 2.5
       is called when using the --resume=<chk-file> argument
       some cosmetic changes in comments
       report_new_vertex() calls flush_report() only when printed something
+      printed vertices from the vertexpool start with V
  - params.c: some cosmetic changes in the help texts
  - poly.c: 
       a) abort computation when the new vertex is not outside of the 

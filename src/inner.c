@@ -397,11 +397,12 @@ static int init_vertexpool(void) /* call only when DIM has been set */
     return 0;
 }
 
-static void print_vertexpool_content(report_type rt)
+static void print_vertexpool_content(report_type where)
 {int i; double dir;
     dir= PARAMS(Direction) ? -1.0 : 1.0;
     for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied){
-        print_vertex(rt,dir,vertexpool[i].coords);
+        report(where,"V ");
+        print_vertex(where,dir,vertexpool[i].coords);
     }
 }
 
