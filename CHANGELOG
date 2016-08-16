@@ -7,7 +7,8 @@ Version 2.5
  - params.c: some cosmetic changes in the help texts
  - poly.c: 
       a) abort computation when the new vertex is not outside of the 
-         approximating polytope.
+         approximating polytope -- refined to check duplicate addition
+         of the same vertex
       b) move forward memory handling routines.
       c) thread memory handling talloc and trequest do not return values
       d) new macro get_memory_ptr() is used to retrieve the memory in
