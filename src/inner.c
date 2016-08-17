@@ -462,7 +462,7 @@ static int fill_vertexpool(int limit)
       case 2: return 2; /* numerical error */
       case 3: break;    /* same facet encountered again, skip it */
       default:
-              for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[i].occupied
+              for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
                  && same_vec(VertexOracleData.overtex,vertexpool[ii].coords)) break;
               if(ii==PARAMS(VertexPoolSize)){ // new vertex
                   memcpy(vertexpool[i].coords,VertexOracleData.overtex,DIM*sizeof(double));

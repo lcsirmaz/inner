@@ -1140,6 +1140,7 @@ int init_dd(int dimension, double *coords)
         NextFacet++;
     }
     NextVertex++;
+    dd_stats.vertexno++;
     return 0;
 }
 
@@ -1197,7 +1198,7 @@ int initial_facet(int final, double coords[/* 0..DIM */])
         w=coords[DIM];
         for(j=0;j<DIM;j++){ w += coords[j]*VertexCoords(i)[j]; }
         if(w<-DD_EPS_EQ){
-            report(R_fatal,"Resume: facet %d is on the negative side of facet %d (%lg)\n",NextFacet,i,w);
+            report(R_fatal,"Resume: vertex %d is on the negative side of facet %d (%lg)\n",i,NextFacet,w);
             return 1;
         }
         if(w<DD_EPS_EQ){ // adjacent
@@ -1840,6 +1841,18 @@ void add_new_vertex(double *coords)
         if(dd_stats.facet_zero<DIM){
             report(R_err,"Vertex %d is inside the approximation (on: %d, pos: %d, neg: %d)\n", ThisVertex, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
             dd_stats.numerical_error++;
+        } else { // check whether this is a duplicate vertex
+            for(j=ThisVertex-1; j>=DIM && j>ThisVertex-100; j--){
+              for(i=0;i<DIM;i++){
+                d=VertexCoords(j)[i]-VertexCoords(ThisVertex)[i];
+                if(d>DD_EPS_EQ || d<-DD_EPS_EQ) break;
+              }
+              if(i==DIM){
+                  report(R_err,"Vertex %d has been added again as %d\n",j,ThisVertex);
+                  dd_stats.numerical_error++;
+                  return;
+              }
+            }
         }
         return;
     }

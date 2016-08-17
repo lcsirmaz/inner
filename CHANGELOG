@@ -1,9 +1,21 @@
+Version 2.6
+  new return values for the program:
+     0: program completed
+     1: some error before starting the algorithm (argument syntax,
+          wrong file, out of memory, etc)
+     2: the solution space is empty
+     3: the solution space is unbounded in some objective direction
+     4: error while executing the algorithm (oracle error, numerical
+          error, out of memory, etc)
+     5: problem was interrupted by using the USR1 signal
+
 Version 2.5
  - inner.c: filling vertexpool is done in a separate routine, which
       is called when using the --resume=<chk-file> argument
       some cosmetic changes in comments
       report_new_vertex() calls flush_report() only when printed something
       printed vertices from the vertexpool start with V
+      typo in fill_vertexpool() is corrected
  - params.c: some cosmetic changes in the help texts
  - poly.c: 
       a) abort computation when the new vertex is not outside of the 
@@ -12,7 +24,8 @@ Version 2.5
       b) move forward memory handling routines.
       c) thread memory handling talloc and trequest do not return values
       d) new macro get_memory_ptr() is used to retrieve the memory in
-         the slots.
+         the slots
+      e) dd_stats.vertexno now increased with the first vertex added
 
 Version 2.4
  - data.h, data.c: new modules to handle character input for --boot
