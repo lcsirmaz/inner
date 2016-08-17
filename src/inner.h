@@ -20,10 +20,12 @@
 *    Return value:
 *      0   program terminated normally
 *      1   data error before the algorithm started
-*      2   error during algorithm execution
-*      3   interrupted, postprocessing terminated normally
-*      4   interrupted, error in postprocessing
-*      5   interrupted, postprocessing aborted
+*      2   problem unbounded
+*      3   problem unfeasible
+*      4   error during algorithm execution
+*      5   interrupted, postprocessing terminated normally
+*      6   interrupted, error in postprocessing
+*      7   interrupted, postprocessing aborted
 */
 
 int inner(void);

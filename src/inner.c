@@ -350,16 +350,18 @@ static void dump_and_save(int how)
 *   Return value:
 *     0:  there are no more facets
 *     1:  algorithm interrupted
-*     2:  some error (oracle failed, computational error, etc)
-*     3:  facet was encountered before
-*     4:  next vertex is VertexOracleData.overtex[]
+*     2:  unbounded
+*     4:  some error (oracle failed, computational error, etc)
+*     5:  facet was encountered before
+*     6:  next vertex is VertexOracleData.overtex[]
 *
 * int fill_vertexpool(int limit)
 *   fill the vertex pool, limiting unsuccessful oracle calles to limit.
 *   Return value:
 *     0:  pool is filled (maybe empty if no more vertex)
 *     1:  interrupt
-*     2:  numerical error
+*     2:  problem unbounded
+*     4:  numerical error
 *
 * int find_next_vertex(void)
 *   finds the next vertex to be added to the approximating polytope.
@@ -423,10 +425,10 @@ again:
     // boot file
     while(nextline(&boottype)) if(boottype==1){ // V line
         if(parseline(PARAMS(ProblemObjects),VertexOracleData.overtex)){
-            return 2; // error
+            return 4; // error
         }
         memset(VertexOracleData.ofacet,0,DIM*sizeof(double));
-        return 4;
+        return 6;
     }
     j=get_next_facet(-1);
     if(j<0) return 0; /* terminated successfully */
@@ -434,23 +436,25 @@ again:
     if(checkVertexPool){ /* ask oracle only when not asked before */
         for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied
            && same_vec(vertexpool[i].facet,VertexOracleData.ofacet))
-             return 3;
+             return 5;
     }
-    if(ask_oracle_with_timer()) return 2; /* error */
+    if((i=ask_oracle_with_timer())!=0){ // error
+        return i==ORACLE_UNBND ? 2 : 4;
+    }
     d=VertexOracleData.ofacet[DIM];
     for(i=0;i<DIM;i++){
         d+= VertexOracleData.ofacet[i]*VertexOracleData.overtex[i];
     }
     if(PARAMS(PolytopeEps) < d){ /* numerical error */
         report(R_fatal,"Numerical error: new vertex is on the positive side (%lg)\n", d);
-        return 2;
+        return 4;
     }
     if(-PARAMS(PolytopeEps) < d){ /* vertex is on the facet */
         mark_facet_as_final(j);
         progress_stat_if_expired();
         goto again;
     }
-    return 4;
+    return 6;
 }
 
 static int fill_vertexpool(int limit)
@@ -459,16 +463,18 @@ static int fill_vertexpool(int limit)
         switch(next_vertex_coords(1)){
       case 0: return 0; /* no more vertices, done */
       case 1: return 1; /* break */
-      case 2: return 2; /* numerical error */
-      case 3: break;    /* same facet encountered again, skip it */
+      case 2: return 2; /* unbounded */
+      case 4: return 4; /* error */
+      case 5: break;    /* same facet encountered again, skip it */
       default:
               for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
                  && same_vec(VertexOracleData.overtex,vertexpool[ii].coords)) break;
-              if(ii==PARAMS(VertexPoolSize)){ // new vertex
+              if(ii==PARAMS(VertexPoolSize)){
                   memcpy(vertexpool[i].coords,VertexOracleData.overtex,DIM*sizeof(double));
                   memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
                   vertexpool[i].occupied=1;
               } else { // got the same vertex; save the newer values
+
                   memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
                   memcpy(vertexpool[ii].facet,VertexOracleData.ofacet,DIM*sizeof(double));
                   // and check how many unsuccessful calls we have made
@@ -497,7 +503,7 @@ static int find_next_vertex(void)
     if(maxi<0) return 0; // no more vertices
     vertexpool[maxi].occupied=0;
     memcpy(VertexOracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
-    return 4; // next vertex is in VertexOracleData.overtex
+    return 6; // next vertex is in VertexOracleData.overtex
 
 }
 
@@ -544,12 +550,12 @@ static int break_inner(void)
     report(R_fatal,"\n\n" EQSEP "\n"
       "Program run was interrupted after %s, vertices=%d, facets=%d\n",
       showtime(aborttime), vertex_num(), facet_num());
-    if(!PARAMS(ExtractAfterBreak)) return 3; // normal termination
+    if(!PARAMS(ExtractAfterBreak)) return 5; // normal termination
     // don't do if no need to extract data
     if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2 &&
        !PARAMS(VertexReport)){
         report(R_fatal,"Result of postprocessing would be lost, not doing...\n");
-        return 3;
+        return 5;
     }
     report(R_fatal,"Checking additional vertices. This may take some time...\n"
       EQSEP "\n\n");
@@ -573,23 +579,23 @@ static int break_inner(void)
                 report(R_fatal,"\n" EQSEP "\n"
                   "Post-processing was interrupted after %s\n",
                   showtime(gettime100()-aborttime));
-                return 5; // postprocess aborted
+                return 7; // postprocess aborted
             }
         }
         get_facet_into(j,VertexOracleData.ofacet);
         mark_facet_as_final(j);
         if(ask_oracle_with_timer()){ // error
-            return 4; // error during postprocess
+            return 6; // error during postprocess
         }
         if(store_vertex(VertexOracleData.overtex))
             report_new_vertex();
         else
             progress_stat_if_expired();
         if(dd_stats.out_of_memory){ // fatal
-            return 4; // error in postprocess
+            return 6; // error in postprocess
         }
     }
-    return 3; // terminated normally
+    return 5; // terminated normally
 }
 
 static int handle_new_vertex(void)
@@ -638,7 +644,7 @@ inp_resume	/* vertices and facets form --resume */
 } input_type_t;
 
 int inner(void)
-{int i; int retvalue=0; input_type_t inp_type=inp_none;// is_bootfile=0;
+{int i; int retvalue=0; input_type_t inp_type=inp_none;
     initialize_random(); // initialize random numbers
     if(read_vlp()){ return 1; } // data error before start
     if(check_outfiles()){ return 1;}
@@ -655,7 +661,7 @@ int inner(void)
        PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
     set_oracle_parameters();
     gettime100(); // initialize elapsed time, reading vlp not included
-    if(init_vertexpool()){ return 2; } // fatal error
+    if(init_vertexpool()){ return 1; } // fatal error
 #ifdef USETHREADS
     if(create_threads()) return 1;
 #endif
@@ -667,45 +673,47 @@ int inner(void)
        while(nextline(&linetype) && linetype!=1); // next V line
        if(linetype!=1){ // error
            report(R_fatal,"No vertex line was found in boot file %s\n",PARAMS(BootFile));
-           retvalue=2; goto leave;
+           retvalue=1; goto leave;
        }
        if(parseline(DIM,VertexOracleData.overtex)){
-           retvalue=2; goto leave; // error
+           retvalue=1; goto leave; // error
        }
        report_new_vertex(); // take care of reporting
-       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
+       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=1; goto leave; }
     } else if(inp_type==inp_resume){ // resume an earlier computation
        int linetype=0; double args[5];
        if(! nextline(&linetype) || linetype!= 4 || parseline(5,&args[0]) ){
            report(R_fatal,"Argument line is missing from the resume file %s\n",PARAMS(ResumeFile));
-           retvalue=2; goto leave;
+           retvalue=1; goto leave;
        }
        // rows, columns, objects
        if(args[2]!=(double)PARAMS(ProblemRows) ||
           args[3]!=(double)PARAMS(ProblemColumns) ||
           args[4]!=(double)PARAMS(ProblemObjects)) {
            report(R_fatal,"Resume file %s belongs to a different MOLP problem\n",PARAMS(ResumeFile));
-           retvalue=2; goto leave; 
+           retvalue=1; goto leave; 
        }
-       init_dd_structure(DIM,(int)args[0],(int)args[1]);
+       if(init_dd_structure(DIM,(int)args[0],(int)args[1])){
+           retvalue=1; goto leave;
+       }
        // read the resume file
        while(nextline(&linetype)) switch(linetype){
          case 1:   // V line
             if(parseline(DIM,VertexOracleData.overtex) || 
                initial_vertex(VertexOracleData.overtex)){
-                retvalue=2; goto leave; // error
+                retvalue=1; goto leave; // error
             }
             break;
          case 2:   // F line
             if(parseline(DIM+1,VertexOracleData.ofacet) ||
                initial_facet(1,VertexOracleData.ofacet)){
-                retvalue=2; goto leave; // error
+                retvalue=1; goto leave; // error
             }
             break;
          case 3:   // f line
             if(parseline(DIM+1,VertexOracleData.ofacet) ||
                initial_facet(0,VertexOracleData.ofacet)){
-                retvalue=2; goto leave; // error
+                retvalue=1; goto leave; // error
             }
             break;
          default:  // ignore
@@ -714,17 +722,19 @@ int inner(void)
        progress_stat(gettime100());
        if(PARAMS(VertexPoolSize)>=5 && fill_vertexpool(0)){
           report(R_fatal,"Error while filling the vertex pool\n");
-          retvalue=2; goto leave;
+          retvalue=4; goto leave;
        }
     } else { // inp_type==inp_none
        // first vertex, all directions are 1.0
        for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;
-       if(ask_oracle_with_timer()){
+       if((i=ask_oracle_with_timer())!=0){
            report(R_fatal,"Error getting the first optimal solution.\n");
-           retvalue=2; goto leave;
+           retvalue= i==ORACLE_UNBND ? 2:
+                     i==ORACLE_EMPTY ? 3: 4;
+           goto leave;
        }
        report_new_vertex(); // take care of reporting
-       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=2; goto leave; }
+       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=4; goto leave; }
     }
     if(DIM<2){
         PARAMS(PrintFacets)=0;
@@ -738,21 +748,20 @@ again:
     switch(find_next_vertex()){
       case 0: // no more vertices
         dump_and_save(0);
-        retvalue=0;
-        goto leave; // terminated normally
+        retvalue=0; goto leave; // terminated normally
       case 1: // break
         retvalue=break_inner();
         dump_and_save(2);
         goto leave;
-      case 2: // numerical error
+      case 2: // problem unbounded
+        retvalue=2; goto leave;
+      case 4: // numerical error
         dump_and_save(1);
-        retvalue=2;
-        goto leave; // error during computation
+        retvalue=4; goto leave; // error during computation
       default: // next vertex returned
         if(handle_new_vertex()) goto again;
         dump_and_save(1);
-        retvalue=2;
-        goto leave;
+        retvalue=4; goto leave;
     }
 #undef DIM
 leave:

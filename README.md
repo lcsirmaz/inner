@@ -140,6 +140,20 @@ Change tolerances with great care.
 |`RoundEps=1e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> if the oracle reports vertices with rounded coordinates (`RoundVertices=1`), this is the <br> tolerance in the rounding algorithm. |
 |`FacetRecalcEps=1e-6` <br>&nbsp;<br>&nbsp; | positive real number <br> when recalculating facet equation, report numerical instability if the new and old <br> coordinates differ at least this much. |
 
+#### EXIT STATUS
+
+When the program terminates, the exit status is zero when the problem has
+been solved successfully; otherwise it indicates the failure condition:
+
+|**Exit value**| | 
+|:------|:-----|
+|0    | problem solved |
+|1    | error before starting the algorithm, such as missing argument, wrong or missing data file, out of memory, etc. |
+|2    | there is no feasible solution for the MOLP problem |
+|3    | the solution space is unbounded in some objective direction |
+|4    | error while executing the algorithm (oracle failure, numerical error, etc) |
+|5    | program execution was interrupted by using a `USR1` signal |
+
 
 #### COMPILATION
 
