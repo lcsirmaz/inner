@@ -1848,7 +1848,7 @@ void add_new_vertex(double *coords)
                 if(d>DD_EPS_EQ || d<-DD_EPS_EQ) break;
               }
               if(i==DIM){
-                  report(R_err,"Vertex %d has been added again as %d\n",j,ThisVertex);
+                  report(R_err,"Vertex %d has been added again as %d\n",1+j-DIM,1+ThisVertex-DIM);
                   dd_stats.numerical_error++;
                   return;
               }

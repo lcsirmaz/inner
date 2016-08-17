@@ -1,5 +1,5 @@
 Version 2.6
-  new return values for the program:
+  new return values for the main program:
      0: program completed
      1: some error before starting the algorithm (argument syntax,
           wrong file, out of memory, etc)
@@ -8,6 +8,9 @@ Version 2.6
      4: error while executing the algorithm (oracle error, numerical
           error, out of memory, etc)
      5: problem was interrupted by using the USR1 signal
+ - inner.c: facet equation is now renormed before deciding whether a vertex
+       is on the facet or not.
+ - poly.c: improving error message when a vertex added second time.
 
 Version 2.5
  - inner.c: filling vertexpool is done in a separate routine, which

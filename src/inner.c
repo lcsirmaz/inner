@@ -419,7 +419,7 @@ inline static int same_vec(double f1[], double f2[])
 }
 
 static int next_vertex_coords(int checkVertexPool)
-{int i,j; double d; int boottype;
+{int i,j; double d,dd; int boottype;
 again:
     if(dobreak) return 1; /* break meanwhile */
     // boot file
@@ -441,10 +441,12 @@ again:
     if((i=ask_oracle_with_timer())!=0){ // error
         return i==ORACLE_UNBND ? 2 : 4;
     }
-    d=VertexOracleData.ofacet[DIM];
+    d=VertexOracleData.ofacet[DIM]; dd=0.0;
     for(i=0;i<DIM;i++){
+        dd+= VertexOracleData.ofacet[i];
         d+= VertexOracleData.ofacet[i]*VertexOracleData.overtex[i];
     }
+    d /= dd; // sum of facet coeffs is 1.0 
     if(PARAMS(PolytopeEps) < d){ /* numerical error */
         report(R_fatal,"Numerical error: new vertex is on the positive side (%lg)\n", d);
         return 4;
@@ -474,7 +476,6 @@ static int fill_vertexpool(int limit)
                   memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
                   vertexpool[i].occupied=1;
               } else { // got the same vertex; save the newer values
-
                   memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
                   memcpy(vertexpool[ii].facet,VertexOracleData.ofacet,DIM*sizeof(double));
                   // and check how many unsuccessful calls we have made
