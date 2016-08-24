@@ -406,12 +406,12 @@ static inline void round_to_int(double *v)
 
 static char *glp_status_msg(int stat)
 {static char *statmsg[] = {
-"solution is undefined",	// GLP_UNDEF
-"solution is feasible",		// GLP_FEAS
-"solution is infeasible",	// GLP_INFEAS
-"no feasible solution exists",	// GLP_NOFEAS
-"solution is optimal",		// GLP_OPT
-"solution is unbounded",	// GLP_UNBND
+"the problem is undefined",		// GLP_UNDEF
+"solution is feasible",			// GLP_FEAS
+"solution is infeasible",		// GLP_INFEAS
+"the problem has no feasible solution",	// GLP_NOFEAS
+"solution is optimal",			// GLP_OPT
+"the problem is unbounded",		// GLP_UNBND
 };
     if(1<=stat && stat<=6) return statmsg[stat-1];
     return "unknown solution status";
@@ -466,13 +466,13 @@ int ask_oracle(void)
         ret=glp_simplex(P,&parm);
     }
     if(ret){
-        report(R_err,"The oracle says: %s (%d)\n",glp_return_msg(ret),ret);
+        report(R_fatal,"The oracle says: %s (%d)\n",glp_return_msg(ret),ret);
         // one can continue if  ret==GLP_EITLIM || ret==GLP_ETMLIM
         return (ret==GLP_EITLIM || ret==GLP_ETMLIM)? ORACLE_LIMIT : ORACLE_FAIL; 
     }
     ret=glp_get_status(P);
     if(ret != GLP_OPT){
-        report(R_err,"The oracle says: %s (%d)\n",glp_status_msg(ret),ret);
+        report(R_fatal,"The oracle says: %s (%d)\n",glp_status_msg(ret),ret);
         return ret==GLP_NOFEAS? ORACLE_EMPTY : 
                ret==GLP_UNBND ? ORACLE_UNBND : ORACLE_FAIL;
     }

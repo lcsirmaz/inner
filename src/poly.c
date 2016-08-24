@@ -722,6 +722,11 @@ typedef uint64_t BITMAP_t;
 #define clear_in_FacetLiving(fno) \
     FacetLiving[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
 
+/* void clear_in_FacetFinal(fno)
+*    clear bit fno in the bitmap FacetFinal */
+#define clear_in_FacetFinal(fno) \
+    FacetFinal[(fno)>>packshift] &= ~(BITMAP1<<((fno)&packmask))
+
 /* void set_in_FacetLiving(fno)
 *    set bit fno in bitmap FacetLiving */
 #define set_in_FacetLiving(fno) \
@@ -1304,7 +1309,7 @@ static int solve_lineq(int d, double *VertexArray)
        }
     }
     if(zerocol<0){
-        report(R_err,"solve_lineq: rank is too large, tolerance LineqEps=%lg\n",
+        report(R_err,"solve_lineq: rank is too large, increase LineqEps=%lg\n",
                      PARAMS(LineqEps));
         return 1; /* error */
     }
@@ -1820,10 +1825,15 @@ void add_new_vertex(double *coords)
             dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative side
             if(is_finalFacet(fno)){
-                report(R_err,"Final facet %d is on the negative side of vertex %d (d=%lg); adjust PolytopeEps=%lg\n",fno,ThisVertex,d,DD_EPS_EQ);
-                set_VertexAdj(ThisVertex,fno);
-                set_FacetAdj(fno,ThisVertex);
-                dd_stats.facet_zero++;
+                report(R_err,"Final facet %d is on the negative side of vertex %d (d=%lg); adjust PolytopeEps=%lg\n",fno,ThisVertex-DIM+1,d,DD_EPS_EQ);
+// it seems to be better to revoke the "final" flag from this facet
+// than to make this facet incident to the new vertex
+                clear_in_FacetFinal(fno);
+                --NegIdx; *NegIdx=fno;
+                dd_stats.facet_neg++;
+//                set_VertexAdj(ThisVertex,fno);
+//                set_FacetAdj(fno,ThisVertex);
+//                dd_stats.facet_zero++;
                 // should we abort?
                 // dd_stats.numerical_error++;
             } else {
@@ -1839,7 +1849,7 @@ void add_new_vertex(double *coords)
     if(dd_stats.facet_neg==0){
         dd_stats.facet_new=0;
         if(dd_stats.facet_zero<DIM){
-            report(R_err,"Vertex %d is inside the approximation (on: %d, pos: %d, neg: %d)\n", ThisVertex, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
+            report(R_err,"Vertex %d is inside the approximation (on: %d, pos: %d, neg: %d)\n", ThisVertex-DIM+1, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
             dd_stats.numerical_error++;
         } else { // check whether this is a duplicate vertex
             for(j=ThisVertex-1; j>=DIM && j>ThisVertex-100; j--){
@@ -2034,25 +2044,25 @@ int check_consistency(void)
             f=FacetCoords(fno); v=VertexCoords(vno); w=0.0;
             for(i=0;i<DIM;i++,f++,v++){ w += (*f)*(*v); }
             w += (*f); if(w<-DD_EPS_EQ){ 
-               report(R_err,"Consistency error 3: vertex %d is on the negative side of facet %d (%lg)\n",vno,fno,w);
+               report(R_err,"Consistency error 3: vertex %d is on the negative side of facet %d (%lg)\n",vno-DIM+1,fno,w);
                errno++;
             }
             if(w>DD_EPS_EQ){ // not adjacent
                 if(1&(FacetAdj(fno)[vno>>packshift]>>(vno&packmask))){
-                    report(R_err,"Consistency error 4: vertex %d and facet %d are NOT adjacent\n",vno,fno);
+                    report(R_err,"Consistency error 4: vertex %d and facet %d are NOT adjacent\n",vno-DIM+1,fno);
                     errno++;
                 }
                 if(1&(VertexAdj(vno)[fno>>packshift]>>(fno&packmask))){
-                    report(R_err,"Consistency error 5: vertex %d and facet %d are NOT adjacent\n",vno,fno);
+                    report(R_err,"Consistency error 5: vertex %d and facet %d are NOT adjacent\n",vno-DIM+1,fno);
                     errno++;
                 }
             } else { // adjacent
                 if(!(1&(FacetAdj(fno)[vno>>packshift]>>(vno&packmask)))){
-                    report(R_err,"Consistency error 6: vertex %d and facet %d are adjacent\n",vno,fno);
+                    report(R_err,"Consistency error 6: vertex %d and facet %d are adjacent\n",vno-DIM+1,fno);
                     errno++;
                 }
                 if(!(1&(VertexAdj(vno)[fno>>packshift]>>(fno&packmask)))){
-                    report(R_err,"Consistency error 7: vertex %d and facet %d are adjacent\n",vno,fno);
+                    report(R_err,"Consistency error 7: vertex %d and facet %d are adjacent\n",vno-DIM+1,fno);
                     errno++;
                 }
             }

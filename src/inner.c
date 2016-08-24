@@ -101,14 +101,6 @@ inline static int ask_oracle_with_timer(void)
     thistime=gettime100();
     res=ask_oracle();
     oracletime += gettime100()-thistime;
-    if(res){
-        report(R_fatal,"The oracle says: %s\n",
-            res==ORACLE_UNBND ? "the problem is unbounded" :
-            res==ORACLE_EMPTY ? "the problem has no feasible solution" :
-            res==ORACLE_LIMIT ? "either iteration or time limit was reached" :
-          /*res==ORACLE_FAIL */ "sorry, I failed ..."
-        );
-    }
     return res;
 }
 
