@@ -5,6 +5,11 @@ Version 2.7
  - poly.c: when the new vertex is on the negative side of a final facet,
        then it seems to be a better strategy to clear the "final" flag
        rather than force the vertex onto that facet.
+ - inner.c: when the new vertex is inside the inner approximation, then
+       a) first recalculate all facets and retry; only when this happens
+          right after the recalculation, abort the algorithm
+       b) call add_new_vertex() first, then call other maintenance routines
+          such as recalculate_facets() and check_consistency() 
 
 Version 2.6
   new return values for the main program:

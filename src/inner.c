@@ -324,6 +324,10 @@ static void dump_and_save(int how)
 * vertexpool_t vertexpool[VertexPoolSize]
 *   vertices known but not added yet to the approximation.
 *
+* int facets_recalculated
+*   TRUE just after calling recalculate_facets(); and set to FALSE
+*   when calling add_new_vertex()
+*
 * int init_vertexpool()
 *   allocates memory to the vertex pool. Returns non-zero if out of
 *   memory.
@@ -373,6 +377,8 @@ typedef struct {
 static vertexpool_t *vertexpool=NULL;
 
 #define DIM	PARAMS(ProblemObjects) /* problem dimension */
+
+static int facets_recalculated=0;
 
 static int init_vertexpool(void) /* call only when DIM has been set */
 {int i; double *pool;
@@ -427,8 +433,9 @@ again:
     get_facet_into(j,VertexOracleData.ofacet);
     if(checkVertexPool){ /* ask oracle only when not asked before */
         for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied
-           && same_vec(vertexpool[i].facet,VertexOracleData.ofacet))
-             return 5;
+           && same_vec(vertexpool[i].facet,VertexOracleData.ofacet)){
+            return 5;
+        }
     }
     if((i=ask_oracle_with_timer())!=0){ // error
         return i==ORACLE_UNBND ? 2 : 4;
@@ -440,8 +447,19 @@ again:
     }
     d /= dd; // sum of facet coeffs is 1.0 
     if(PARAMS(PolytopeEps) < d){ /* numerical error */
-        report(R_fatal,"Numerical error: new vertex is on the positive side (%lg)\n", d);
-        return 4;
+        // make sure facets are recalculated immediately before issuing an error
+        if(facets_recalculated){
+            report(R_fatal,"Numerical error: new vertex is on the positive side (d=%lg, sum=%lg)\n", d,dd);
+            return 4;
+        }
+        report(R_warn,"New vertex is on positive side (d=%lg, sum=%lg), recalculating facets ...\n", d,dd);
+        dd_stats.instability_warning++;
+        recalculate_facets();
+        if(dd_stats.out_of_memory || dd_stats.numerical_error){
+            return 4; // error during computation
+        }
+        facets_recalculated=1;
+        goto again;
     }
     if(-PARAMS(PolytopeEps) < d){ /* vertex is on the facet */
         mark_facet_as_final(j);
@@ -598,6 +616,12 @@ static int handle_new_vertex(void)
     if(PARAMS(CheckPointStub) && chktime+chkdelay<=gettime100()){
         make_checkpoint(); chktime=gettime100();
     }
+    add_new_vertex(VertexOracleData.overtex);
+    facetstat=1; progress_stat_if_expired();
+    if(dd_stats.out_of_memory || dd_stats.numerical_error){
+        return 0; // error during computation
+    }
+    facets_recalculated=0;
     // recalculate facets if instructed so
     if(PARAMS(RecalculateFacets)>=5 &&
        ((1+dd_stats.iterations)%PARAMS(RecalculateFacets))==0){
@@ -608,6 +632,7 @@ static int handle_new_vertex(void)
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
             return 0; // error during computation
         }
+        facets_recalculated=1;
     }
     // check consistency if instructed
     if(PARAMS(CheckConsistency)>=5 &&
@@ -619,11 +644,6 @@ static int handle_new_vertex(void)
             report(R_fatal,"Consistency error: data structure has numerical errors.\n");
             return 0;
         }
-    }
-    add_new_vertex(VertexOracleData.overtex);
-    facetstat=1; progress_stat_if_expired();
-    if(dd_stats.out_of_memory || dd_stats.numerical_error){
-        return 0; // error during computation
     }
     report_memory();
     return 1;

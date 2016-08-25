@@ -1825,7 +1825,8 @@ void add_new_vertex(double *coords)
             dd_stats.facet_pos++;
         } else if(d<-DD_EPS_EQ){ // negative side
             if(is_finalFacet(fno)){
-                report(R_err,"Final facet %d is on the negative side of vertex %d (d=%lg); adjust PolytopeEps=%lg\n",fno,ThisVertex-DIM+1,d,DD_EPS_EQ);
+                report(R_warn,"Final facet %d is on the negative side of vertex %d (d=%lg)\n",fno,ThisVertex-DIM+1,d);
+                dd_stats.instability_warning++;
 // it seems to be better to revoke the "final" flag from this facet
 // than to make this facet incident to the new vertex
                 clear_in_FacetFinal(fno);
