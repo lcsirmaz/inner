@@ -9,7 +9,9 @@ Version 2.7
        a) first recalculate all facets and retry; only when this happens
           right after the recalculation, abort the algorithm
        b) call add_new_vertex() first, then call other maintenance routines
-          such as recalculate_facets() and check_consistency() 
+          such as recalculate_facets() and check_consistency()
+       c) when the problem is unbounded, dump and save partial result, as
+          this can indicate a numerical error as well
 
 Version 2.6
   new return values for the main program:

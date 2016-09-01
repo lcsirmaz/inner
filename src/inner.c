@@ -766,7 +766,8 @@ again:
         retvalue=break_inner();
         dump_and_save(2);
         goto leave;
-      case 2: // problem unbounded
+      case 2: // problem unbounded, can be numerical error as well
+        dump_and_save(1);
         retvalue=2; goto leave;
       case 4: // numerical error
         dump_and_save(1);
