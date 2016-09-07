@@ -155,6 +155,46 @@ been solved successfully; otherwise it indicates the failure condition:
 |5    | program execution was interrupted by using a `USR1` signal |
 
 
+#### SIGNALS
+
+When the program receives a `USR1` signal, it stops the main cycle of
+iterations, and switches to a &quot;quick and dirt&quot; method to generate
+additional extremal solutions. (Actually, the oracle is asked about all
+facets of the actual approximation; it returns an extremal solution, if
+exists, on or beyond that facet.) The method might miss extremal solutions,
+so the result is not known (can need not be) complete. A second `USR1`
+signal aborts this post-processing.
+
+When receiving a `USR2` signal (since version 2.8), the program dumps all
+vertices and facets of the actual approximation. Similarly to checkpoint
+files, the dump file can be used to resume the computation from that point.
+
+The name of the dump file is created as follows. If a checkpoint stub is provided
+after the `-oc` argument, then `000.dmp` is appended to the stub. If no
+`-oc` argument is provided but there is a `-o` output file, then the 
+extension of that filename is replaced by `dmp`. If neither `-oc` nor `-o`
+argument is present, then no dump file is created. When receiving a second
+`USR2` signal, the same filename is used: the previous content is silently
+overwritten.
+
+Signals are checked only when an iteration step has been completed, that is a
+new vertex has been added to the approximation. (These are the points when
+the data is guaranteed to be consistent.) Depending on the complexity of the
+problem and the number of intermediate vertices and facets, the time
+between these points vary from milliseconds to several days.
+
+#### USING MULTIPLE CORES
+
+The threaded version of `inner` can use all available cores on the computer 
+to speed up the computation. Multiple cores can help in the combinatorial part, 
+when the work can be distributed approximately uniformly among them. The LP
+part (oracle calls) is inherently single-threaded and cannot be speed up
+this way. Thus LP intensive problems (large number of columns and rows
+and only a few objectives) will not gain too much from multiple threads.
+Specifying more cores than available comes with a significant performance
+penalty. 
+
+
 #### COMPILATION
 
 The program uses a patched version of glpk, the GNU Linear Program Kit. 
