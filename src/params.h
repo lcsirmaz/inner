@@ -118,11 +118,14 @@ void show_parameters(char *hdr);
 #define mkstringof(x)	stringify(x)
 
 /***********************************************************************
-* Signal which stops processing and instruct special continuation
+* Signals which stops processing and instruct special continuation
 */
 
-#ifndef INNER_SIGNAL
+#ifndef INNER_SIGNAL	/* interrupt computation */
 #define INNER_SIGNAL	SIGUSR1
+#endif
+#ifndef DUMP_SIGNAL	/* dump vertices and facets */
+#define DUMP_SIGNAL	SIGUSR2
 #endif
 
 /************************************************************************

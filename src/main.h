@@ -12,11 +12,11 @@
  ***********************************************************************/
 
 /***********************************************************************
-* int dobreak;
-*      increased by one every time CTRL+C is hit
+* int dobreak, dodump;
+*      increased by one every time INNER_SIGNAL or DUMP_SIGNAL is hit
 */
 
-extern volatile int dobreak;
+extern volatile int dobreak, dodump;
 
 /* EOF */
 

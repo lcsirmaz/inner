@@ -19,27 +19,34 @@
 /*******************************************************************
 * signal handling 
 *
-* volatile int dobreak
-*    inticates how many timer SIGNAL was sent
-* void set_ctrl_c()
-*    whenever SIGNAL is received, increase the value of dobreak.
-*    This is to be checked in the main loops.
+* volatile int dobreak, dodump
+*    inticates how many timer a SIGNAL was sent
+* void set_signals()
+*    whenever INNER_SIGNAL or DUMP_SIGNAL is received, increase
+*    the value of the above values. They are checked in the main
+*    loop of the program.
 */
 
 #include <signal.h>
 #include <stdio.h>
 
-volatile int dobreak=0;
+volatile int dobreak=0, dodump=0;
 static void siginthandler(int signo)
-{   if(signo==INNER_SIGNAL) dobreak++; }
+{   if(signo==INNER_SIGNAL) dobreak++;
+    if(signo==DUMP_SIGNAL)  dodump++;
+}
 
-static int set_signal(void)
+inline static int set_signals(void)
 {struct sigaction act;
     sigemptyset(&act.sa_mask); // which signals to be blocked
     act.sa_handler = siginthandler;
     act.sa_flags = 0; // do not reset to SIGN_DFL
     if(sigaction(INNER_SIGNAL, &act, NULL)){
-        report(R_fatal,"Cannot set " mkstringof(INNER_SIGNAL) " signal, aborting\n");
+        report(R_fatal,"Cannot set signal " mkstringof(INNER_SIGNAL) ", aborting\n");
+        return 1;
+    }
+    if(sigaction(DUMP_SIGNAL, &act, NULL)){
+        report(R_fatal,"Cannot set signal " mkstringof(DUMP_SIGNAL) ", aborting\n");
         return 1;
     }
     return 0;
@@ -56,7 +63,7 @@ int main(int argc, const char *argv[])
     r=process_parameters(argc,argv); // read parameters
     if(r==1) return 0; /* job done */
     if(r<0) return 1;  /* data error */
-    if(set_signal()) return 1; // handle intterupts
+    if(set_signals()) return 1; // handle signals
     switch(inner()){ // execute the algorithm
       case 0:  return 0; /* job done */
       case 1:  return 1; /* data error before algorithm started */

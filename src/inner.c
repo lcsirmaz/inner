@@ -28,8 +28,11 @@
 * void initialize_random()
 *    initialize random by asking the time and the pid of the process
 *
+* unsigned long timenow
+*    elapsed time in 0.01 seconds, set by gettime100()
+*
 * unsigned long gettime100()
-*    return the elapsed time in multiple of 0.01 seconds
+*    set timenow and return the elapsed time
 *
 * char *showtime(unsigned long t)
 *    readable printout of the time in days, hours, minutes and seconds
@@ -46,14 +49,19 @@ inline static void initialize_random(void)
     gettimeofday(&tv,NULL);
     srandom( PARAMS(TrueRandom) ? getpid()^tv.tv_sec^tv.tv_usec : 0x12345678 );
 }
-/** return elapsed time in 0.01 seconds */
+/** the elapsed time in 0.01 seconds */
+unsigned long timenow=0;
+/** set timenow and return the elapsed time */
 static unsigned long gettime100(void)
 {struct timeval tv; static unsigned long starttime=0;
-    if(gettimeofday(&tv,NULL)) return 0; // some problem
-    if(starttime)
-      return (tv.tv_sec*100 + (tv.tv_usec+5000u)/10000u)-starttime;
+    if(gettimeofday(&tv,NULL)) return timenow; // some problem
+    if(starttime){
+        timenow = (tv.tv_sec*100 + (tv.tv_usec+5000u)/10000u)-starttime;
+        return timenow;
+    }
     starttime=tv.tv_sec*100 + (tv.tv_usec+5000u)/10000u;
-    return 0;
+    timenow = 0;
+    return timenow;
 }
 /** print time in pretty format **/
 static char *showtime(unsigned long t)
@@ -121,13 +129,13 @@ inline static int ask_oracle_with_timer(void)
 * int facetstat
 *    whether new facet stat is available after calling add_new_vertex()
 *
-* void progress_stat(unsigned long thistime)
+* void progress_stat(void)
 *    show progress report, save the report time
 *
-* void progress_stat_if_expired(void)
+* void progress_stat_if_expired(int ask_time)
 *    show progress report when expired
 *
-* void report_new_vertex(void)
+* void report_new_vertex(int ask_time)
 *    report coordinates of the new vertex when requested; give 
 *    status report when the delay has passed
 *
@@ -139,12 +147,12 @@ static unsigned long chktime=0, chkdelay=0;
 
 static int poolstat=0, facetstat=0;
 
-static void progress_stat(unsigned long dtime)
-{   progresstime=dtime;
+static void progress_stat(void)
+{   progresstime=timenow;
     get_dd_facetno();
     report(R_txt,"I%8.2f] Elapsed: %s, vertices: %d, facets final: %d, pending: %d",
-        0.01*(double)dtime,
-        showtime(dtime),
+        0.01*(double)timenow,
+        showtime(timenow),
         dd_stats.vertexno,
         dd_stats.final_facets_no,
         dd_stats.living_facets_no-dd_stats.final_facets_no);
@@ -157,25 +165,27 @@ static void progress_stat(unsigned long dtime)
     report(R_txt,"\n");
 }
 
-static void progress_stat_if_expired(void)
-{unsigned long dtime;
-    if(PARAMS(ProgressReport)==0) return;
-    dtime=gettime100();
-    if(dtime-progresstime < progressdelay) return;
-    progress_stat(dtime);
+static void progress_stat_if_expired(int ask_time)
+{   if(PARAMS(ProgressReport)==0) return;
+    if(ask_time) gettime100();
+    if(timenow-progresstime < progressdelay) return;
+    progress_stat();
     flush_report();
 }
 
-static void report_new_vertex(void)
-{unsigned long thistime; int flush=0;
+static void report_new_vertex(int ask_time)
+{int flush=0;
     if(PARAMS(ProgressReport)==0 && !PARAMS(VertexReport)) return;
-    thistime=gettime100();
-    if(PARAMS(ProgressReport) && thistime-progresstime >= progressdelay){
-        progress_stat(thistime);
+    if(PARAMS(ProgressReport)){
+      if(ask_time){ gettime100(); ask_time=0; }
+      if(timenow-progresstime >= progressdelay){
+        progress_stat();
         flush=1;
+      }
     }
     if(PARAMS(VertexReport)){
-      report(R_txt,"[%8.2f] ",0.01*(double)thistime);
+      if(ask_time) gettime100();
+      report(R_txt,"[%8.2f] ",0.01*(double)timenow);
       print_vertex(R_txt,(PARAMS(Direction) ? -1.0 : +1.0),VertexOracleData.overtex);
       flush=1;
     }
@@ -187,7 +197,7 @@ inline static void report_memory(void)
     if(! PARAMS(MemoryReport) || 
        last_memreport==dd_stats.memory_allocated_no ) return;
     last_memreport=dd_stats.memory_allocated_no;
-    report(R_txt,"M%8.2f] ", 0.01*(double)gettime100());
+    report(R_txt,"M%8.2f] ", 0.01*(double)timenow);
     report_memory_usage();
     flush_report();
 }
@@ -199,9 +209,12 @@ inline static void report_memory(void)
 *    separators made of = and - respectively
 *
 * void dump_and_save(int how)
-*    dump and save final vertices and facets. The argument tells
-*    how the program terminated: 0 - normal, 1 - error (numerical
-*    or out of memory), 2 - interrupt. Prints statistics as well.
+*    dump and save final vertices and facets and print statistics.
+*    The argument tells how the program terminated:
+*      0 - normal
+*      1 - error but data is consistent
+*      2 - other error (numerical or out of memory)
+*      3 - interrupt. 
 */
 
 static void print_vertexpool_content(report_type rt); /* forward declaration */
@@ -212,7 +225,7 @@ static void print_vertexpool_content(report_type rt); /* forward declaration */
 static void dump_and_save(int how)
 {unsigned long endtime; int partial;
     endtime=gettime100(); // program finished
-    if(PARAMS(ProgressReport)) progress_stat(endtime);
+    if(PARAMS(ProgressReport)) progress_stat();
     partial = how==0 ? 0 : 1; // whether we have a partial list
     if(PARAMS(PrintVertices) > partial){
         if(partial) report(R_txt,"Partial list of vertices:\n");
@@ -288,13 +301,14 @@ static void dump_and_save(int how)
     if(PARAMS(PrintParams)){
         show_parameters(DASHSEP "\nParameters with non-default values\n");
     }
+    partial = how<2 ? 0 : 1; // save when data is consistent
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
-        if(partial) report(R_savevertex,"C *** Partial list of vertices ***\n");
         report(R_savevertex,"C name=%s, cols=%d, rows=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
           vertex_num(), facet_num());
+        if(how) report(R_savevertex,"C *** Partial list of vertices ***\n");
         print_vertices(R_savevertex);
         if(partial && PARAMS(VertexPoolSize)>=5 ){
             report(R_savevertex,"\nC additional vertices in the pool:\n");
@@ -303,12 +317,12 @@ static void dump_and_save(int how)
         report(R_savevertex,"\n");
     }
     if(PARAMS(SaveFacets)>partial || (partial==0 && PARAMS(SaveFacetFile))){
-        if(partial) report(R_savefacet,"C *** Partial list of facets ***\n");
         report(R_savefacet,"C name=%s, cols=%d, rows=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
           vertex_num(), facet_num());
+        if(how) report(R_savefacet,"C *** Partial list of facets ***\n");
         print_facets(R_savefacet);
         report(R_savefacet,"\n");
     }
@@ -463,7 +477,7 @@ again:
     }
     if(-PARAMS(PolytopeEps) < d){ /* vertex is on the facet */
         mark_facet_as_final(j);
-        progress_stat_if_expired();
+        progress_stat_if_expired(1);
         goto again;
     }
     return 6;
@@ -515,7 +529,6 @@ static int find_next_vertex(void)
     vertexpool[maxi].occupied=0;
     memcpy(VertexOracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
     return 6; // next vertex is in VertexOracleData.overtex
-
 }
 
 #undef DIM
@@ -578,7 +591,7 @@ static int break_inner(void)
         for(j=0;j<PARAMS(VertexPoolSize);j++) if(vertexpool[j].occupied
             && store_vertex(vertexpool[j].coords)){
             memcpy(VertexOracleData.overtex,vertexpool[j].coords,PARAMS(ProblemObjects)*sizeof(double));
-            report_new_vertex();
+            report_new_vertex(1);
         }
     }
     /* search for new vertices by calling the oracle for all facets */
@@ -589,7 +602,7 @@ static int break_inner(void)
             if(gettime100()-aborttime>50){
                 report(R_fatal,"\n" EQSEP "\n"
                   "Post-processing was interrupted after %s\n",
-                  showtime(gettime100()-aborttime));
+                  showtime(timenow-aborttime));
                 return 7; // postprocess aborted
             }
         }
@@ -599,9 +612,9 @@ static int break_inner(void)
             return 6; // error during postprocess
         }
         if(store_vertex(VertexOracleData.overtex))
-            report_new_vertex();
+            report_new_vertex(0);
         else
-            progress_stat_if_expired();
+            progress_stat_if_expired(0);
         if(dd_stats.out_of_memory){ // fatal
             return 6; // error in postprocess
         }
@@ -611,13 +624,10 @@ static int break_inner(void)
 
 static int handle_new_vertex(void)
 {   // progress report plus info about the new vertex
-    report_new_vertex();
-    // make checkpoint if expired
-    if(PARAMS(CheckPointStub) && chktime+chkdelay<=gettime100()){
-        make_checkpoint(); chktime=gettime100();
-    }
+    report_new_vertex(0);
     add_new_vertex(VertexOracleData.overtex);
-    facetstat=1; progress_stat_if_expired();
+    gettime100(); 
+    facetstat=1; progress_stat_if_expired(0);
     if(dd_stats.out_of_memory || dd_stats.numerical_error){
         return 0; // error during computation
     }
@@ -627,8 +637,9 @@ static int handle_new_vertex(void)
        ((1+dd_stats.iterations)%PARAMS(RecalculateFacets))==0){
         // report what we are going to do
         report(R_warn,"I%8.2f] recalculating facets...\n",
-             0.01*(double)gettime100());
+             0.01*(double)timenow);
         recalculate_facets();
+        gettime100();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
             return 0; // error during computation
         }
@@ -639,11 +650,12 @@ static int handle_new_vertex(void)
        ((1+dd_stats.iterations)%PARAMS(CheckConsistency))==0){
         // report what we are going to do
         report(R_warn,"I%8.2f] checking data consistency...\n",
-              0.01*(double)gettime100());
+              0.01*(double)timenow);
         if(check_consistency()) { // error
             report(R_fatal,"Consistency error: data structure has numerical errors.\n");
             return 0;
         }
+        gettime100();
     }
     report_memory();
     return 1;
@@ -691,7 +703,7 @@ int inner(void)
        if(parseline(DIM,VertexOracleData.overtex)){
            retvalue=1; goto leave; // error
        }
-       report_new_vertex(); // take care of reporting
+       report_new_vertex(1); // take care of reporting
        if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=1; goto leave; }
     } else if(inp_type==inp_resume){ // resume an earlier computation
        int linetype=0; double args[5];
@@ -732,7 +744,8 @@ int inner(void)
          default:  // ignore
             break;
        }
-       progress_stat(gettime100());
+       gettime100(); // set elapsed time
+       if(PARAMS(ProgressReport)){ progress_stat(); flush_report(); }
        if(PARAMS(VertexPoolSize)>=5 && fill_vertexpool(0)){
           report(R_fatal,"Error while filling the vertex pool\n");
           retvalue=4; goto leave;
@@ -746,35 +759,47 @@ int inner(void)
                      i==ORACLE_EMPTY ? 3: 4;
            goto leave;
        }
-       report_new_vertex(); // take care of reporting
+       report_new_vertex(0); // take care of reporting
        if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=4; goto leave; }
     }
     if(DIM<2){
         PARAMS(PrintFacets)=0;
         PARAMS(SaveFacets)=0;
-        dump_and_save(0);
+        dump_and_save(0); // done
         retvalue=0;
         goto leave;
     }
     chktime=gettime100(); // last checktime
 again:
+    gettime100(); // set elapsed time
+    if(dodump){ // the data is consistent, request for a dump
+        dodump=0;
+        report(R_info,"I%08.2f] Dumping vertices and facets\n",0.01*(double)timenow);
+        make_dump();
+    }
+    // make checkpoint if expired
+    if(PARAMS(CheckPointStub) && chktime+chkdelay<=timenow){
+        chktime=timenow;
+        report(R_info,"I%08.2f] Checkpoint: dumping vertices and facets\n",0.01*(double)chktime);
+        make_checkpoint(); 
+    }
     switch(find_next_vertex()){
       case 0: // no more vertices
-        dump_and_save(0);
+        dump_and_save(0); // done
         retvalue=0; goto leave; // terminated normally
       case 1: // break
         retvalue=break_inner();
-        dump_and_save(2);
+        dump_and_save(3);
         goto leave;
       case 2: // problem unbounded, can be numerical error as well
-        dump_and_save(1);
+        dump_and_save(2);
         retvalue=2; goto leave;
       case 4: // numerical error
-        dump_and_save(1);
+        dump_and_save(2);
         retvalue=4; goto leave; // error during computation
       default: // next vertex returned
         if(handle_new_vertex()) goto again;
-        dump_and_save(1);
+        dump_and_save(dd_stats.data_is_consistent? 1 : 2);
         retvalue=4; goto leave;
     }
 #undef DIM

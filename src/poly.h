@@ -107,6 +107,7 @@ int instability_warning;    /* number of warnings when recalculating facet eqs *
 /** error conditions **/
 int numerical_error;	    /* numerical error, data is inconsistent */
 int out_of_memory;	    /* out of memory, cannot continue */
+int data_is_consistent;     /* in case of memory shortage, indicate data consistency */
 } DD_STATS;
 
 extern DD_STATS dd_stats;
@@ -256,6 +257,9 @@ int check_consistency(void);
 *
 * void make_checkpoint(void)
 *    create the next checkpoint file. Do not report any problem.
+*
+* void make_dump(void)
+*    create a dump of vertices and facets when requested by a signal.
 */
 
 /** reporting vertices **/
@@ -270,6 +274,9 @@ void report_memory_usage(void);
 
 /* create checkpoint files **/
 void make_checkpoint(void);
+
+/* create dump */
+void make_dump(void);
 
 /* EOF */
 

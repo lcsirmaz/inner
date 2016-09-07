@@ -38,6 +38,12 @@
 *
 * void close_checkpoint(void)
 *    close the most recently opened checkpoint file.
+*
+* void open_dumpfile(void)
+*    create the dumpfile by replacing the extension by .dmp
+*
+* void close_dumpfile(void)
+*    close the most recently opened dumpfile
 */
 
 /* report type */
@@ -72,6 +78,9 @@ int check_outfiles(void);
 void open_checkpoint(int version);
 void close_checkpoint(void);
 
+/** open and close dumpfile **/
+void open_dumpfile(void);
+void close_dumpfile(void);
 
 /* EOF */
 

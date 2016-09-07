@@ -1043,6 +1043,18 @@ void make_checkpoint(void)
     close_checkpoint();
 }
 
+/* void make_dump(void)
+*    when requested by a signal, dump facets and vertices */
+void make_dump(void)
+{   open_dumpfile();
+    report(R_chk,"C data dumped for %s\n", PARAMS(ProblemName));
+    report(R_chk,"C vertices faces rows colums objects\n");
+    report(R_chk,"N %d %d %d %d %d\n",NextVertex,facet_num()+1,
+           PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
+    print_vertices(R_chk); print_facets(R_chk);
+    close_dumpfile();
+}
+
 /***********************************************************************
 * initialize all data structures and add the very first vertex
 *
@@ -1809,8 +1821,10 @@ void add_new_vertex(double *coords)
     talloc(double,M_NewFacetCoordStore,MaxNewFacets,FacetSize);
     talloc(BITMAP_t,M_NewFacetAdjStore,MaxNewFacets,VertexBitmapBlockSize);
 #endif /* USETHREADS */
-    if(OUT_OF_MEMORY) return;
-
+    if(OUT_OF_MEMORY){ // indicate that data is still consistent
+        dd_stats.data_is_consistent=1;
+        return;
+    }
     ThisVertex=NextVertex; NextVertex++;
     for(i=0;i<DIM;i++){ VertexCoords(ThisVertex)[i]=coords[i]; }
     clear_VertexAdj_all(ThisVertex); // clear the adjacency list

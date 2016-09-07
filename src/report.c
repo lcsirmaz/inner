@@ -161,17 +161,45 @@ void flush_report(void)
 
 void open_checkpoint(int version)
 {static char *buf=NULL;
-    if(version<0 || version>999 ) version=0;
     if(chkfile){ fclose(chkfile); chkfile=NULL;}
+    if(PARAMS(CheckPointStub)==NULL) return;
     if(buf==NULL){
         buf=malloc(10+strlen(PARAMS(CheckPointStub)));
         if(!buf) return; // out of memory
     }
+    if(version<0) version=0;
+    while(version>999) version -= 1000;
     sprintf(buf,"%s%03d.chk",PARAMS(CheckPointStub),version);
     chkfile=fopen(buf,"w"); // truncate or create
 }
 
 void close_checkpoint(void)
+{   if(chkfile){ fclose(chkfile); chkfile=NULL; } }
+
+void open_dumpfile(void)
+{static char *buf=NULL;
+    if(chkfile){ fclose(chkfile); chkfile=NULL; }
+    if(buf==NULL){ // figure out where to dump
+        if(PARAMS(CheckPointStub)){
+            buf=malloc(10+strlen(PARAMS(CheckPointStub)));
+            if(!buf) return; // out of memory
+            sprintf(buf,"%s000.dmp",PARAMS(CheckPointStub));
+        } else if(PARAMS(SaveFile)) {
+            buf=malloc(10+strlen(PARAMS(SaveFile)));
+            if(!buf) return; // out of memory
+            strcpy(buf,PARAMS(SaveFile));
+            int n=strlen(buf); int c;
+            while(n>0 && 
+              ((c=buf[n-1], 'a'<=c && c<='z')||('A'<=c && c<='Z')||('0'<=c && c<='9'))) 
+                n--;
+            if(n>0 && buf[n-1]=='.'){ buf[n-1]=0; }
+            strcat(buf,".dmp");
+        } else return; // no dumpfile
+    }
+    chkfile=fopen(buf,"w"); // truncate or create
+}
+
+void close_dumpfile(void)
 {   if(chkfile){ fclose(chkfile); chkfile=NULL; } }
 
 /* EOF */
