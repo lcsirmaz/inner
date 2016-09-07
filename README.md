@@ -187,7 +187,7 @@ between these points vary from milliseconds to several days.
 
 The threaded version of `inner` can use all available cores on the computer 
 to speed up the computation. Multiple cores can help in the combinatorial part, 
-when the work can be distributed approximately uniformly among them. The LP
+when the work is distributed approximately uniformly among them. The LP
 part (oracle calls) is inherently single-threaded and cannot be speed up
 this way. Thus LP intensive problems (large number of columns and rows
 and only a few objectives) will not gain too much from multiple threads.
