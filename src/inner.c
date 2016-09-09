@@ -226,7 +226,7 @@ static void dump_and_save(int how)
 {unsigned long endtime; int partial;
     endtime=gettime100(); // program finished
     if(PARAMS(ProgressReport)) progress_stat();
-    partial = how==0 ? 0 : 1; // whether we have a partial list
+    partial = how==0 ? 0 : 1; // print data when completed
     if(PARAMS(PrintVertices) > partial){
         if(partial) report(R_txt,"Partial list of vertices:\n");
         report(R_txt, "\n" DASHSEP "\n");
@@ -251,7 +251,7 @@ static void dump_and_save(int how)
       " rows, cols, objs        %d, %d, %d\n"
       " vertices, facets        %d, %d\n"
       " total time              %s\n",
-      how==0 ? "completed" : how==1 ? "aborted with error" : "interrupted",
+      how==0 ? "completed" : how<=2 ? "aborted with error" : "interrupted",
       PARAMS(ProblemName),
       PARAMS(SaveFile) ? PARAMS(SaveFile) : 
         PARAMS(SaveVertexFile)||PARAMS(SaveFacetFile) ? "" : "[none]",
@@ -301,7 +301,7 @@ static void dump_and_save(int how)
     if(PARAMS(PrintParams)){
         show_parameters(DASHSEP "\nParameters with non-default values\n");
     }
-    partial = how<2 ? 0 : 1; // save when data is consistent
+    partial = how<2 ? 0 : 1; // save data when consistent
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
         report(R_savevertex,"C name=%s, cols=%d, rows=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
@@ -310,8 +310,8 @@ static void dump_and_save(int how)
           vertex_num(), facet_num());
         if(how) report(R_savevertex,"C *** Partial list of vertices ***\n");
         print_vertices(R_savevertex);
-        if(partial && PARAMS(VertexPoolSize)>=5 ){
-            report(R_savevertex,"\nC additional vertices in the pool:\n");
+        if(how && PARAMS(VertexPoolSize)>=5 ){
+            report(R_savevertex,"\nC *** Additional vertices in the pool ***\n");
             print_vertexpool_content(R_savevertex);
         }
         report(R_savevertex,"\n");
@@ -415,7 +415,7 @@ static void print_vertexpool_content(report_type where)
 {int i; double dir;
     dir= PARAMS(Direction) ? -1.0 : 1.0;
     for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied){
-        report(where,"V ");
+        report(where,"v ");
         print_vertex(where,dir,vertexpool[i].coords);
     }
 }
@@ -636,7 +636,7 @@ static int handle_new_vertex(void)
     if(PARAMS(RecalculateFacets)>=5 &&
        ((1+dd_stats.iterations)%PARAMS(RecalculateFacets))==0){
         // report what we are going to do
-        report(R_warn,"I%8.2f] recalculating facets...\n",
+        report(R_info,"I%8.2f] recalculating facets...\n",
              0.01*(double)timenow);
         recalculate_facets();
         gettime100();

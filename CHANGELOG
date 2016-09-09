@@ -4,9 +4,12 @@ Version 2.8
   - keyword --SaveFacets==2 affects the case when the data is known not
      to be consistent. Thus when running out of memory, facets are saved
      to the result file (giving a possibility to continue).
-  - changing documentation, adding explanation of exit values to long help
-  - inner.c: reducing the number of gettime100() calls to get the time
-  - inner.c: reporting to R_info checkpoints and dumps
+  - changing documentation, adding exit values to long help
+  - inner.c: 
+     -- reducing the number of gettime100() calls
+     -- reporting to R_info checkpoints and dumps
+     -- reporting to R_info when recalculating facets
+     -- content of vertex pool is printed using lower case v
 
 Version 2.7
   improved error messages: no double message when the oracle fails;
