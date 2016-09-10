@@ -10,6 +10,7 @@ Version 2.8
      -- reporting to R_info checkpoints and dumps
      -- reporting to R_info when recalculating facets
      -- content of vertex pool is printed using lower case v
+     -- in the output the number of columns and rows were labeled wrongly
 
 Version 2.7
   improved error messages: no double message when the oracle fails;

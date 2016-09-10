@@ -303,7 +303,7 @@ static void dump_and_save(int how)
     }
     partial = how<2 ? 0 : 1; // save data when consistent
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
-        report(R_savevertex,"C name=%s, cols=%d, rows=%d, objs=%d\n"
+        report(R_savevertex,"C name=%s, rows=%d, cols=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
@@ -317,7 +317,7 @@ static void dump_and_save(int how)
         report(R_savevertex,"\n");
     }
     if(PARAMS(SaveFacets)>partial || (partial==0 && PARAMS(SaveFacetFile))){
-        report(R_savefacet,"C name=%s, cols=%d, rows=%d, objs=%d\n"
+        report(R_savefacet,"C name=%s, rows=%d, cols=%d, objs=%d\n"
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
