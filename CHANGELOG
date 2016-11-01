@@ -1,3 +1,8 @@
+Version 2.9
+  - params.c: improved help for exit values, signals, and some
+     command-line options
+  - poly.c: snapshot files are renamed to snapshot
+
 Version 2.8
   - added DUMP_SIGNAL receiving which makes dump vertices and facest which
      can later used to continue the process (defined as SIGUSR2)
@@ -5,6 +10,7 @@ Version 2.8
      to be consistent. Thus when running out of memory, facets are saved
      to the result file (giving a possibility to continue).
   - changing documentation, adding exit values to long help
+  - no spaces around = when reporting non-default parameter values
   - inner.c: 
      -- reducing the number of gettime100() calls
      -- reporting to R_info checkpoints and dumps

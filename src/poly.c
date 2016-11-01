@@ -1047,7 +1047,7 @@ void make_checkpoint(void)
 *    when requested by a signal, dump facets and vertices */
 void make_dump(void)
 {   open_dumpfile();
-    report(R_chk,"C data dumped for %s\n", PARAMS(ProblemName));
+    report(R_chk,"C snapshot data for %s\n", PARAMS(ProblemName));
     report(R_chk,"C vertices faces rows colums objects\n");
     report(R_chk,"N %d %d %d %d %d\n",NextVertex,facet_num()+1,
            PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));

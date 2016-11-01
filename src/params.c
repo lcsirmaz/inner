@@ -131,7 +131,7 @@ CFG( CheckPoint, POSINT ", at least 500" ) \
 "#    option -oc <filestub> is given. The filename is got by appending\n"\
 "#    NNN.chk to the filestub, where NNN starts as 000 and increases\n"\
 "#    by one. The computation can be resumed from a checkpoint file by\n"\
-"#    calling the program with the --resume=<checkpoint-file> argument.\n"\
+"#    calling the program with the --resume=<checkpoint-file> option.\n"\
 "#\n"\
 CFG( OracleCallLimit, INTEGER ) \
 "#    the maximal number of unsuccessful oracle calls during an\n"\
@@ -299,13 +299,13 @@ static void long_help(void){ printf(
 "Options are:\n"
 "  -h               display a short help\n"
 "  --help           display all options\n"
-"  --help=vlp       describe vlp file format\n"
-"  --help=out       describe output format\n"
+"  --help=<topic>   choose one of the following topics:\n"
+"                     input,output,exit,boot,checkpoint,resume,signal,vlp\n"
 "  --version        version and copyright information\n"
 "  --dump           dump the default config file and quit\n"
 "  --config=<config-file>\n"
 "  -c <config-file> read configuration from the given file (see --dump)\n"
-"  --boot=<vertex-list>\n"
+"  --boot=<vertex-file>\n"
 "                   start the algorithm with these vertices\n"
 "  -m[0..3]         set message level: 0: none, 3: verbose\n"
 "  --name=NAME\n"
@@ -318,20 +318,24 @@ static void long_help(void){ printf(
 "  -p 0             no progress report\n"
 "  -q               quiet, same as -m0. Implies --PrintStatistics=0\n"
 "  --resume=<checkpoint-file>\n"
-"                   resume computation with the actual parameters\n"
+"                   resume computation\n"
 "  -y+              report vertices immediately when generated (default)\n"
 "  -y-              do not report vertices when generated\n"
 "  --KEYWORD=value  change value of a config keyword (see --dump)\n"
 "Previous content of output files are deleted without warning.\n"
-"\n"
-"Exit values:\n"
-"  0   problem completed\n"
-"  1   data error (missing file, syntax error, etc.)\n"
-"  2   problem has no solution\n"
-"  3   problem is unbounded (might be due to numerical errors)\n"
-"  4   computational error (numerical, not enough memory, etc)\n"
-"  5   program execution was interrupted\n"
 COPYRIGHT "\n"
+);}
+
+static void topic_help(void) {printf(
+"Choose one of the following topics:\n"
+"  input      MOLP problem description\n"
+"  output     how to interpret the results\n"
+"  exit       exit values\n"
+"  signal     create snapshot file; stop the algorithm\n"
+"  checkpoint create checkpoint files regularly\n"
+"  resume     resume computation from a checkpoint or snapshot\n"
+"  boot       specify a set of precomputed vertices\n"
+"  vlp        syntax of a vlp file\n"
 );}
 
 static void vlp_help(void) {printf(
@@ -380,9 +384,9 @@ static void vlp_help(void) {printf(
 );}
 
 static void out_help(void) {printf(
-"*************************\n"
-"***   Output format   ***\n"
-"*************************\n"
+"******************************\n"
+"***   Output file format   ***\n"
+"******************************\n"
 "\n"
 "The solution of a MOLP with d objectives is a list of d-dimensional points:\n"
 "the EXTREMAL solutions. These points are the vertices of the d-dimensional\n"
@@ -395,21 +399,90 @@ static void out_help(void) {printf(
 "Numbers are printed as fractions with small denominator whenever possible.\n"
 "To print them as floating point numerals use the '--VertexAsFraction=0'\n"
 "command line option, or change this value in the default config file.\n"
-"Unprocessed vertices from the vertex pool start with lower case v.\n"
+"Unprocessed vertices from the vertex pool are printed in lines starting\n"
+"with lower case v.\n"
 "\n"
 "When requested, facets are printed in lines starting with F or f followed\n"
 "by d+1 floating point numerals separated by spaces. The 5-dimensional facet\n"
 "    F 13 7 7 1 0 -10\n"
-"has eqation 13*x1+7*x2+7*x3+1*x4+1*x5-10=0. Facets known to be facets of\n"
+"has eqation 13*x1+7*x2+7*x3+1*x4+0*x5-10=0. Facets known to be facets of\n"
 "the final solution are printed using F.\n"
 "\n"
 "Other non-empty lines can start with C for comment, and contain information\n"
-"such as the name and size of the problem; whether it is a partial list;\n"
-"the number of vertices and facets generated, etc. In a dump file the N\n"
-"line specifies upper bounds on the subsequent vertex and facet lines, and\n"
-"repeats the problem's dimensions:\n"
+"such as the name and size of the problem; whether it is a partial list, a\n"
+"snapshot or a checkpoint file; the number of vertices and facets generated,\n"
+"etc. An N line specifies upper bounds on the subsequent vertex and facet\n"
+"lines, and repeats the problem's dimensions:\n"
 "    N <maxvertices> <maxfacets> <rows> <columns> <objects>\n"
 "\n"
+);}
+
+static void exit_help(void) {printf(
+"Exit values:\n"
+"  0   problem completed\n"
+"  1   data error (missing file, syntax error, etc.)\n"
+"  2   problem has no solution\n"
+"  3   problem is unbounded (might be due to numerical errors)\n"
+"  4   computational error (numerical, not enough memory, etc)\n"
+"  5   program execution aborted by a " mkstringof(INNER_SIGNAL) " signal\n"
+"\n"
+);}
+
+static void signal_help(void) {printf(
+"Signals " mkstringof(INNER_SIGNAL) " and " mkstringof(DUMP_SIGNAL) " are processed:\n"
+"The " mkstringof(INNER_SIGNAL) " signal stops the algorithm. If ExtractAfterBreak=1 (default),\n"
+"  then continue extracting new vertices by asking the oracle about\n"
+"  every facet of the actual approximation, but don't process the newly\n"
+"  obtained vertices. This method might miss several extremal solutions.\n"
+"  Second " mkstringof(INNER_SIGNAL) " signal aborts this post-processing. The program's exit\n"
+"  value will be 5 indicating abnormal termination.\n"
+"When receiving a " mkstringof(DUMP_SIGNAL) " signal, a \"snapshot\" is created containing\n"
+"  the facets and vertices of the current approximation. Similarly to\n"
+"  checkpoint files, the snapshot file is also accepted after the\n"
+"  `--resume=' option. The snapshot file name is determined as follows.\n"
+"  If a checkpoint stub was defined after the `-oc' option, then\n"
+"  '000.dmp' is appended to the stub. Otherwise the extension of the\n"
+"  output file specified after option `-c' is replaced by '.dmp'. No\n"
+"  snapshot file is written if neither `-oc' nor `-c' option is found.\n"
+"  Subsequent " mkstringof(DUMP_SIGNAL) " signals overwrite the same file.\n"
+"Signals take effect only after completing a full iteration. The only way\n"
+"to interrupt an iteration is to kill the program.\n"
+);}
+
+static void checkpoint_help(void) {printf(
+"Creating checkpoint files:\n"
+"When the `-oc <filestub>' option is used, checkpoint files are created\n"
+"periodically. The frequency is determined by the value of the keyword\n"
+"CheckPoint, which defaults to 10000 seconds. The checkpoint file name\n"
+"is created from the filestub by appending `NNN.chk', where NNN starts\n"
+"at 000 and increases by one. Computation can be resumed by calling the\n"
+"program with the `--resume=<checkpoint-file>' option. See also the\n"
+"description of the CheckPoint keyword in the config file.\n"
+);}
+
+static void boot_help(void) {printf(
+"Start the algorithm with a given set of vertices:\n"
+"When a partial list of extremal vertices is known, the program can\n"
+"be instructed to use those vertices rather than calling the oracle.\n"
+"The file containing the vertices is specified as the `--boot=<file>'\n"
+"option. Vertices are specified one vertex is specified per line; the\n"
+"format is the same as in the output. The first character on the line\n"
+"is upper case V followed by d (number of objectives) fractions or\n"
+"floating point numerals such as\n"
+"    V 0 5/2 3/4 7.123456789 -1/2\n"
+"Lines not starting with upper case V are ignored. All vertices must\n"
+"be extremal solutions, this condition is not checked. In higher\n"
+"dimensions the running time is very sensitive to the order vertices\n"
+"are processed - even a tenfold speed-up or slow-down is possible.\n"
+);}
+
+static void resume_help(void) {printf(
+"Resuming computation:\n"
+"Computation can be resumed from the state saved in a checkpoint\n"
+"(see `--help=checkpoint') or a snapshot (see `--help=signal') file.\n"
+"Specify the file name after the `--resume=' option. The <vlp-file>\n"
+"argument describing the problem must be the same, but other algorithm\n"
+"parameters can be set differently.\n"
 );}
 
 #include "glpk.h"
@@ -674,12 +747,19 @@ static int handle_options(int argc, const char *argv[])
     if(argc<2){ // no options
         short_help(); return 1;
     }
-    if(strcmp(argv[1],"--version")==0){version(); return 1;}
-    if(strcmp(argv[1],"--dump")==0){ dump_config(); return 1;}
-    if(strcmp(argv[1],"--help=vlp")==0){ vlp_help(); return 1; }
-    if(strcmp(argv[1],"--help=out")==0){ out_help(); return 1; }
-    if(strcmp(argv[1],"--help")==0){ long_help(); return 1; }
-    if(strcmp(argv[1],"-h")==0 || strcmp(argv[1],"-help")==0){ 
+    if(strcmp (argv[1],"--version")==0){version(); return 1;}
+    if(strcmp (argv[1],"--dump")==0){ dump_config(); return 1;}
+    if(strcmp (argv[1],"--help=")==0) { topic_help(); return 1; }
+    if(strcmp (argv[1],"--help=vlp")==0){ vlp_help(); return 1; }
+    if(strncmp(argv[1],"--help=in",9)==0){ vlp_help(); return 1; }
+    if(strncmp(argv[1],"--help=out",10)==0){ out_help(); return 1; }
+    if(strcmp (argv[1],"--help=exit")==0){ exit_help(); return 1; }
+    if(strcmp (argv[1],"--help=signal")==0){ signal_help(); return 1; }
+    if(strncmp(argv[1],"--help=check",12)==0){ checkpoint_help(); return 1; }
+    if(strcmp (argv[1],"--help=boot")==0){ boot_help(); return 1; }
+    if(strncmp(argv[1],"--help=resume",11)==0){ resume_help(); return 1; }
+    if(strcmp (argv[1],"--help")==0){ long_help(); return 1; }
+    if(strcmp (argv[1],"-h")==0 || strcmp(argv[1],"-help")==0){ 
         short_help(); return 1; }
     for(c=1;c<argc;c++)if(argv[c][0]!='-'){ // vlp file
         if(PARAMS(VlpFile)){
@@ -891,7 +971,7 @@ int process_parameters(int argc, const char *argv[])
 void show_parameters(char *hdr)
 {   /* integer and bool parameters */
 #define CFG(x)	\
-    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x " = %d\n",hdr,PARAMS(x)); hdr=""; }
+    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x "=%d\n",hdr,PARAMS(x)); hdr=""; }
     CFG(OracleMethod);		/* primal / dual */
     CFG(OraclePricing);
     CFG(OracleRatioTest);
@@ -908,7 +988,7 @@ void show_parameters(char *hdr)
 #undef CFG
     /* double parameters */
 #define CFG(x)	\
-    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x " = %lg\n",hdr,PARAMS(x)); hdr=""; }
+    if(PARAMS(x) != DEF_##x){ report(R_txt,"%s " #x "=%lg\n",hdr,PARAMS(x)); hdr=""; }
     CFG(PolytopeEps);		/* facet and vertex adjacency */
     CFG(ScaleEps);		/* rounding when retrieving a facet equation */
     CFG(LineqEps);		/* tolerance in system of linear equations */

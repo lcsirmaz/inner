@@ -1,4 +1,4 @@
-/** main.c -- the matin program **/
+/** main.c -- the main program **/
 
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
