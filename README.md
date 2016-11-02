@@ -158,10 +158,10 @@ been solved successfully; otherwise it indicates the failure condition:
 #### SIGNALS
 
 When the program receives a `SIGUSR1` signal, it stops the main cycle of
-iterations, and switches to a &quot;quick and dirt&quot; method to generate
+iterations, and switches to a &quot;quick and dirty&quot; method to generate
 additional extremal solutions. (Actually, the oracle is asked about all
-facets of the actual approximation; it returns an extremal solution, if
-exists, on or beyond that facet.) The method might miss extremal solutions,
+facets of the actual approximation; it returns an extremal solution
+on or beyond that facet.) The method might miss extremal solutions,
 so the result is not known (can need not be) complete. A second `SIGUSR1`
 signal aborts this post-processing.
 
