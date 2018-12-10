@@ -246,11 +246,14 @@ int check_consistency(void);
 *    vertex is printed on a separate line. The first character is a V,
 *    the coordinates are printed using print_vertex().
 *
+* void print_facet(report_type channel, facetno)
+*    Report the facet equation, starting with F for final, f for other
+*    facets. The equation is scaled first making the coeffs close to
+*    integers.
+*
 * void print_facets(report_type channel)
-*    Report the equation of all living facets of on the given channel. 
-*    Each line starts with an F followed by DIM+1 numbers separated by a
-*    space. The equation is scaled first making the coefficients close
-*    to integers, and the scaled coefficients are printed.
+*    Report the equation of all living facets of on the given channel
+*    using print_facet()
 *
 * void report_memory_usage(void)
 *    report memory usage of the inner approximation algorithm.
@@ -267,6 +270,7 @@ void print_vertex(report_type channel, double dir, const double coords[]);
 void print_vertices(report_type channel); 
 
 /** reporting facets **/
+void print_facet(report_type channel,int facetno);
 void print_facets(report_type channel);
 
 /** report memory usage **/

@@ -35,6 +35,7 @@
 #define DEF_RecalculateFacets	100
 #define DEF_CheckConsistency	0
 #define DEF_ExtractAfterBreak	1	/* yes */
+#define DEF_MemoryLimit		0	/* unlimited */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
 #define DEF_CheckPoint		10000	/* delay for creating dumps */
@@ -56,6 +57,7 @@
 #define DEF_ProgressReport	5	/* in seconds */
 #define DEF_MemoryReport	0	/* don't report */
 #define DEF_VertexReport	1	/* yes */
+#define DEF_FacetReport		0	/* no */
 #define DEF_VertexAsFraction	1	/* yes */
 #define DEF_PrintVertices	2	/* partial results */
 #define DEF_PrintFacets		0	/* don't report */
@@ -63,7 +65,11 @@
 #define DEF_SaveFacets		1	/* on normal exit only */
 /* name of this program */
 #ifndef PROG
-  #define PROG			inner
+  #ifdef USETHREADS
+    #define PROG		innerth
+  #else
+    #define PROG		inner
+  #endif
 #endif
 #define PROGNAME		mkstringof(PROG)
 
@@ -118,6 +124,11 @@ CFG( ExtractAfterBreak, BOOL) \
 "#    new vertices by asking the oracle about every facet of the\n"\
 "#    actual approximating polyhedron. Can be very time consuming.\n"\
 "#    Second signal aborts post-processing.\n"\
+"#\n"\
+CFG( MemoryLimit, INTEGER) \
+"#    upper limit for memory allocation, in Mbytes. When reaching this limit,\n"\
+"#    stop processing as if received a "  mkstringof(INNER_SIGNAL) "signal. Zero means\n"\
+"#    unlimited; otherwise it must be at least 100.\n"\
 "#\n"\
 CFG( VertexPoolSize, INTEGER) \
 "#    size of the vertex pool; add the vertex to the approximation\n"\
@@ -191,6 +202,9 @@ CFG( VertexReport, BOOL) \
 "#    print out each vertex (extremal solution) immediately as it is\n"\
 "#    found. Use command line option -y+ (yes) or -y- (no) to override\n"\
 "#    the value defined here.\n"\
+"#\n"\
+CFG( FacetReport, BOOL) \
+"#    print out final facets immediately.\n"\
 "#\n"\
 CFG( MemoryReport, BOOL) \
 "#    report the size and location, whenever it changes, of memory\n"\
@@ -279,7 +293,7 @@ static void dump_config(void)
 */
 
 static void short_help(void) {printf(
-"Solve a multiobjective linear program using the inner approximation method.\n"
+"This is " PROGNAME " " VERSION_STRING ", a multiobjective LP solver.\n"
 "Usage: " PROGNAME " [options] <vlp file>\n"
 "Some of the options are:\n"
 "  -h               display this short help\n"
@@ -294,7 +308,7 @@ COPYRIGHT "\n"
 );}
 
 static void long_help(void){ printf(
-"Solve a multiobjective linear program using the inner approximation method.\n"
+"This is " PROGNAME " " VERSION_STRING ", a multiobjective LP solver.\n"
 "Usage: " PROGNAME " [options] <vlp file>\n"
 "Options are:\n"
 "  -h               display a short help\n"
@@ -488,9 +502,12 @@ static void resume_help(void) {printf(
 #include "glpk.h"
 
 static void version(void) {printf(
-"This is '" PROGNAME "' Version " VERSION_STRING ", a multiobjective linear program solver,\n"
+"This is " PROGNAME " " VERSION_STRING ", a multiobjective linear program solver,\n"
 "using a patched version of glpk " mkstringof( GLP_MAJOR_VERSION.GLP_MINOR_VERSION)
 " (GNU Linear Programming Kit).\n"
+"The algorithm is discussed in Laszlo Csirmaz: \"Inner approximation\n"
+"algorithm for solving linear multiobjective optimization problems\",\n"
+"available at https://arxiv.org/pdf/1808.01786\n"
 COPYRIGHT "\n"
 );}
 
@@ -526,6 +543,7 @@ static struct char_params {
   CFG(PrintStatistics,1),
   CFG(VertexAsFraction,1),
   CFG(VertexReport,1),
+  CFG(FacetReport,1),
   CFG(MemoryReport,1),
   CFG(PrintVertices,2),
   CFG(PrintFacets,2),
@@ -559,6 +577,7 @@ static struct int_params {
   CFG(RecalculateFacets,1000000),
   CFG(CheckConsistency,1000000),
   CFG(VertexPoolSize,MAX_VERTEX_POOL),
+  CFG(MemoryLimit,1000000),
   CFG(CheckPoint,1000000),
   CFG(Threads,MAX_THREADS),
   CFG(OracleCallLimit,MAX_OCALL_LIMIT),
@@ -982,6 +1001,7 @@ void show_parameters(char *hdr)
     CFG(RoundVertices);		/* round vertices reported by the oracle */
     CFG(RandomFacet);		/* pick next facet randomly */
     CFG(ExactFacetEq);		/* recompute facet equation immediately */
+    CFG(MemoryLimit);		/* memory limit in Mbytes */
     CFG(VertexPoolSize);	/* use vertex pool */
     CFG(OracleCallLimit);	/* oracle call limit per iteration */
     CFG(RecalculateFacets);	/* how ofter recalculate facets */

@@ -1,3 +1,18 @@
+Version 2.11
+  - params.c, inner.c: new parameter MemoryLimit to abort algorithm when
+     the total allocated memory exceeds this value (in Mbytes).
+
+Version 2.10
+  - poly.c: bugfix in line 2005. When using threads and out of memory, don't
+     start the while(1) loop
+  - inner.c: 
+     -- vertex pool is filled when there are VertexPoolMinFacets (1000)
+        spare facets, even before hitting the VertexPoolAfter limit (20)
+     -- when a vertex is on the positive side of a facet, try another facet
+        three times (fighting numerical instability)
+  - params.c: new parameter FacetReport to report final facets when found;
+     improving short help and version info.
+
 Version 2.9
   - params.c: improved help for exit values, signals, and some
      command-line options

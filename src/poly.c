@@ -1016,17 +1016,22 @@ void print_vertices(report_type where)
     }
 }
 
+/* void print_facet(report_type where, int fno)
+*    prints the coordinates of the facet using scaling and rounding */
+void print_facet(report_type where, int fno)
+{int j,d;
+    report(where,"%c ",is_finalFacet(fno)?'F':'f');
+    d=1; for(j=0;d<130000 &&j<=DIM;j++)d=lcm(d,denum(FacetCoords(fno)[j]));
+    for(j=0;j<=DIM;j++)
+       report(where," %.14lg",round(d*FacetCoords(fno)[j]));
+    report(where,"\n");
+}
 /* void print_facets(report_type where)
 *    report all facets using scaling and rounding format. */
 void print_facets(report_type where)
-{int i,j,d;
-    for(i=1;i<NextFacet;i++)if(is_livingFacet(i)){
-        report(where,"%c ",is_finalFacet(i)?'F':'f');
-        d=1; for(j=0;d<130000 &&j<=DIM;j++)d=lcm(d,denum(FacetCoords(i)[j]));
-        for(j=0;j<=DIM;j++)
-           report(where," %.14lg",round(d*FacetCoords(i)[j]));
-        report(where,"\n");
-    }
+{int i;
+    for(i=1;i<NextFacet;i++)if(is_livingFacet(i))
+        print_facet(where,i);
 }
 
 /* void make_checkpoint(void)
@@ -1986,9 +1991,10 @@ void add_new_vertex(double *coords)
 #ifdef USETHREADS
     if(AllNewFacets > 0){ // all is full, ask more space
         allocate_facet_block(AllNewFacets);
-        // if no memor, throe the newly generated facets
+        // if no memory, throw the newly generated facets
         if(OUT_OF_MEMORY) AllNewFacets = 0;
-        while(1){
+        else {
+          while(1){
             NewFacet_Th[threadId]--;
             AllNewFacets--;
             move_newfacet_from_th(threadId, NextFacet);
@@ -1996,6 +2002,7 @@ void add_new_vertex(double *coords)
             NextFacet++;
             if(AllNewFacets==0) break;
             while(NewFacet_Th[threadId]==0) threadId++;
+          }
         }
         return;
     }

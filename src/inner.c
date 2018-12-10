@@ -139,8 +139,15 @@ inline static int ask_oracle_with_timer(void)
 *    report coordinates of the new vertex when requested; give 
 *    status report when the delay has passed
 *
+* void report_new_facet(int facetno)
+*    report facet equation for the new final facet; give status
+*    report when the delay has passed
+*
 * void report_memory(void)
 *    when total memory allocated changes, call report_memory_usage()
+*
+* int memory_limit_reached(void)
+*    return 1 if the allocated memory exceeds the one set in PARAMS(MemoryLimit)
 */
 static unsigned long progresstime=0, progressdelay=0;
 static unsigned long chktime=0, chkdelay=0;
@@ -192,6 +199,22 @@ static void report_new_vertex(int ask_time)
     if(flush) flush_report();
 }
 
+static void report_new_facet(int fno)
+{int flush=0;
+    if(PARAMS(ProgressReport)==0 && PARAMS(FacetReport)==0) return;
+    gettime100();
+    if(PARAMS(ProgressReport)){
+       if(timenow-progresstime >= progressdelay){
+         progress_stat(); flush=1;
+       }
+    }
+    if(PARAMS(FacetReport)){
+      report(R_txt,"[%8.2f] ",0.01*(double)timenow);
+      print_facet(R_txt,fno); flush=1;
+    }
+    if(flush) flush_report();
+}
+
 inline static void report_memory(void)
 {static int last_memreport=0;
     if(! PARAMS(MemoryReport) || 
@@ -200,6 +223,12 @@ inline static void report_memory(void)
     report(R_txt,"M%8.2f] ", 0.01*(double)timenow);
     report_memory_usage();
     flush_report();
+}
+
+inline static int memory_limit_reached(void)
+{  return PARAMS(MemoryLimit)>=100 && 
+      (((double)dd_stats.total_memory)*0.000001>((double)PARAMS(MemoryLimit)))
+   ? 1 : 0;
 }
 
 /*******************************************************************
@@ -333,8 +362,10 @@ static void dump_and_save(int how)
 * Find the next vertex to be added
 *
 * int VertexPoolAfter = 20
-*   use vertexpool only when we have at least that many vertices.
-*
+* int VertexPoolMinFacets = 1000
+*   use vertexpool only when we have at least that many vertices. or
+*   that many unprocessed facets
+*   
 * vertexpool_t vertexpool[VertexPoolSize]
 *   vertices known but not added yet to the approximation.
 *
@@ -364,6 +395,7 @@ static void dump_and_save(int how)
 *     4:  some error (oracle failed, computational error, etc)
 *     5:  facet was encountered before
 *     6:  next vertex is VertexOracleData.overtex[]
+*     7:  memory limit is hit
 *
 * int fill_vertexpool(int limit)
 *   fill the vertex pool, limiting unsuccessful oracle calles to limit.
@@ -372,6 +404,7 @@ static void dump_and_save(int how)
 *     1:  interrupt
 *     2:  problem unbounded
 *     4:  numerical error
+*     7:  memory limit is hit
 *
 * int find_next_vertex(void)
 *   finds the next vertex to be added to the approximating polytope.
@@ -381,6 +414,7 @@ static void dump_and_save(int how)
 */
 
 #define VertexPoolAfter	20  /* use vertexpool only after that many vertices */
+#define VertexPoolMinFacets 1000 /* or after that many unprocessed facets */
 
 typedef struct {
     int    occupied;	/* 0=no, 1=yes */
@@ -431,9 +465,10 @@ inline static int same_vec(double f1[], double f2[])
 }
 
 static int next_vertex_coords(int checkVertexPool)
-{int i,j; double d,dd; int boottype;
+{int i,j; double d,dd; int boottype; int pos_facet=0;
 again:
     if(dobreak) return 1; /* break meanwhile */
+    if(memory_limit_reached()) return 7; /* memory limit reached */
     // boot file
     while(nextline(&boottype)) if(boottype==1){ // V line
         if(parseline(PARAMS(ProblemObjects),VertexOracleData.overtex)){
@@ -463,10 +498,16 @@ again:
     if(PARAMS(PolytopeEps) < d){ /* numerical error */
         // make sure facets are recalculated immediately before issuing an error
         if(facets_recalculated){
-            report(R_fatal,"Numerical error: new vertex is on the positive side (d=%lg, sum=%lg)\n", d,dd);
+            pos_facet++;
+            if(pos_facet<3){
+                report(R_warn,"New vertex is on positive side of facet %d (d=%lg), trying another facet ...\n",j,d);
+                dd_stats.instability_warning++;
+                goto again;
+            }
+            report(R_fatal,"Numerical error: new vertex is on the positive side of facet %d (d=%lg)\n",j,d);
             return 4;
         }
-        report(R_warn,"New vertex is on positive side (d=%lg, sum=%lg), recalculating facets ...\n", d,dd);
+        report(R_warn,"New vertex is on positive side of facet %d (d=%lg), recalculating facets ...\n",j,d);
         dd_stats.instability_warning++;
         recalculate_facets();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
@@ -477,7 +518,7 @@ again:
     }
     if(-PARAMS(PolytopeEps) < d){ /* vertex is on the facet */
         mark_facet_as_final(j);
-        progress_stat_if_expired(1);
+        report_new_facet(j);// progress_stat_if_expired(1);
         goto again;
     }
     return 6;
@@ -491,6 +532,7 @@ static int fill_vertexpool(int limit)
       case 1: return 1; /* break */
       case 2: return 2; /* unbounded */
       case 4: return 4; /* error */
+      case 7: return 7; /* memory limit */
       case 5: break;    /* same facet encountered again, skip it */
       default:
               for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
@@ -512,7 +554,9 @@ static int fill_vertexpool(int limit)
 
 static int find_next_vertex(void)
 {int i,maxi,cnt; int w,maxw;
-    if(PARAMS(VertexPoolSize)<5 || dd_stats.vertexno < VertexPoolAfter)
+    if(PARAMS(VertexPoolSize)<5 || ( dd_stats.vertexno < VertexPoolAfter &&
+         dd_stats.facet_zero+dd_stats.facet_pos+dd_stats.facet_new < VertexPoolMinFacets)
+       )
         return next_vertex_coords(0);
     // fill the vertex pool
     i=fill_vertexpool(PARAMS(OracleCallLimit));
@@ -553,10 +597,11 @@ static int find_next_vertex(void)
 *        If the vertex is on the negative side of the facet then
 *   o  add_new_vertex(), and goto loop.
 *
-* int break_inner(void)
-*   when the inner routine is interrupted by Ctrl+C, this procedure
+* int break_inner(int how)
+*   when the inner routine is interrupted by the signal, this procedure
 *   kicks in. It goes over all facets of the actual approximation,
-*   and calls the oracle to produce potentially new vertices.
+*   and calls the oracle to produce potentially new vertices. Argument
+*   tells if interrupt or memory limit reached.
 *
 * int handle_new_vertex(void)
 *   the new vertex is in VertexOracleData.overtex; make reports, add as
@@ -568,11 +613,11 @@ static int find_next_vertex(void)
 */
 
 /** the main loop was interrupted; return 3, 4, 5 **/
-static int break_inner(void)
+static int break_inner(int how)
 {int j; unsigned long aborttime;
     aborttime=gettime100(); dobreak=0;
-    report(R_fatal,"\n\n" EQSEP "\n"
-      "Program run was interrupted after %s, vertices=%d, facets=%d\n",
+    report(R_fatal,"\n\n" EQSEP "\n %s after %s, vertices=%d, facets=%d\n",
+      how==0 ? "Program run was interrupted" : "Memory limit reached",
       showtime(aborttime), vertex_num(), facet_num());
     if(!PARAMS(ExtractAfterBreak)) return 5; // normal termination
     // don't do if no need to extract data
@@ -788,7 +833,7 @@ again:
         dump_and_save(0); // done
         retvalue=0; goto leave; // terminated normally
       case 1: // break
-        retvalue=break_inner();
+        retvalue=break_inner(0);
         dump_and_save(3);
         goto leave;
       case 2: // problem unbounded, can be numerical error as well
@@ -797,6 +842,10 @@ again:
       case 4: // numerical error
         dump_and_save(2);
         retvalue=4; goto leave; // error during computation
+      case 7: // memory limit
+        retvalue=break_inner(1);
+        dump_and_save(3);
+        goto leave;
       default: // next vertex returned
         if(handle_new_vertex()) goto again;
         dump_and_save(dd_stats.data_is_consistent? 1 : 2);

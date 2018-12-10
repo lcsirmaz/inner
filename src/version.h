@@ -13,15 +13,15 @@
 
 /* Version and copyright */
 #define VERSION_MAJOR	2
-#define VERSION_MINOR	9
+#define VERSION_MINOR	11
 #ifdef USETHREADS
-#define VERSION_STRING	"T" mkstringof(VERSION_MAJOR.VERSION_MINOR)
+#define VERSION_STRING	"threaded version " mkstringof(VERSION_MAJOR.VERSION_MINOR) "T"
 #else
-#define VERSION_STRING	mkstringof(VERSION_MAJOR.VERSION_MINOR)
+#define VERSION_STRING	"version " mkstringof(VERSION_MAJOR.VERSION_MINOR)
 #endif
 
 #define COPYRIGHT	\
-"Copyright (C) 2016 Laszlo Csirmaz, Central European University, Budapest"
+"Copyright (C) 2016-2019 Laszlo Csirmaz, Central European University, Budapest"
 
 /* EOF */
 

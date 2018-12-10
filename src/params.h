@@ -26,6 +26,7 @@ struct params_t {
     PrintStatistics,	/* print statistics at the end */
     VertexAsFraction,	/* print vertex coordinates as fractions */
     VertexReport,	/* print out vertices when they are found */
+    FacetReport,	/* print out final facets when found */
     MemoryReport,	/* print combinatorial memory usage  whenever changes */
     PrintVertices,	/* dump vertices at the end */
     PrintFacets,	/* dump facets at the end */
@@ -55,6 +56,7 @@ struct params_t {
     CheckConsistency,	/* after that many iterations do it */
     VertexPoolSize,	/* vertex pool size, 0 means no vertex pool */
     CheckPoint,		/* frequency in seconds of dumping vertices and facets */
+    MemoryLimit,	/* stop when reaching that mamory usage, in Mbytes */
     Threads,		/* number of threads to use, only when USETHREADS defined */
     OracleItLimit,	/* iteration limit, >=1000; =0: unlimited */
     OracleTimeLimit,	/* time limit in seconds, >=5; =0: unlimited */
