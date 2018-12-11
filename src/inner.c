@@ -660,11 +660,11 @@ static int break_inner(int how)
             report_new_vertex(0);
         else
             progress_stat_if_expired(0);
-        if(dd_stats.out_of_memory){ // fatal
+        if(dd_stats.out_of_memory && !PARAMS(VertexReport)){
             return 6; // error in postprocess
         }
     }
-    return 5; // terminated normally
+    return dd_stats.out_of_memory ? 6 : 5; // terminated normally
 }
 
 static int handle_new_vertex(void)

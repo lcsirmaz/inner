@@ -1434,6 +1434,7 @@ int store_vertex(double *coords) /* store vertex if new */
         }
         if(j==DIM) return 0; /* this is the same as the one stored */
     }
+    if(OUT_OF_MEMORY) return 1;
     dd_stats.vertexno++;
     if(NextVertex>=MaxVertices){
         allocate_vertex_block();
