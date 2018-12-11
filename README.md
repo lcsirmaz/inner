@@ -72,7 +72,7 @@ of the problem in vlp format. Accepted options are
 | `-h`          | display a short help and quit |
 | `--help`      | display all options |
 | `--help=<topic>`  | help on one of the following topics: input, output, exit, signal, checkpoint, resume, boot, vlp |
-| `--help=out`  | describe the output format |
+| `--help=output`  | describe the output format |
 | `--version`   | version and copyright information |
 | `--dump`      | dump the default config file and quit |
 | `--config=<config-file>` or <br> `-c <config-file>`  | read configuration from the given file <br> use `--dump` to show the default config file |
@@ -106,8 +106,8 @@ Change tolerances with great care.
 |`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent <br> vertices. |
 |`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
-|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
-|`MemoryLimit=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative inters <br> upper limit for memory allocation in Mbytes. When reaching this limit, stop processing as<br> if received a `SIGUSR1` signal. Zero means no limit, itherwise it must be at least 100. |
+|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal or reaches the memory limit, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
+|`MemoryLimit=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> upper limit for memory allocation in Mbytes. When reaching this limit, stop processing as<br> if received a `SIGUSR1` signal. Zero means no limit, otherwise it must be at least 100. |
 |`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest <br> number of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool <br> adds more oracle calls, but can simplify the approximating polytope. |
 |`CheckPoint=10000`<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp; | positive integer <br> frequency (in seconds) for creating checkpoint files when the option <br> `-oc <filestub>` is given. The filename is got from the stub by appending `NNN.chk` where `NNN` starts <br> with 000 and increases. The computation can be resumed from a checkpoint file <br> by calling inner with `--resume=<checkpoint>` The value should be more than 500. |
 |`OracleCallLimit=1`<br>&nbsp;<br>&nbsp; | non-negative integer <br> the maximal number of unsuccessful oracle calls during an iteration when filling the <br> vertex pool. Zero means no limit; otherwise should be less than 100. |
@@ -164,7 +164,7 @@ iterations, and switches to a &quot;quick and dirty&quot; method to generate
 additional extremal solutions. (Actually, the oracle is asked about all
 facets of the actual approximation; it returns an extremal solution
 on or beyond that facet.) The method might miss extremal solutions,
-so the result is not known (can need not be) complete. A second `SIGUSR1`
+so the result is not known (can not) be complete. A second `SIGUSR1`
 signal aborts this post-processing.
 
 When receiving a `SIGUSR2` signal (since version 2.8), the program creates
