@@ -1,4 +1,4 @@
-C name=rule07.vlp, cols=12, rows=1956, objs=10
+C name=10-12-1956-a.vlp, cols=12, rows=1956, objs=10
 C vertices=2735, facets=29459
 
 V  5/2 3/2 0 0 1 3/2 0 0 0 0
@@ -2737,7 +2737,7 @@ V  18/5 7/5 6/5 0 11/5 0 0 2/5 0 0
 V  11/4 11/8 23/8 1/8 3/2 0 0 1/2 0 0
 V  36/7 43/14 3/14 1/14 15/7 0 0 3/7 0 0
 
-C name=rule07.vlp, cols=12, rows=1956, objs=10
+C name=10-12-1956-a.vlp, cols=12, rows=1956, objs=10
 C vertices=2735, facets=29459
 
 F  0 0 84 63 350 7 4 0 0 0 -91

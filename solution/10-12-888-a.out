@@ -50,7 +50,7 @@ I  164.19] Elapsed: 2:44, vertices: 1291, facets final: 11232, pending: 0
 --------------------------------
 Problem completed
  name                    10-12-888-a.vlp
- output                  10-12-888-a.res
+ output                  solution/10-12-888-a.res
  rows, cols, objs        12, 888, 10
  vertices, facets        1291, 11232
  total time              2:44

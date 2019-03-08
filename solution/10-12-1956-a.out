@@ -1,5 +1,5 @@
 C applying rule r07-11.txt, eqs from dec18.txt
-C MOLP problem=rule07.vlp, minimize
+C MOLP problem=10-12-1956-a.vlp, minimize
 C rows=12, columns=1956, objectives=10
 I    5.06] Elapsed: 5.06, vertices: 90, facets final: 7, pending: 11881
 I    6.71] recalculating facets...
@@ -210,8 +210,8 @@ I  961.97] Elapsed: 16:02, vertices: 2735, facets final: 29459, pending: 0
 
 --------------------------------
 Problem completed
- name                    rule07.vlp
- output                  /tmp/r07.res
+ name                    10-12-1956-a.vlp
+ output                  solution/10-12-1956-a.res
  rows, cols, objs        12, 1956, 10
  vertices, facets        2735, 29459
  total time              16:02

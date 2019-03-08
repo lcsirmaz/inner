@@ -719,7 +719,7 @@ I188637.26] Elapsed: 2d04:23:57, vertices: 1545, facets final: 323084, pending: 
 --------------------------------
 Problem completed
  name                    22-43-213-d.vlp
- output                  22-43-213-d.res
+ output                  solution/22-43-213-d.res
  rows, cols, objs        43, 213, 22
  vertices, facets        1546, 323084
  total time              2d04:23:57
