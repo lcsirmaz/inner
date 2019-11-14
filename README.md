@@ -210,7 +210,7 @@ assuming you have unpacked glpk in the root of this repository. Still in the
 `glpk-X.Y` directory run 'configure' and 'make' as follows:
 
     ./configure
-    ./make CFLAGS='-O3 -DCSL'
+    make CFLAGS='-O3 -DCSL'
 
 You must define `CSL` as all patches to glpk are encapsulated in `#ifdef CSL`
 blocks.
