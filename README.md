@@ -60,9 +60,9 @@ maximizing MOLP all objectives must be bounded from above.
 
 #### ALGORITHM
 
-The algorithm is described in *Inner approximation algorithm for solving linear 
-multiobjective optimization problems* by Laszlo Csirmaz, available at 
-[https://arxiv.org](https://arxiv.org/pdf/1808.01786 "Laszlo Csirmaz: Inner approxiamtion algorithm").
+The algorithm is described in details in the paper *Inner approximation algorithm 
+for solving linear multiobjective optimization problems*, available at 
+[https://arxiv.org/pdf/1808.01786](https://arxiv.org/pdf/1808.01786 "Laszlo Csirmaz: Inner approxiamtion algorithm").
 
 
 #### USAGE
