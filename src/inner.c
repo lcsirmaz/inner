@@ -278,8 +278,7 @@ static void dump_and_save(int how)
       "%s%s%s"
       "%s%s%s"
       " rows, cols, objs        %d, %d, %d\n"
-      " vertices, facets        %d, %d\n"
-      " total time              %s\n",
+      " vertices, facets        %d, %d\n",
       how==0 ? "completed" : how<=2 ? "aborted with error" : "interrupted",
       PARAMS(ProblemName),
       PARAMS(SaveFile) ? PARAMS(SaveFile) : 
@@ -291,7 +290,12 @@ static void dump_and_save(int how)
       PARAMS(SaveFacetFile) ? PARAMS(SaveFacetFile) : "",
       PARAMS(SaveFacetFile) ? "\n" : "",
       PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
-      vertex_num(), facet_num(), showtime(endtime));
+      vertex_num(), facet_num());
+#ifdef USETHREADS
+      report(R_txt, " threads used            %d\n",PARAMS(Threads));
+#endif      
+      report(R_txt, " total time              %s\n",
+         showtime(endtime)); 
       report(R_txt, DASHSEP "\nStatistics\n"
       "LP:\n"
       " oracle calls            %d\n"
@@ -733,7 +737,8 @@ int inner(void)
     gettime100(); // initialize elapsed time, reading vlp not included
     if(init_vertexpool()){ return 1; } // fatal error
 #ifdef USETHREADS
-    if(create_threads()) return 1;
+    if(create_threads()) return 1; // error
+    report(R_txt,"Using %d threads\n",PARAMS(Threads));
 #endif
     progressdelay = 100*(unsigned long)PARAMS(ProgressReport);
     chkdelay = 100*(unsigned long)PARAMS(CheckPoint);

@@ -21,7 +21,7 @@
 #endif
 
 #define COPYRIGHT	\
-"Copyright (C) 2016-2019 Laszlo Csirmaz, Central European University, Budapest"
+"Copyright (C) 2016-2021 Laszlo Csirmaz, Renyi Institute, Budapest"
 
 /* EOF */
 
