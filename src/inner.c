@@ -38,7 +38,7 @@
 *    readable printout of the time in days, hours, minutes and seconds
 *
 * char *readable(double w, int slot)
-*    print w using k,M,G,P postfix using one of the slots 0,1,2,3
+*    print w using k,M,G,T postfix using one of the slots 0,1,2,3
 */
 
 #include <sys/time.h> /* gettimeofday() */
@@ -72,7 +72,7 @@ static char *showtime(unsigned long t)
     if(m<60*24){ sprintf(buff,"%d:%02d:%02d",m/60,m%60,s); return buff;}
     sprintf(buff,"%dd%02d:%02d:%02d",m/1440,(m/60)%24,m%60,s); return buff;
 }
-/** print a huge double with postfix k,M,G,P to a slot 0..3 **/
+/** print a huge double with postfix k,M,G,T to a slot 0..3 **/
 static char* readable(double w, int slot)
 {static char slots[4][30]; char *buff;
     buff=slots[slot];
@@ -85,9 +85,9 @@ static char* readable(double w, int slot)
     w*=0.001;
     if(w<1000.0){ sprintf(buff,"%.2lfG",w); return buff; }
     w*=0.001;
-    if(w<1000.0){ sprintf(buff,"%.2lfP",w); return buff; }
+    if(w<1000.0){ sprintf(buff,"%.2lfT",w); return buff; }
     /* too large value */
-    sprintf(buff,"%lgP",w); return buff;
+    sprintf(buff,"%lgT",w); return buff;
 }
 
 /*******************************************************************
