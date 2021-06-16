@@ -110,15 +110,15 @@ Change tolerances with great care.
 |**Algorithm parameters**| |
 |:--------|:------------|
 |`RandomFacet=1`<br>&nbsp; | 0 = no, 1 = yes <br>  pick a random facet which is then passed to the oracle. |
-|`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent <br> vertices. |
+|`ExactFacetEq=0`<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br>  when a facet is created, recompute its equation immediately from the set of adjacent vertices. |
 |`RecalculateFacets=100`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations recalculate all facet equations from the set of its adjacent vertices. The number should be zero (meaning never), or at least 5. |
 |`CheckConsistency=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> after this many iterations check the consistency of the data structure against numerical errors. The number should be zero (meaning never), or at least 5. |
-|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal or reaches the memory limit, continue extracting new vertices by asking<br> the oracle about every facet of the actual approximating polyhedron. Second signal <br> aborts this post-processing. |
-|`MemoryLimit=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> upper limit for memory allocation in Mbytes. When reaching this limit, stop processing as<br> if received a `SIGUSR1` signal. Zero means no limit, otherwise it must be at least 100. |
-|`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest <br> number of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool <br> adds more oracle calls, but can simplify the approximating polytope. |
-|`CheckPoint=10000`<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp; | positive integer <br> frequency (in seconds) for creating checkpoint files when the option <br> `-oc <filestub>` is given. The filename is got from the stub by appending `NNN.chk` where `NNN` starts <br> with 000 and increases. The computation can be resumed from a checkpoint file <br> by calling inner with `--resume=<checkpoint>` The value should be more than 500. |
-|`OracleCallLimit=1`<br>&nbsp;<br>&nbsp; | non-negative integer <br> the maximal number of unsuccessful oracle calls during an iteration when filling the <br> vertex pool. Zero means no limit; otherwise should be less than 100. |
-|`Threads=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero means use as many threads as <br> are available; 1 means don't use threads. |
+|`ExtractAfterBreak=1`<br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the program receives a `SIGUSR1` signal or reaches the memory limit, continue extracting new vertices by asking the oracle about every facet of the actual approximating polyhedron. Second signal aborts this post-processing. |
+|`MemoryLimit=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> upper limit for memory allocation in Mbytes. When reaching this limit, stop processing as if received a `SIGUSR1` signal. Zero means no limit, otherwise it must be at least 100. |
+|`VertexPoolSize=0`<br>&nbsp;<br>&nbsp;<br>&nbsp; | non-negative integer <br> size of the vertex pool: add the vertex to the approximation which discards the largest number of existing facets. Should be zero (don't use it), or at least 5. Using vertex pool adds more oracle calls, but can simplify the approximating polytope. |
+|`CheckPoint=10000`<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp; | positive integer <br> frequency (in seconds) for creating checkpoint files when the option `-oc <filestub>` is given. The filename is got from the stub by appending `NNN.chk` where `NNN` starts with 000 and increases. The computation can be resumed from a checkpoint file by calling inner with `--resume=<checkpoint>` The value should be more than 500. |
+|`OracleCallLimit=1`<br>&nbsp;<br>&nbsp; | non-negative integer <br> the maximal number of unsuccessful oracle calls during an iteration when filling the vertex pool. Zero means no limit; otherwise should be less than 100. |
+|`Threads=0`<br>&nbsp;<br>&nbsp; | non-negative integer <br> number of threads to use; should be less than 64. Zero means use as many threads as are available; 1 means don't use threads. |
 |**Oracle parameters**| |
 |`OracleMessage=1`<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> oracle (glpk) message level. |
 |`OracleMethod=0`<br>&nbsp;  | 0 = primal, 1 = dual <br> the LP method used by the oracle. |
@@ -128,26 +128,26 @@ Change tolerances with great care.
 |`OracleItLimit=10000` <br>&nbsp; | non-negative integer <br> iteration limit for each oracle call; 0 means unlimited. |
 |`OracleScale=1` <br>&nbsp; | 0 = no, 1 = yes <br> scale the constraint matrix; helps numerical stability. |
 |`ShuffleMatrix=1` <br>&nbsp; | 0 = no, 1 = yes <br> shuffle rows and columns of the constraint matrix randomly. |
-|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle reports a result vertex, round its coordinates to the nearest rational <br> number with small denominator. |
+|`RoundVertices=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> when the oracle reports a result vertex, round its coordinates to the nearest rational number with small denominator. |
 |**Reporting**| |
-|`MessageLevel=2` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. The command line option `-m[0..3]`<nr> overrides this value. |
-|`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress <br> reports, or at least 5. The command line option `-p T` overrides this value. |
-|`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately when it is found. The command line <br> option `-y-` (no) or `-y+` (yes) overrides the value defined here. |
+|`MessageLevel=2` <br>&nbsp;<br>&nbsp; | 0 = quiet, 1 = error, 2 = on, 3 = verbose <br> report level; quiet means no messages at all. The command line option `-m[0..3]` overrides this value. |
+|`Progressreport=5` <br>&nbsp;<br>&nbsp; | non-negative integer <br> minimum time between two progress reports in seconds. Should be zero for no progress reports, or at least 5. The command line option `-p T` overrides this value. |
+|`VertexReport=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report each vertex (extremal solution) immediately when it is found. The command line option `-y-` (no) or `-y+` (yes) overrides the value defined here. |
 |`FacetReport=0` <br>&nbsp; | 0 = no, 1 = yes <br> report each final facet immediately when it is found. |
-|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location, whenever they change, of the 11 memory blocks storing <br> the combinatorial data structure. |
-|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominators <br> rather than floating point numerals. |
+|`MemoryReport=0` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> report the size and location, whenever they change, of the 11 memory blocks storing the combinatorial data structure. |
+|`VertexAsFraction=1` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = yes <br> if possible, print (and save) vertex coordinates as fractions with small denominators rather than floating point numerals. |
 |`PrintStatistics=1` <br>&nbsp; | 0 = no, 1 = yes <br> print resources used (number of iterations, ridge tests, etc.) when the program stops. |
 |`PrintParams=1` <br>&nbsp; | 0 = no, 1 = yes <br> print algorithm parameters which are not equal to their default values. |
 |`PrintVertices=2` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print (again) all known vertices when the program terminates. |
 |`PrintFacets=0` <br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> print all known (relevant) facets when the program terminates. |
-|`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after command <br> line option `-o`. For file specified after `-ov` both 0 and 1 means &quot;save on normal exit only&quot;. |
-|`SaveFacets=1` <br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known (relevant) facets to the file specified after <br> the command line option `-o`. For the file specified after `-of` both 0 and 1 means &quot;save <br> on normal exit only&quot;. |
+|`SaveVertices=2` <br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known vertices to the file specified after command line option `-o`. For file specified after `-ov` both 0 and 1 means &quot;save on normal exit only&quot;. |
+|`SaveFacets=1` <br>&nbsp;<br>&nbsp;<br>&nbsp; | 0 = no, 1 = on normal exit only, 2 = always <br> when the program terminates, save known (relevant) facets to the file specified after <br> the command line option `-o`. For the file specified after `-of` both 0 and 1 means &quot;save on normal exit only&quot;. |
 |**Tolerances**|**Change these values with care**|
 |`PolytopeEps=1.3e-8` <br>&nbsp; | positive real number <br> a facet and a vertex are considered adjacent if their distance is smaller than this value. |
-|`ScaleEps=3e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> coefficients in the scaled facet equation are rounded to the nearest integer if they are <br> closer to it than this value. |
-|`LineqEps=8e-8` <br>&nbsp;<br>&nbsp; | positive real number <br> when solving a system of linear equations for a facet equation, a coefficient smaller <br> than this is considered to be zero. |
-|`RoundEps=1e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> if the oracle reports vertices with rounded coordinates (`RoundVertices=1`), this is the <br> tolerance in the rounding algorithm. |
-|`FacetRecalcEps=1e-6` <br>&nbsp;<br>&nbsp; | positive real number <br> when recalculating facet equation, report numerical instability if the new and old <br> coordinates differ at least this much. |
+|`ScaleEps=3e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> coefficients in the scaled facet equation are rounded to the nearest integer if they are closer to it than this value. |
+|`LineqEps=8e-8` <br>&nbsp;<br>&nbsp; | positive real number <br> when solving a system of linear equations for a facet equation, a coefficient smaller than this is considered to be zero. |
+|`RoundEps=1e-9` <br>&nbsp;<br>&nbsp; | positive real number <br> if the oracle reports vertices with rounded coordinates (`RoundVertices=1`), this is the tolerance in the rounding algorithm. |
+|`FacetRecalcEps=1e-6` <br>&nbsp;<br>&nbsp; | positive real number <br> when recalculating facet equation, report numerical instability if the new and old coordinates differ at least this much. |
 
 #### EXIT STATUS
 
