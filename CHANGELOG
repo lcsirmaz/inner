@@ -2,6 +2,8 @@ Version 2.11
   - params.c, inner.c: new parameter MemoryLimit to abort algorithm when
      the total allocated memory exceeds this value (in Mbytes).
   - minor changes in reporting
+  - inner.c: in postprocessing determine whether a bounding facet is final
+  - poly.c: export the routine clear_facet_as_living(facetno
 
 Version 2.10
   - poly.c: bugfix in line 2005. When using threads and out of memory, don't

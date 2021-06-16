@@ -902,7 +902,12 @@ int get_next_facet(int from)
 /* void mark_facet_as_final(fno)
 *    mark the facets as final, i.e. facet of the final polytope. */
 void mark_facet_as_final(int fno)
-{   FacetFinal[fno>>packshift] |= BITMAP1 << (fno&packmask); }
+{   set_in_FacetFinal(fno); }
+
+/* void clear_facet_as_living(fno)
+*    indicate that this faces is not in the final polytiope */
+void clear_facet_as_living(int fno)
+{   clear_in_FacetLiving(fno); }
 
 /* int vertex_num(void)
 *    number of vertices added so far (except the ideal ones) */

@@ -156,6 +156,9 @@ void get_dd_facetno(void);
 * void mark_facet_as_final(fno)
 *    Mark facet with index fno as facet of the final polytope.
 *
+* void clear_facet_as_living(fno)
+*    This is not a facet in the final polytope
+*
 * void get_facet_into(int fno, double eq[0:dim])
 *    Retrieve the equation of the facet with index fno. In the
 *    internal representation all coefficients in eq[0:dim-1] are
@@ -181,6 +184,8 @@ int get_next_facet(int from);
 
 /** mark the facet as final **/
 void mark_facet_as_final(int facetno);
+/** this facet is not living anymore **/
+void clear_facet_as_living(int facetno);
 /** retrieve facet equation **/
 void get_facet_into(int facetno, double *faceteq);
 

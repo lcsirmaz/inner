@@ -618,7 +618,7 @@ static int find_next_vertex(void)
 
 /** the main loop was interrupted; return 3, 4, 5 **/
 static int break_inner(int how)
-{int j; unsigned long aborttime;
+{int i,j; unsigned long aborttime; double d, dd;
     aborttime=gettime100(); dobreak=0;
     report(R_fatal,"\n\n" EQSEP "\n %s after %s, vertices=%d, facets=%d\n",
       how==0 ? "Program run was interrupted" : "Memory limit reached",
@@ -656,10 +656,22 @@ static int break_inner(int how)
             }
         }
         get_facet_into(j,VertexOracleData.ofacet);
-        mark_facet_as_final(j);
         if(ask_oracle_with_timer()){ // error
             return 6; // error during postprocess
         }
+        // determine if this is a final facet or not
+#define DIM	PARAMS(ProblemObjects) /* problem dimension */
+        d=VertexOracleData.ofacet[DIM]; dd=0.0;
+        for(i=0;i<DIM;i++){
+            dd+= VertexOracleData.ofacet[i];
+            d+= VertexOracleData.ofacet[i]*VertexOracleData.overtex[i];
+        }
+        d /= dd;
+#undef DIM
+        if(-PARAMS(PolytopeEps) < d && d < PARAMS(PolytopeEps) )
+            mark_facet_as_final(j);
+        else
+            clear_facet_as_living(j);
         if(store_vertex(VertexOracleData.overtex))
             report_new_vertex(0);
         else
