@@ -357,6 +357,19 @@ static int reallocmem(void)
     return 0;
 }
 
+/* void yfree(slot)
+*    free the memory in the given slot */
+inline static void yfree(memslot_t slot)
+{MEMSLOT *ms;
+    ms=&memory_slots[slot];
+    ms->newblocksize=0;
+    ms->newblockno=0;
+    ms->blockno=0;
+    ms->rsize=0;
+    if(ms->ptr) free(ms->ptr);
+    ms->ptr=(void*)0;
+}
+
 /* void init_temp_slot(memslot_t slot, int nno, int nsize)
 *    requests nno blocks, each of size nsize at the given slot.
 *    The memory is not cleared; should check OUT_OF_MEMORY */
@@ -888,8 +901,8 @@ int get_next_facet(int from)
         }
         fno += (1<<packshift); i++;
     }
-    for(j=0;i<FacetBitmapBlockSize;i++){
-        v= FacetLiving[i] & ~FacetFinal[i];
+    for(;i<FacetBitmapBlockSize;i++){
+        j=0; v= FacetLiving[i] & ~FacetFinal[i];
         while(v){
             if(v&1){ return fno+j; }
             j++; v>>=1;
@@ -1261,6 +1274,23 @@ static void allocate_vertex_block(void)
     }
 }
 
+/* void allocate_break_vertex_block()
+*    allocate new vertex block but not adjacency list. */
+static void allocate_break_vertex_block(void)
+{   // extend Vertices and FacetBitmap to accommodate more stuff
+    dd_stats.vertices_allocated_no ++;
+    dd_stats.vertices_allocated += (DD_VERTEX_ADDBLOCK<<packshift);
+    MaxVertices += (DD_VERTEX_ADDBLOCK<<packshift);
+    VertexBitmapBlockSize += DD_VERTEX_ADDBLOCK;
+    // tell the memory handling part how much storage space we would need.
+    yrequest(double,M_VertexCoordStore,MaxVertices,VertexSize);
+    // and do the reallocation
+    if(reallocmem()){  // out of memory, don't increase the values
+        MaxVertices -= (DD_VERTEX_ADDBLOCK<<packshift);
+        VertexBitmapBlockSize -= DD_VERTEX_ADDBLOCK;
+    }
+}
+
 /* void allocate_facet_block(int count)
 *    add space for count more facets. Increase storage place in 
 *    FacetCoordStore and FacetAdjStore, add more bits to facet bitmaps */
@@ -1282,6 +1312,12 @@ static void allocate_facet_block(int count)
         MaxFacets -= total;
     }
 }
+
+/* void free_adjacency_lists(void)
+*    after a break request, vertex and facet adjancy lists are not used
+*    release the memory */
+void free_adjacency_lists(void)
+{   yfree(M_VertexAdjStore); yfree(M_FacetAdjStore); }
 
 /***********************************************************************
 * Compute facet equation from the vertices it is adjacent to.
@@ -1427,9 +1463,9 @@ inline static double vertex_distance(double *coords, int fno)
 }
 
 /* bool store_vertex(double *coords)
-*    check if the vertex is new, and if yes, store it, and disable
-*    further vertex processing. Return 1 if this vertex was not seen
-*    before; and zero otherwise. */
+*    check if the vertex is new, and if yes, store it. Do not handle
+*    adjacecny lists. Return 1 if this vertex was not seen  before; 
+*    and zero otherwise. */
 int store_vertex(double *coords) /* store vertex if new */
 {int i,j; int thisvertex; double d;
     for(i=DIM;i<NextVertex;i++){ /* check if this is a new vertex */
@@ -1442,12 +1478,11 @@ int store_vertex(double *coords) /* store vertex if new */
     if(OUT_OF_MEMORY) return 1;
     dd_stats.vertexno++;
     if(NextVertex>=MaxVertices){
-        allocate_vertex_block();
+        allocate_break_vertex_block();
         if(OUT_OF_MEMORY) return 1; // out of memory
     }
     thisvertex=NextVertex; NextVertex++;
     for(i=0;i<DIM;i++){ VertexCoords(thisvertex)[i]=coords[i]; }
-    clear_VertexAdj_all(thisvertex); // clear adjacency list
     return 1; /* new vertex */
 }
 

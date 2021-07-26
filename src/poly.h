@@ -179,6 +179,9 @@ int init_dd(int dim, double *coords);
 int initial_vertex(double coords[]);
 int initial_facet(int final, double coords[]);
 
+/** release vertex and facet adjacency lists **/
+void free_adjacency_lists(void);
+
 /** index of the next living but not final facet **/
 int get_next_facet(int from);
 

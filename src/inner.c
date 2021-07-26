@@ -635,12 +635,16 @@ static int break_inner(int how)
     // at least one of PrintVertices and SaveVertices should be set
     if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2)
         PARAMS(PrintVertices)=2;
+    /* release adjacency lists */
+    free_adjacency_lists();
     /* get vertices from the pool */
     if(PARAMS(VertexPoolSize)>=5){
-        for(j=0;j<PARAMS(VertexPoolSize);j++) if(vertexpool[j].occupied
-            && store_vertex(vertexpool[j].coords)){
-            memcpy(VertexOracleData.overtex,vertexpool[j].coords,PARAMS(ProblemObjects)*sizeof(double));
-            report_new_vertex(1);
+        for(j=0;j<PARAMS(VertexPoolSize);j++) if(vertexpool[j].occupied){
+            vertexpool[j].occupied=0;
+            if(store_vertex(vertexpool[j].coords)){
+                memcpy(VertexOracleData.overtex,vertexpool[j].coords,PARAMS(ProblemObjects)*sizeof(double));
+                report_new_vertex(1);
+            }
         }
     }
     /* search for new vertices by calling the oracle for all facets */

@@ -1,3 +1,9 @@
+Version 2.12
+  - poly.c: bugfix in get_next_facet(): j should be cleared in each loop;
+     store_vertex() does not touch adjacency lists anymore.
+  - inner.c: break_inner() releases adjacency lists; vertexpool cleared
+     so its content is not reported twice
+
 Version 2.11
   - params.c, inner.c: new parameter MemoryLimit to abort algorithm when
      the total allocated memory exceeds this value (in Mbytes).
