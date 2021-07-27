@@ -1,6 +1,7 @@
 Version 2.12
   - poly.c: bugfix in get_next_facet(): j should be cleared in each loop;
      store_vertex() does not touch adjacency lists anymore.
+  - poly.c: improving memory reporting format
   - inner.c: break_inner() releases adjacency lists; vertexpool cleared
      so its content is not reported twice
 

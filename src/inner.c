@@ -220,7 +220,8 @@ inline static void report_memory(void)
     if(! PARAMS(MemoryReport) || 
        last_memreport==dd_stats.memory_allocated_no ) return;
     last_memreport=dd_stats.memory_allocated_no;
-    report(R_txt,"M%8.2f] ", 0.01*(double)timenow);
+    report(R_txt,"I%8.2f] Vertex / facet memory block change%s\n",
+         0.01*(double)timenow, dd_stats.out_of_memory ? " (out of memory)":"");
     report_memory_usage();
     flush_report();
 }

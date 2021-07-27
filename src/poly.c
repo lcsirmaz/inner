@@ -194,6 +194,21 @@ M_MSLOTSTOTAL
 
 #endif /* USETHREADS */
 
+/* slots title for reporting */
+#define TM_VertexCoordStore	"VertexCoord"
+#define TM_FacetCoordStore	"FacetCoord"
+#define TM_VertexAdjStore	"VertexAdj"
+#define TM_FacetAdjStore	"FacetAdj"
+#define TM_FacetLiving		"FacetLiving"
+#define TM_FacetFinal		"FacetFinal"
+#define TM_FacetDistStore	"FacetDist"
+#define TM_FacetPosnegList	"FacetSign"
+#define TM_VertexList		"VertexList"
+#define TM_FacetWork		"FacetWork"
+#define TM_VertexArray		"VertexArray"
+#define TM_NewFacetCoordStore	"NewFacetCoord"
+#define TM_NewFacetAdjStore	"NewFacetAdj"
+
 /************************************************************************
 * M E M O R Y  B L O C K
 *
@@ -207,6 +222,10 @@ typedef struct { /* memory slot structure */
   size_t newblockno;	/* new block count */
   size_t rsize;		/* real size in bytes */
   void   *ptr;		/* the actual value */
+  const char *title;	/* block title */
+  const char *type;	/* basic type */
+  size_t bsize;		/* size of basic type */
+  size_t rreport;	/* rsize at last report */
 } MEMSLOT;
 
 /* struct MEMSLOT memory_slots[]
@@ -229,11 +248,12 @@ static MEMSLOT memory_slots[M_MSLOTSTOTAL]; /* memory slots */
 *    total memory used by this slot, and the actual pointer. */
 void report_memory_usage(void)
 {int i; MEMSLOT *ms;
-    report(R_txt,"vertex and facet storage%s:\n",
-        OUT_OF_MEMORY ? " (out of memory)":"");
-    for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++) if(ms->ptr) {
-        report(R_txt,"M   slot %2d: blocksize=%6zu, no=%6zu, total=%9zu, ptr=%p\n",
-           i,ms->blocksize,ms->blockno,ms->rsize,ms->ptr);
+    report(R_txt,"       slot                 blocks    blocksize\n");
+    for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++) 
+    if(ms->ptr && ms->rsize != ms->rreport && ms->bsize>0 ) {
+        ms->rreport=ms->rsize;
+        report(R_txt,"    %2d %-14s %12zu    %zu*%s\n",
+           i+1,ms->title,ms->blockno,ms->blocksize/ms->bsize,ms->type);
     }
 }
 
@@ -248,12 +268,18 @@ void report_memory_usage(void)
 *     nno:     number of initial blocks
 *     nsize:   initial block size
 */
-static void init_main_slot(memslot_t slot, size_t nno, size_t nsize)
-{size_t total; MEMSLOT *ms;
+static void init_main_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
+                           const char *title, const char *type)
+{size_t total,nsize; MEMSLOT *ms;
     if(OUT_OF_MEMORY) return;
     ms=&memory_slots[slot];
     ms->newblocksize=0;
     ms->newblockno=0;
+    ms->rreport=0;
+    ms->bsize=bsize;
+    ms->title=title;
+    ms->type=type;
+    nsize=n*bsize;
     total=nno*nsize;
     ms->blocksize=nsize;
     ms->blockno=nno;
@@ -275,7 +301,7 @@ static void init_main_slot(memslot_t slot, size_t nno, size_t nsize)
 *    initializes a main memory slot by requesting n blocks, where
 *    each block is an array of bsize elements of the given type. */
 #define yalloc(type,slot,n,bsize)	\
-    init_main_slot(slot,n,(bsize)*sizeof(type))
+    init_main_slot(slot,n,bsize,sizeof(type),T##slot,mkstringof(type))
 
 /* void request_main_mem(memslot_t slot, int nno, int nsize)
 *    records the requested block count and block size for a main
@@ -373,16 +399,20 @@ inline static void yfree(memslot_t slot)
 /* void init_temp_slot(memslot_t slot, int nno, int nsize)
 *    requests nno blocks, each of size nsize at the given slot.
 *    The memory is not cleared; should check OUT_OF_MEMORY */
-static void init_temp_slot(memslot_t slot, size_t nno, size_t nsize)
-{size_t total; MEMSLOT *ms;
+static void init_temp_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
+                           const char *title, const char *type)
+{size_t total,nsize; MEMSLOT *ms;
     if(OUT_OF_MEMORY) return;
     ms=&memory_slots[slot];
+    ms->bsize=bsize; ms->title=title; ms->type=type;
+    nsize=n*bsize;
     ms->blocksize=nsize; ms->blockno=nno;
     total=nno*nsize;
     if(total <= ms->rsize) return;
     if(ms->ptr){ 
         free(ms->ptr);
         dd_stats.total_memory -= ms->rsize;
+        dd_stats.memory_allocated_no++;
     }
     ms->rsize=total;
     dd_stats.total_memory += total;
@@ -397,9 +427,12 @@ static void init_temp_slot(memslot_t slot, size_t nno, size_t nsize)
 /* void talloc(type,slot,n,bsize)
 *    request initial memory for a temporary slot. There are n blocks,
 *    each block is an array of bsize elements of the given type.
-*    The allocated memory is not cleared. */
-#define talloc(type,slot,n,bsize)	\
-    init_temp_slot(slot,n,(bsize)*sizeof(type))
+*    The allocated memory is not cleared.
+*  void talloc2(type,slotname,slot,n,bsize)
+*    talloc() with explicit slot name */
+#define talloc(type,slot,n,bsize)	talloc2(type,slot,slot,n,bsize)
+#define talloc2(type,slotname,slot,n,bsize)	\
+    init_temp_slot(slot,n,bsize,sizeof(type),T##slotname,mkstringof(type))
 
 /* void request_temp_mem(memslot_t slot,size_t nno)
 *    request more blocks for the initialized temporary memory slot */
@@ -1392,7 +1425,7 @@ static void recalculate_facet_eq(int fno,BITMAP_t *facetadj, double *facetcoords
 #define A(i,j)	VertexArray[(i)*(DIM+1)+(j)]
     // collect all vertices adjacent to facet fno
     amax=VERTEXARRAY_STEPSIZE; /* we have at least that many slots */
-    talloc(double,M_my_VertexArray,amax,DIM+1);
+    talloc2(double,M_VertexArray,M_my_VertexArray,amax,DIM+1);
     VertexArray=get_memory_ptr(double,M_my_VertexArray);
     an=0; vno=0;
     for(i=0;i<VertexBitmapBlockSize;i++){
@@ -1464,7 +1497,7 @@ inline static double vertex_distance(double *coords, int fno)
 
 /* bool store_vertex(double *coords)
 *    check if the vertex is new, and if yes, store it. Do not handle
-*    adjacecny lists. Return 1 if this vertex was not seen  before; 
+*    adjacency lists. Return 1 if this vertex was not seen before;
 *    and zero otherwise. */
 int store_vertex(double *coords) /* store vertex if new */
 {int i,j; int thisvertex; double d;
@@ -1851,13 +1884,13 @@ void add_new_vertex(double *coords)
     // blocks for the inner loop
 #ifdef USETHREADS
     for(i=0;i<PARAMS(Threads);i++){
-        talloc(BITMAP_t,M_thread(M_FacetWork,i),1,FacetBitmapBlockSize);
-        talloc(int,M_thread(M_VertexList,i),MaxVertices,1);
+        talloc2(BITMAP_t,M_FacetWork,M_thread(M_FacetWork,i),1,FacetBitmapBlockSize);
+        talloc2(int,M_VertexList,M_thread(M_VertexList,i),MaxVertices,1);
         // initial space for the new facets
         NewFacet_Th[i]=0;
         MaxNewFacets_Th[i]=DD_INITIAL_FACETNO;
-        talloc(double,M_thread(M_NewFacetCoordStore,i),DD_INITIAL_FACETNO,FacetSize);
-        talloc(BITMAP_t,M_thread(M_NewFacetAdjStore,i),DD_INITIAL_FACETNO,VertexBitmapBlockSize);
+        talloc2(double,M_NewFacetCoordStore,M_thread(M_NewFacetCoordStore,i),DD_INITIAL_FACETNO,FacetSize);
+        talloc2(BITMAP_t,M_NewFacetAdjStore,M_thread(M_NewFacetAdjStore,i),DD_INITIAL_FACETNO,VertexBitmapBlockSize);
     }
 #else /* !USETHREADS */
     talloc(BITMAP_t,M_FacetWork,1,FacetBitmapBlockSize);
