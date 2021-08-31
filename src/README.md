@@ -1,7 +1,6 @@
 ## Source files
 
-Special thanks to [Elod Csirmaz](https://github.com/csirmaz/inner) for supplying the thread
-routines.
+Special thanks to [Elod P. Csirmaz](https://github.com/csirmaz/inner) for the thread routines.
 
 * [data.c](data.c), [data.h](data.h) &ndash; parsing and reading character input
 * [glp_oracle.c](glp_oracle.c), [glp_oracle.h](glp_oracle.h) &ndash; implementing the vertex separation oracle based on glpk library
