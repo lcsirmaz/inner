@@ -1,6 +1,7 @@
 Version 2.13
   - params.c, inner.c: new parameter TimeLimit to abort the program when
      the total time used exceeds this value (in seconds, at least 60). 
+  - params.c, checking lower bounds for integer command-line arguments
 
 Version 2.12
   - poly.c: bugfix in get_next_facet(): j should be cleared in each loop;
@@ -186,7 +187,7 @@ Version 1.6
     be set during compile time by defining INNER_SIGNAL
  - poly.c: moving documentation before the procedures
  - poly.c: new (and faster) method is implemented; thanks to
-    Elod Csirmaz (https://github.com/csirmaz)
+    Elod P. Csirmaz (https://github.com/csirmaz)
  - poly.c: extending bitcount to 1023 *(10 bits) from 8 bits
  - unused memory slots are deleted
  - inner.c: print the "non-default parameters" headline only
