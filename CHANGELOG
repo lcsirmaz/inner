@@ -1,3 +1,7 @@
+Version 2.13
+  - params.c, inner.c: new parameter TimeLimit to abort the program when
+     the total time used exceeds this value (in seconds, at least 60). 
+
 Version 2.12
   - poly.c: bugfix in get_next_facet(): j should be cleared in each loop;
      store_vertex() does not touch adjacency lists anymore.
@@ -10,7 +14,7 @@ Version 2.11
      the total allocated memory exceeds this value (in Mbytes).
   - minor changes in reporting
   - inner.c: in postprocessing determine whether a bounding facet is final
-  - poly.c: export the routine clear_facet_as_living(facetno
+  - poly.c: export the routine clear_facet_as_living(facetno)
 
 Version 2.10
   - poly.c: bugfix in line 2005. When using threads and out of memory, don't

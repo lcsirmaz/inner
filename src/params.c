@@ -36,6 +36,7 @@
 #define DEF_CheckConsistency	0
 #define DEF_ExtractAfterBreak	1	/* yes */
 #define DEF_MemoryLimit		0	/* unlimited */
+#define DEF_TimeLimit		0	/* unlimited */
 /* vertex pool */
 #define DEF_VertexPoolSize	0	/* don't use vertex pool */
 #define DEF_CheckPoint		10000	/* delay for creating dumps */
@@ -127,8 +128,13 @@ CFG( ExtractAfterBreak, BOOL) \
 "#\n"\
 CFG( MemoryLimit, INTEGER) \
 "#    upper limit for memory allocation, in Mbytes. When reaching this limit,\n"\
-"#    stop processing as if received a "  mkstringof(INNER_SIGNAL) "signal. Zero means\n"\
+"#    stop processing as if received a "  mkstringof(INNER_SIGNAL) " signal. Zero means\n"\
 "#    unlimited; otherwise it must be at least 100.\n"\
+"#\n"\
+CFG( TimeLimit, INTEGER ) \
+"#    upper limit for running time in seconds. When reaching this limit, stop\n"\
+"#    processing as if received a " mkstringof(INNER_SIGNAL) " signal. Zero means unlimited,\n"\
+"#    otherwise should be at least 60.\n"\
 "#\n"\
 CFG( VertexPoolSize, INTEGER) \
 "#    size of the vertex pool; add the vertex to the approximation\n"\
@@ -578,6 +584,7 @@ static struct int_params {
   CFG(CheckConsistency,1000000),
   CFG(VertexPoolSize,MAX_VERTEX_POOL),
   CFG(MemoryLimit,1000000),
+  CFG(TimeLimit,10000000),
   CFG(CheckPoint,1000000),
   CFG(Threads,MAX_THREADS),
   CFG(OracleCallLimit,MAX_OCALL_LIMIT),
@@ -984,7 +991,7 @@ int process_parameters(int argc, const char *argv[])
 /***********************************************************************
 * Show parameter values which differ from their default values
 *
-* void sho_parameters(void)
+* void show_parameters(void)
 *    report algorithm and oracle parameters only
 */
 void show_parameters(char *hdr)
@@ -1002,6 +1009,7 @@ void show_parameters(char *hdr)
     CFG(RandomFacet);		/* pick next facet randomly */
     CFG(ExactFacetEq);		/* recompute facet equation immediately */
     CFG(MemoryLimit);		/* memory limit in Mbytes */
+    CFG(TimeLimit);		/* time limit in seconds */
     CFG(VertexPoolSize);	/* use vertex pool */
     CFG(OracleCallLimit);	/* oracle call limit per iteration */
     CFG(RecalculateFacets);	/* how ofter recalculate facets */

@@ -146,8 +146,9 @@ inline static int ask_oracle_with_timer(void)
 * void report_memory(void)
 *    when total memory allocated changes, call report_memory_usage()
 *
-* int memory_limit_reached(void)
+* int limit_reached(void)
 *    return 1 if the allocated memory exceeds the one set in PARAMS(MemoryLimit)
+*    or the time limit exceeds the one set in PARAM(TimeLimit)
 */
 static unsigned long progresstime=0, progressdelay=0;
 static unsigned long chktime=0, chkdelay=0;
@@ -220,14 +221,16 @@ inline static void report_memory(void)
     if(! PARAMS(MemoryReport) || 
        last_memreport==dd_stats.memory_allocated_no ) return;
     last_memreport=dd_stats.memory_allocated_no;
-    report(R_txt,"I%8.2f] Vertex / facet memory block change%s\n",
+    report(R_txt,"I%8.2f] Vertex / facet memory allocation%s\n",
          0.01*(double)timenow, dd_stats.out_of_memory ? " (out of memory)":"");
     report_memory_usage();
     flush_report();
 }
 
-inline static int memory_limit_reached(void)
-{  return PARAMS(MemoryLimit)>=100 && 
+inline static int limit_reached(void)
+{  if(PARAMS(TimeLimit)>=60 && timenow > 100ul*(unsigned long)PARAMS(TimeLimit))
+      return 1;
+   return PARAMS(MemoryLimit)>=100 && 
       (((double)dd_stats.total_memory)*0.000001>((double)PARAMS(MemoryLimit)))
    ? 1 : 0;
 }
@@ -300,7 +303,7 @@ static void dump_and_save(int how)
       report(R_txt, DASHSEP "\nStatistics\n"
       "LP:\n"
       " oracle calls            %d\n"
-      "   avg iterations/calls  %s\n"
+      "   avg iterations/call   %s\n"
       " total oracle time       %s\n",
       oraclecalls, readable((0.0001+get_oracle_rounds())/(0.0001+oraclecalls),0),
       showtime(oracletime));
@@ -400,7 +403,7 @@ static void dump_and_save(int how)
 *     4:  some error (oracle failed, computational error, etc)
 *     5:  facet was encountered before
 *     6:  next vertex is VertexOracleData.overtex[]
-*     7:  memory limit is hit
+*     7:  memory or time limit
 *
 * int fill_vertexpool(int limit)
 *   fill the vertex pool, limiting unsuccessful oracle calles to limit.
@@ -409,7 +412,7 @@ static void dump_and_save(int how)
 *     1:  interrupt
 *     2:  problem unbounded
 *     4:  numerical error
-*     7:  memory limit is hit
+*     7:  memory or time limit
 *
 * int find_next_vertex(void)
 *   finds the next vertex to be added to the approximating polytope.
@@ -473,7 +476,7 @@ static int next_vertex_coords(int checkVertexPool)
 {int i,j; double d,dd; int boottype; int pos_facet=0;
 again:
     if(dobreak) return 1; /* break meanwhile */
-    if(memory_limit_reached()) return 7; /* memory limit reached */
+    if(limit_reached()) return 7; /* memory or time limit */
     // boot file
     while(nextline(&boottype)) if(boottype==1){ // V line
         if(parseline(PARAMS(ProblemObjects),VertexOracleData.overtex)){
@@ -537,7 +540,7 @@ static int fill_vertexpool(int limit)
       case 1: return 1; /* break */
       case 2: return 2; /* unbounded */
       case 4: return 4; /* error */
-      case 7: return 7; /* memory limit */
+      case 7: return 7; /* memory or time limit */
       case 5: break;    /* same facet encountered again, skip it */
       default:
               for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
@@ -621,8 +624,10 @@ static int find_next_vertex(void)
 static int break_inner(int how)
 {int i,j; unsigned long aborttime; double d, dd;
     aborttime=gettime100(); dobreak=0;
-    report(R_fatal,"\n\n" EQSEP "\n %s after %s, vertices=%d, facets=%d\n",
-      how==0 ? "Program run was interrupted" : "Memory limit reached",
+    if(how>0 && PARAMS(TimeLimit)>=60 && aborttime > 100ul*(unsigned long)PARAMS(TimeLimit))
+      how=2;
+    report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices=%d, facets=%d\n",
+      how==0 ? "Program run was interrupted" : how==1 ? "Memory limit reached" : "Time limit reached",
       showtime(aborttime), vertex_num(), facet_num());
     if(!PARAMS(ExtractAfterBreak)) return 5; // normal termination
     // don't do if no need to extract data
@@ -864,7 +869,7 @@ again:
       case 4: // numerical error
         dump_and_save(2);
         retvalue=4; goto leave; // error during computation
-      case 7: // memory limit
+      case 7: // memory or time limit
         retvalue=break_inner(1);
         dump_and_save(3);
         goto leave;

@@ -57,6 +57,7 @@ struct params_t {
     VertexPoolSize,	/* vertex pool size, 0 means no vertex pool */
     CheckPoint,		/* frequency in seconds of dumping vertices and facets */
     MemoryLimit,	/* stop when reaching that mamory usage, in Mbytes */
+    TimeLimit,		/* stop when running for that many seconds */
     Threads,		/* number of threads to use, only when USETHREADS defined */
     OracleItLimit,	/* iteration limit, >=1000; =0: unlimited */
     OracleTimeLimit,	/* time limit in seconds, >=5; =0: unlimited */

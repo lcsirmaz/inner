@@ -13,7 +13,7 @@
 
 /* Version and copyright */
 #define VERSION_MAJOR	2
-#define VERSION_MINOR	12
+#define VERSION_MINOR	13
 #ifdef USETHREADS
 #define VERSION_STRING	"threaded version " mkstringof(VERSION_MAJOR.VERSION_MINOR) "T"
 #else
@@ -21,7 +21,7 @@
 #endif
 
 #define COPYRIGHT	\
-"Copyright (C) 2016-2021 Laszlo Csirmaz, Renyi Institute, Budapest"
+"Copyright (C) 2016-2021 Laszlo Csirmaz, https://github.com/lcsirmaz/inner"
 
 /* EOF */
 
