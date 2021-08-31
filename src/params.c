@@ -570,27 +570,28 @@ static struct char_params {
 };
 
 #undef CFG
-#define CFG(x,y)   { " " #x " = %d %c", &PARAMS(x), DEF_##x , y, 0 }
+#define CFG(x,y,z)   { " " #x " = %d %c", &PARAMS(x), DEF_##x , y, z, 0 }
 
 static struct int_params {
     const char *format;    // keyword = %d
     int        *ptr;       // pointer to PARAMS()
     const int  deft;       // default value
+    const int  min;        // minimal value
     const int  max;        // maximal value
     int        filled;     // filled
 } INT_PARAMS[] = {
-  CFG(ProgressReport,1000000),
-  CFG(RecalculateFacets,1000000),
-  CFG(CheckConsistency,1000000),
-  CFG(VertexPoolSize,MAX_VERTEX_POOL),
-  CFG(MemoryLimit,1000000),
-  CFG(TimeLimit,10000000),
-  CFG(CheckPoint,1000000),
-  CFG(Threads,MAX_THREADS),
-  CFG(OracleCallLimit,MAX_OCALL_LIMIT),
-  CFG(OracleItLimit,10000000),
-  CFG(OracleTimeLimit,1000000),
-  {NULL,NULL,0,0,0}
+  CFG(ProgressReport,5,1000000),
+  CFG(RecalculateFacets,5,1000000),
+  CFG(CheckConsistency,5,1000000),
+  CFG(VertexPoolSize,5,MAX_VERTEX_POOL),
+  CFG(MemoryLimit,100,1000000),
+  CFG(TimeLimit,60,10000000),
+  CFG(CheckPoint,500,1000000),
+  CFG(Threads,0,MAX_THREADS),
+  CFG(OracleCallLimit,0,MAX_OCALL_LIMIT),
+  CFG(OracleItLimit,10,10000000),
+  CFG(OracleTimeLimit,1,1000000),
+  {NULL,NULL,0,0,0,0}
 };
 
 #undef CFG
@@ -635,7 +636,7 @@ static int treat_keyword(const char *line)
  }{struct int_params *p; int val; char c;// integer params
     for(p=&INT_PARAMS[0];p->format;p++){
         if(sscanf(line,p->format,&val,&c)==1){
-            if(val<0 || val > p->max) return -1;
+            if(val<p->min || val > p->max) return -1;
             if(!p->filled){ p->filled=1; *(p->ptr)=val; }
             return 1;
         }
