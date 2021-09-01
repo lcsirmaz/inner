@@ -1009,8 +1009,8 @@ void show_parameters(char *hdr)
     CFG(RoundVertices);		/* round vertices reported by the oracle */
     CFG(RandomFacet);		/* pick next facet randomly */
     CFG(ExactFacetEq);		/* recompute facet equation immediately */
-    CFG(MemoryLimit);		/* memory limit in Mbytes */
-    CFG(TimeLimit);		/* time limit in seconds */
+//    CFG(MemoryLimit);		/* memory limit in Mbytes */
+//    CFG(TimeLimit);		/* time limit in seconds */
     CFG(VertexPoolSize);	/* use vertex pool */
     CFG(OracleCallLimit);	/* oracle call limit per iteration */
     CFG(RecalculateFacets);	/* how ofter recalculate facets */
