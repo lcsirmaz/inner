@@ -162,7 +162,7 @@ M_FacetAdjStore,		/* adjacency list of facets; FacetAdjStore */
 M_FacetLiving,			/* facet bitmap; FacetLiving */
 M_FacetFinal,			/* facet bitmap; FacetFinal */
 M_MAINSLOTS,			/* last main slot index */
-		/* temporary memory slots - threads read these */
+		/* temporary slots - threads read these */
 M_FacetDistStore=M_MAINSLOTS,	/* facet distances; FacetDistStore */
 M_FacetPosnegList,		/* indices of positive/negative facets; FacetPosnegList */
 		/* threads write these */
@@ -194,7 +194,7 @@ M_MSLOTSTOTAL
 
 #endif /* USETHREADS */
 
-/* slots title for reporting */
+/* slot title for reporting */
 #define TM_VertexCoordStore	"VertexCoord"
 #define TM_FacetCoordStore	"FacetCoord"
 #define TM_VertexAdjStore	"VertexAdj"
@@ -212,7 +212,7 @@ M_MSLOTSTOTAL
 /************************************************************************
 * M E M O R Y  B L O C K
 *
-* MEMOSLOT
+* MEMSLOT
 *    the memory slot structure */
 
 typedef struct { /* memory slot structure */
@@ -224,7 +224,7 @@ typedef struct { /* memory slot structure */
   void   *ptr;		/* the actual value */
   const char *title;	/* block title */
   const char *type;	/* basic type */
-  size_t bsize;		/* size of basic type */
+  size_t bsize;		/* size of item type */
   size_t rreport;	/* rsize at last report */
 } MEMSLOT;
 
@@ -243,17 +243,27 @@ static MEMSLOT memory_slots[M_MSLOTSTOTAL]; /* memory slots */
 #define get_memory_ptr(type,slot)	\
     ((type *)memory_slots[slot].ptr)
 
-/* void report_memory_usage(void)
+/* void report_memory_usage(channel,char *prompt)
 *    for each used slot report the blocksize, number of blocks,
 *    total memory used by this slot, and the actual pointer. */
-void report_memory_usage(void)
-{int i; MEMSLOT *ms;
-    report(R_txt,"       slot                 blocks    blocksize\n");
+void report_memory_usage(report_type ch,const char *prompt)
+{int i; MEMSLOT *ms; char buff[50];
     for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++) 
     if(ms->ptr && ms->rsize != ms->rreport && ms->bsize>0 ) {
         ms->rreport=ms->rsize;
-        report(R_txt,"    %2d %-14s %12zu    %zu*%s\n",
-           i+1,ms->title,ms->blockno,ms->blocksize/ms->bsize,ms->type);
+        if(prompt){
+            report(ch,"%s\n          ---slot----------+--size---+---blocks--+---blocksize---\n",prompt);
+            prompt=NULL;
+        }
+        if(ms->rsize<1000ul){ sprintf(buff,"%zu",ms->rsize); }
+        else if(ms->rsize<1000000ul){ sprintf(buff,"%.2fk",(double)(ms->rsize)*1e-3); }
+        else if(ms->rsize<1000000000ul){ sprintf(buff,"%.2fM",(double)(ms->rsize)*1e-6); }
+        else { sprintf(buff,"%.2fG",(double)(ms->rsize)*1e-9); }
+        report(ch,"          %2d %-14s|%8s |%10zu | %zu * %s\n",
+           i+1,ms->title,buff,ms->blockno,ms->blocksize/ms->bsize,ms->type);
+    }
+    if(prompt==NULL){
+       report(ch,"          -----------------+---------+-----------+---------------\n");
     }
 }
 
@@ -266,7 +276,10 @@ void report_memory_usage(void)
 *    initializes a main slot by allocating the requested memory.
 *     slot:    memory slot to be initialized
 *     nno:     number of initial blocks
-*     nsize:   initial block size
+*     n:       number of items in a block
+*     bsize:   size of an item (in bytes)
+*     title:   memory slot title (string) for reporting
+*     type:    item type (string) for reporting
 */
 static void init_main_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
                            const char *title, const char *type)
@@ -276,23 +289,23 @@ static void init_main_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
     ms->newblocksize=0;
     ms->newblockno=0;
     ms->rreport=0;
-    ms->bsize=bsize;
-    ms->title=title;
-    ms->type=type;
-    nsize=n*bsize;
-    total=nno*nsize;
+    ms->bsize=bsize;	// item size in bytes
+    ms->title=title;	// slot title
+    ms->type=type;	// item type as string
+    nsize=n*bsize;	// block size in bytes
+    total=nno*nsize;	// total requested size in bytes
     ms->blocksize=nsize;
-    ms->blockno=nno;
+    ms->blockno=nno;	// number of requested blocks
     ms->rsize=total;
-    dd_stats.total_memory += total;
     ms->ptr=malloc(total);
     if(!ms->ptr){
         report(R_fatal,
-           "Allocmem: out of memory for slot=%d, blocksize=%zu, n=%zu\n",
-           slot,nsize,nno);
+           "Out of memory for slot=%d (%s), blocksize=%zu, n=%zu\n",
+           slot,title,nsize,nno);
         OUT_OF_MEMORY=1;
         return;
     }
+    dd_stats.total_memory += total;
     memset(ms->ptr,0,total);
     return;
 }
@@ -396,17 +409,26 @@ inline static void yfree(memslot_t slot)
     ms->ptr=(void*)0;
 }
 
-/* void init_temp_slot(memslot_t slot, int nno, int nsize)
-*    requests nno blocks, each of size nsize at the given slot.
-*    The memory is not cleared; should check OUT_OF_MEMORY */
+/* void init_temp_slot(memslot_t slot, int nno, int n, int bsize, char *title, char *type)
+*    requests nno blocks, each of size n*bsize at the given slot.
+*    The memory is not cleared; should check OUT_OF_MEMORY
+*      slot:    memory slot to be initialized
+*      nno:     number of requested blocks
+*      n:       number of items in each block
+*      bsize:   size of an item in bytes
+*      title:   memory slot title (string) for reporting
+*      type:    item type (string) for reporting 
+*/
 static void init_temp_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
                            const char *title, const char *type)
 {size_t total,nsize; MEMSLOT *ms;
     if(OUT_OF_MEMORY) return;
     ms=&memory_slots[slot];
-    ms->bsize=bsize; ms->title=title; ms->type=type;
     nsize=n*bsize;
-    ms->blocksize=nsize; ms->blockno=nno;
+    if(ms->bsize!=bsize || ms->blocksize!=nsize || ms->blockno<nno){
+        ms->bsize=bsize; ms->blocksize=nsize; ms->blockno=nno;
+    }
+    ms->title=title; ms->type=type;
     total=nno*nsize;
     if(total <= ms->rsize) return;
     if(ms->ptr){ 
@@ -418,8 +440,8 @@ static void init_temp_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
     dd_stats.total_memory += total;
     ms->ptr = malloc(total);
     if(!ms->ptr){
-        report(R_fatal,"Out of memory for slot=%d, blocksize=%zu, n=%zu\n",
-            slot,nsize,nno);
+        report(R_fatal,"Out of memory for slot=%d (%s), blocksize=%zu, n=%zu\n",
+            slot,title,nsize,nno);
         OUT_OF_MEMORY=1;
     }
 }
@@ -452,7 +474,7 @@ static inline void request_temp_mem(memslot_t slot,size_t nno)
 }
 
 /* void trequest(slot,n)
-*    expand the temporary slot to n block, keep the previous block
+*    expand the temporary slot to n blocks, keep the previous block
 *    size. The new memory is not cleared. */
 #define trequest(slot,n)		\
     request_temp_mem(slot,n)
@@ -1614,7 +1636,7 @@ inline static int get_new_facetno(int threadId)
     NewFacet_Th[threadId]++;
     return i;
 }
-#else /* !USETHREADS */
+#else /* ! USETHREADS */
 inline static int get_new_facetno(void)
 {int i;
     i=NewFacet; 
@@ -1861,6 +1883,50 @@ static void *extra_thread(void *arg)
 }
 #endif /* USETHREADS */
 
+/* void compress_facets(void)
+*    if facet numbers decreased, decrease storage as well */
+void compress_facets(void)
+{int i,fno;
+    if(MaxFacets <= facet_num()+2*(DD_FACET_ADDBLOCK<<packshift)) return;
+    dd_stats.facets_compressed_no++;
+    // clear the adjacency list of vertices
+    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
+        intersect_VertexAdj_FacetLiving(i);
+    }
+    // find the first free facet
+    for(i=fno=0;fno<NextFacet && (~FacetLiving[i])==0;i++,fno+=(1<<packshift));
+ fill_holes:
+    while(fno<NextFacet && is_livingFacet(fno) ) fno++;
+    while(NextFacet>fno && !is_livingFacet(NextFacet-1) ) NextFacet--;
+    if(fno < NextFacet){
+        NextFacet--;
+        move_newfacet_to(FacetCoords(NextFacet),FacetAdj(NextFacet),fno);
+        make_facet_living(fno);
+        clear_in_FacetLiving(NextFacet);
+        if(is_finalFacet(NextFacet)) set_in_FacetFinal(fno);
+        fno++; goto fill_holes;
+    }
+    // clear FacetFinal
+    for(i=0;i<FacetBitmapBlockSize;i++) FacetFinal[i] &= FacetLiving[i];
+    // clear the adjacency list of vertices
+    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
+        intersect_VertexAdj_FacetLiving(i);
+    }
+    // compute the new limit
+    while(MaxFacets > NextFacet+2*(DD_FACET_ADDBLOCK<<packshift)){
+        MaxFacets -= DD_FACET_ADDBLOCK<<packshift;
+    }
+    FacetBitmapBlockSize = (MaxFacets+packmask)>>packshift;
+    yrequest(double,M_FacetCoordStore,MaxFacets,FacetSize);
+    yrequest(BITMAP_t,M_VertexAdjStore,MaxVertices,FacetBitmapBlockSize);
+    yrequest(BITMAP_t,M_FacetAdjStore,MaxFacets,VertexBitmapBlockSize);
+    yrequest(BITMAP_t,M_FacetLiving,1,FacetBitmapBlockSize);
+    yrequest(BITMAP_t,M_FacetFinal,1,FacetBitmapBlockSize);
+    if(reallocmem()){ // fatal error
+        printf("Compress facets error\n"); exit(99);
+    }
+}
+
 /* void add_new_vertex(double vertex[0:dim-1])
 *    add a new vertex which is outside the convex hull of the present
 *    approximation. Split facets into positive, negative and zero sets
@@ -1876,6 +1942,7 @@ void add_new_vertex(double *coords)
     dd_stats.iterations++;
     dd_stats.vertexno++;
     if(NextVertex >= MaxVertices){
+        compress_facets();
         allocate_vertex_block();
     }
     // memory blocks for the outer loop
@@ -2055,7 +2122,6 @@ void add_new_vertex(double *coords)
                 make_facet_living(j);
                 if(NewFacet==0) goto finish_compress;
 #endif
-
             }
             j++; fc>>=1;
         }

@@ -1,3 +1,9 @@
+Version 2.14
+   - poly.c: improving reporting: memory usage, additional messages for
+      error conditions
+   - inner.c: improved memory block report; shrinking bitmap size when
+      the number of facets go down by compress_facets()
+
 Version 2.13
   - params.c, inner.c: new parameter TimeLimit to abort the program when
      the total time used exceeds this value (in seconds, at least 60). 

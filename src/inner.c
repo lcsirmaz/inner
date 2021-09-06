@@ -217,13 +217,13 @@ static void report_new_facet(int fno)
 }
 
 inline static void report_memory(void)
-{static int last_memreport=0;
-    if(! PARAMS(MemoryReport) || 
-       last_memreport==dd_stats.memory_allocated_no ) return;
+{static int last_memreport=0; char buff[50];
+    if(! PARAMS(MemoryReport) ||
+       last_memreport==dd_stats.memory_allocated_no ||
+       dd_stats.out_of_memory ) return;
     last_memreport=dd_stats.memory_allocated_no;
-    report(R_txt,"I%8.2f] Vertex / facet memory allocation%s\n",
-         0.01*(double)timenow, dd_stats.out_of_memory ? " (out of memory)":"");
-    report_memory_usage();
+    sprintf(buff,"I%8.2f] Memory allocation table", 0.01*(double)timenow);
+    report_memory_usage(R_txt,buff);
     flush_report();
 }
 
@@ -250,7 +250,7 @@ inline static int limit_reached(void)
 *      3 - interrupt. 
 */
 
-static void print_vertexpool_content(report_type rt); /* forward declaration */
+static void print_vertexpool_content(report_type rt,const char *prompt); /* forward declaration */
 
 #define EQSEP   "================================"
 #define DASHSEP "--------------------------------"
@@ -265,8 +265,7 @@ static void dump_and_save(int how)
         report(R_txt, "\n" DASHSEP "\n");
         print_vertices(R_txt);
         if(partial && PARAMS(VertexPoolSize)>=5 ){
-            report(R_txt,"\nAdditional vertices in the pool:\n");
-            print_vertexpool_content(R_txt);
+            print_vertexpool_content(R_txt,"Additional vertices in the pool:");
         }
     }
     if(PARAMS(PrintFacets) > partial){
@@ -296,7 +295,7 @@ static void dump_and_save(int how)
       PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
       vertex_num(), facet_num());
 #ifdef USETHREADS
-      report(R_txt, " threads used            %d\n",PARAMS(Threads));
+      report(R_txt, " threads                 %d\n",PARAMS(Threads));
 #endif      
       report(R_txt, " total time              %s\n",
          showtime(endtime)); 
@@ -348,8 +347,7 @@ static void dump_and_save(int how)
         if(how) report(R_savevertex,"C *** Partial list of vertices ***\n");
         print_vertices(R_savevertex);
         if(how && PARAMS(VertexPoolSize)>=5 ){
-            report(R_savevertex,"\nC *** Additional vertices in the pool ***\n");
-            print_vertexpool_content(R_savevertex);
+            print_vertexpool_content(R_savevertex,"C *** Additional vertices in the pool ***");
         }
         report(R_savevertex,"\n");
     }
@@ -385,7 +383,7 @@ static void dump_and_save(int how)
 *   allocates memory to the vertex pool. Returns non-zero if out of
 *   memory.
 *
-* void print_vertexpool_content(void)
+* void print_vertexpool_content(reprt_type rt, char* prompt)
 *   report vertices in the vertex pool.
 *
 * int same_vec(double v1[0:DIM-1], double v2[0:DIM-1])
@@ -403,7 +401,7 @@ static void dump_and_save(int how)
 *     4:  some error (oracle failed, computational error, etc)
 *     5:  facet was encountered before
 *     6:  next vertex is VertexOracleData.overtex[]
-*     7:  memory or time limit
+*     7:  memory or time limit exceeded
 *
 * int fill_vertexpool(int limit)
 *   fill the vertex pool, limiting unsuccessful oracle calles to limit.
@@ -412,7 +410,7 @@ static void dump_and_save(int how)
 *     1:  interrupt
 *     2:  problem unbounded
 *     4:  numerical error
-*     7:  memory or time limit
+*     7:  memory or time limit exceeded
 *
 * int find_next_vertex(void)
 *   finds the next vertex to be added to the approximating polytope.
@@ -453,10 +451,11 @@ static int init_vertexpool(void) /* call only when DIM has been set */
     return 0;
 }
 
-static void print_vertexpool_content(report_type where)
+static void print_vertexpool_content(report_type where, const char *prompt)
 {int i; double dir;
     dir= PARAMS(Direction) ? -1.0 : 1.0;
     for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied){
+        if(prompt){report(where,"\n%s\n",prompt); prompt=NULL; }
         report(where,"v ");
         print_vertex(where,dir,vertexpool[i].coords);
     }
@@ -515,7 +514,7 @@ again:
             report(R_fatal,"Numerical error: new vertex is on the positive side of facet %d (d=%lg)\n",j,d);
             return 4;
         }
-        report(R_warn,"New vertex is on positive side of facet %d (d=%lg), recalculating facets ...\n",j,d);
+        report(R_warn,"New vertex is on the positive side of facet %d (d=%lg), recalculating facets ...\n",j,d);
         dd_stats.instability_warning++;
         recalculate_facets();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
@@ -587,7 +586,7 @@ static int find_next_vertex(void)
 /**************************************************************************
 * The main loop of the algorithm
 * int inner(void)
-*   when it starts, all parameters in PARAMS have been set. The steps:
+*   when it starts, all parameters in PARAMS have been set. The steps are
 *   o  read_vlp() reads in the the MOLP problem form a vlp file
 *   o  check that output files are writable
 *   o  set_oracle_parameters() sets the oracle parameters
@@ -604,12 +603,25 @@ static int find_next_vertex(void)
 *   o  mark_facet_as_final(), and goto loop.
 *        If the vertex is on the negative side of the facet then
 *   o  add_new_vertex(), and goto loop.
+*   Return values:
+*     0:  done
+*     1:  data error before start (no input/output file, syntax error)
+*     2:  problem unbounded
+*     3:  no solution
+*     4:  computational error (filling vertex pool, initial data, out of memory)
+*     5-7: from break_inner()
+*
+* void report_error(int code)
+*   report error, code=2: problem unbounded, code=4: other error
 *
 * int break_inner(int how)
 *   when the inner routine is interrupted by the signal, this procedure
 *   kicks in. It goes over all facets of the actual approximation,
 *   and calls the oracle to produce potentially new vertices. Argument
 *   tells if interrupt or memory limit reached.
+*     5:  normal termination: no postprocessing necessary or done
+*     6:  error during postprocess (out of memory)
+*     7:  postprocessing aborted
 *
 * int handle_new_vertex(void)
 *   the new vertex is in VertexOracleData.overtex; make reports, add as
@@ -620,13 +632,26 @@ static int find_next_vertex(void)
 *     0:  error during computation (cannot continue)
 */
 
-/** the main loop was interrupted; return 3, 4, 5 **/
+/** Error report **/
+static void report_error(int code)
+{   if(code==2 && vertex_num()<1){ // initial error
+        report(R_fatal,"The MOLP problem is unbounded\n");
+        return;
+    }
+    gettime100();
+    report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices: %d, facets: %d\n",
+        dd_stats.out_of_memory?"Out of memory":"Numerical error",
+        showtime(timenow), vertex_num(), facet_num());
+    if(dd_stats.out_of_memory) report_memory_usage(R_fatal,"Memory allocation table");
+}
+
+/** the main loop was interrupted; return 5, 6, 7 **/
 static int break_inner(int how)
 {int i,j; unsigned long aborttime; double d, dd;
     aborttime=gettime100(); dobreak=0;
     if(how>0 && PARAMS(TimeLimit)>=60 && aborttime > 100ul*(unsigned long)PARAMS(TimeLimit))
       how=2;
-    report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices=%d, facets=%d\n",
+    report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices: %d, facets: %d\n",
       how==0 ? "Program run was interrupted" : how==1 ? "Memory limit reached" : "Time limit reached",
       showtime(aborttime), vertex_num(), facet_num());
     if(!PARAMS(ExtractAfterBreak)) return 5; // normal termination
@@ -760,7 +785,6 @@ int inner(void)
     if(init_vertexpool()){ return 1; } // fatal error
 #ifdef USETHREADS
     if(create_threads()) return 1; // error
-    report(R_txt,"Using %d threads\n",PARAMS(Threads));
 #endif
     progressdelay = 100*(unsigned long)PARAMS(ProgressReport);
     chkdelay = 100*(unsigned long)PARAMS(CheckPoint);
@@ -864,9 +888,11 @@ again:
         dump_and_save(3);
         goto leave;
       case 2: // problem unbounded, can be numerical error as well
+        report_error(2);
         dump_and_save(2);
         retvalue=2; goto leave;
       case 4: // numerical error
+        report_error(4);
         dump_and_save(2);
         retvalue=4; goto leave; // error during computation
       case 7: // memory or time limit
