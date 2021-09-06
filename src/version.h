@@ -15,7 +15,7 @@
 #define VERSION_MAJOR	2
 #define VERSION_MINOR	14
 #ifdef USETHREADS
-#define VERSION_STRING	"threaded version " mkstringof(VERSION_MAJOR.VERSION_MINOR) "T"
+#define VERSION_STRING	"threaded version " mkstringof(VERSION_MAJOR.VERSION_MINOR) "-T"
 #else
 #define VERSION_STRING	"version " mkstringof(VERSION_MAJOR.VERSION_MINOR)
 #endif
