@@ -294,9 +294,6 @@ static void dump_and_save(int how)
       PARAMS(SaveFacetFile) ? "\n" : "",
       PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
       vertex_num(), facet_num());
-#ifdef USETHREADS
-      report(R_txt, " threads                 %d\n",PARAMS(Threads));
-#endif      
       report(R_txt, " total time              %s\n",
          showtime(endtime)); 
       report(R_txt, DASHSEP "\nStatistics\n"
@@ -316,6 +313,9 @@ static void dump_and_save(int how)
       dd_stats.max_facets,
       readable(dd_stats.total_memory,0),
       dd_stats.out_of_memory ? " (out of memory)" : "");
+#ifdef USETHREADS
+      report(R_txt, " threads                 %d\n",PARAMS(Threads));
+#endif      
       if(dd_stats.instability_warning) report(R_txt,
       " instability warnings    %d\n",
       dd_stats.instability_warning);
