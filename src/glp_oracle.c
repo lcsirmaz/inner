@@ -3,7 +3,7 @@
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
  *
- * Copyright (2016) Laszlo Csirmaz, Central European University, Budapest
+ * Copyright (C) 2016-2024 Laszlo Csirmaz, https://github.com/lcsirmaz/inner
  *
  * This program is free, open-source software. You may redistribute it
  * and/or modify under the terms of the GNU General Public License (GPL).
@@ -242,7 +242,7 @@ int read_vlp(void)
                  }
                  b1=b2=0.0; 
                  cnt=sscanf(inpline,"j %d %c %lg %lg",&j,&ctrl,&b1,&b2);
-                 if(cnt<2 || cols<j || cols<1 || !vlp_type_ok(ctrl,cnt)){
+                 if(cnt<2 || cols<j || j<1 || !vlp_type_ok(ctrl,cnt)){
                     report(R_fatal,"read_vlp: wrong j line in %s\n   %s\n",
                                 PARAMS(VlpFile),inpline); return 1;
                  }

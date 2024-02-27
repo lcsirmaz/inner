@@ -3,7 +3,7 @@
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
  *
- * Copyright (2016) Laszlo Csirmaz, Central European University, Budapest
+ * Copyright (C) 2016-2024 Laszlo Csirmaz, https://github.com/lcsirmaz/inner
  *
  * This program is free, open-source software. You may redistribute it
  * and/or modify under the terms of the GNU General Public License (GPL).
@@ -30,6 +30,11 @@
 *    space for vertices and facets are allocated in large blocks.
 *    These values multiplied by bitmap word size (64 or 32) determine
 *    how many new vertices and facets will be added.
+*
+* size_t DD_HIGHWATER
+* size_t DD_LOWWATER
+*    when a block has DD_WIGHWATER more bytes allocated, it is
+*    reduced back to DD_LOWWATER
 */
 
 /** maximal dimension we are willing to handle **/
@@ -39,6 +44,10 @@
 
 #define DD_INITIAL_VERTEXNO	124
 #define DD_INITIAL_FACETNO	4092
+
+/** controlling too large memory blocks, in bytes **/
+#define DD_HIGHWATER	((size_t)50e+6)   // 50M
+#define DD_LOWWATER	((size_t)10e+6)   // 10M
 
 /** asking space for 128 vertices and 4096 facets **/
 #ifdef BITMAP_32		/* 32 bit bitmap blocks */
@@ -101,7 +110,8 @@ double avg_tests;	    /* average number of ridge tests by iterations */
 int living_facets_no;	    /* filled by get_dd_facetno() */
 int final_facets_no;	    /* filled by get_dd_facetno() */
 int memory_allocated_no;    /* number of times memory expanded */
-size_t total_memory;	    /* total memory (in bytes) allocated */
+size_t total_memory;	    /* total memory (in bytes) actually allocated */
+size_t max_memory;          /* maximum memory allocated so far */
 /** warning **/
 int instability_warning;    /* number of warnings when recalculating facet eqs */
 /** error conditions **/

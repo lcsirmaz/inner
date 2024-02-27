@@ -3,7 +3,7 @@
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
  *
- * Copyright (2016) Laszlo Csirmaz, Central European University, Budapest
+ * Copyright (C) 2016-2024 Laszlo Csirmaz, https://github.com/lcsirmaz/inner
  *
  * This program is free, open-source software. You may redistribute it
  * and/or modify under the terms of the GNU General Public License (GPL).
@@ -311,7 +311,7 @@ static void dump_and_save(int how)
       " memory allocated        %s%s\n",
       dd_stats.iterations+1,dd_stats.facetenquires,
       dd_stats.max_facets,
-      readable(dd_stats.total_memory,0),
+      readable(dd_stats.max_memory,0),
       dd_stats.out_of_memory ? " (out of memory)" : "");
 #ifdef USETHREADS
       report(R_txt, " threads                 %d\n",PARAMS(Threads));
@@ -333,6 +333,9 @@ static void dump_and_save(int how)
       readable(dd_stats.avg_facetsadded,0),readable(dd_stats.max_facetsadded,1),
       dd_stats.facets_compressed_no,
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
+    }
+    if(dd_stats.out_of_memory){
+        report_memory_usage(R_txt,"\n" DASHSEP "\nMemory allocation");
     }
     if(PARAMS(PrintParams)){
         show_parameters(DASHSEP "\nParameters with non-default values\n");

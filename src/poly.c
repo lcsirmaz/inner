@@ -3,7 +3,7 @@
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
  *
- * Copyright (2016) Laszlo Csirmaz, Central European University, Budapest
+ * Copyright (C) 2016-2024 Laszlo Csirmaz, https://github.com/lcsirmaz/inner
  *
  * This program is free, open-source software. You may redistribute it
  * and/or modify under the terms of the GNU General Public License (GPL).
@@ -231,21 +231,29 @@ typedef struct { /* memory slot structure */
 /* struct MEMSLOT memory_slots[]
 *    static array containing for each slot the actual blocksize, number
 *    of blocks, and a pointer to the actual location. The location can
-*    change when reallocating any other memory slot. */
+*    change when reallocating any other memory slot.
+*/
 static MEMSLOT memory_slots[M_MSLOTSTOTAL]; /* memory slots */
 
 /* bool OUT_OF_MEMORY
-*    flag indicating whether we are out of memory. */
+*    flag indicating whether we are out of memory.
+*/
 #define OUT_OF_MEMORY	dd_stats.out_of_memory
 
 /* type *get_memory_ptr(type,slot)
-*    the actual memory block in the given slot. */
+*    the actual memory block in the given slot.
+*      type:  storage type of the items in the block
+*      slot:  the memory slot
+*/
 #define get_memory_ptr(type,slot)	\
     ((type *)memory_slots[slot].ptr)
 
-/* void report_memory_usage(channel,char *prompt)
+/* void report_memory_usage(channel,prompt)
 *    for each used slot report the blocksize, number of blocks,
-*    total memory used by this slot, and the actual pointer. */
+*    total memory used by this slot, and the actual pointer.
+*      channel: report type channel
+*      prompt:  prompt for the first line
+*/
 void report_memory_usage(report_type ch,const char *prompt)
 {int i; MEMSLOT *ms; char buff[50];
     for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++) 
@@ -272,7 +280,7 @@ void report_memory_usage(report_type ch,const char *prompt)
 #define initialize_memory_slots()	\
     memset(&memory_slots[0],0,sizeof(memory_slots))
 
-/* void init_main_slot(memslot_t slot, int nno, int nsize)
+/* void init_main_slot(slot,nno,n,bsize,title,type)
 *    initializes a main slot by allocating the requested memory.
 *     slot:    memory slot to be initialized
 *     nno:     number of initial blocks
@@ -306,19 +314,30 @@ static void init_main_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
         return;
     }
     dd_stats.total_memory += total;
+    if(dd_stats.total_memory>dd_stats.max_memory)
+             dd_stats.max_memory=dd_stats.total_memory;
     memset(ms->ptr,0,total);
     return;
 }
 
 /* void yalloc(type,slot,n,bsize)
-*    initializes a main memory slot by requesting n blocks, where
-*    each block is an array of bsize elements of the given type. */
+*    initializes a main memory slot by requesting n blocks; each
+*    block is an array of bsize elements of the given type.
+       type:  storage type of an item
+       slot:  memory slot
+       n:     number of blocks
+       bsize: number of items in a block
+*/
 #define yalloc(type,slot,n,bsize)	\
     init_main_slot(slot,n,bsize,sizeof(type),T##slot,mkstringof(type))
 
-/* void request_main_mem(memslot_t slot, int nno, int nsize)
-*    records the requested block count and block size for a main
-*    slot. The actual memory allocation is done by reallocmem() */
+/* void request_main_mem(slot,nno,nsize)
+*    records the requested block count and block size. The actual 
+*    memory allocation is done by reallocmem()
+*      slot:  memory slot
+*      nno:   number of blocks requested
+*      nsize: size of a block (in bytes)
+*/
 static inline void request_main_mem(memslot_t slot, size_t nno, size_t nsize)
 {MEMSLOT *ms;
     ms=&memory_slots[slot];
@@ -329,7 +348,12 @@ static inline void request_main_mem(memslot_t slot, size_t nno, size_t nsize)
 
 /* void yrequest(type,slot,n,bsize)
 *    request memory at a main slot; should be followed by calling
-*    reallocmem(). */
+*    reallocmem().
+*       type:  storage type of an item
+*       slot:  memory slot
+*       n:     number of blocks requested
+*       bsize: number of items in a block
+*/
 #define yrequest(type,slot,n,bsize)	\
     request_main_mem(slot,n,(bsize)*sizeof(type))
 
@@ -350,6 +374,8 @@ static int reallocmem(void)
                 if(ptr){
                     ms->ptr=ptr; 
                     dd_stats.total_memory += total-ms->rsize;
+                    if(dd_stats.total_memory>dd_stats.max_memory)
+                          dd_stats.max_memory=dd_stats.total_memory;
                     ms->rsize=total;
                 }
                 else { success=0; }
@@ -391,6 +417,16 @@ static int reallocmem(void)
             ms->blockno=ms->newblockno;
             ms->newblocksize=0;
             ms->newblockno=0;
+    // shrink too large allocations
+            total=ms->blocksize*ms->blockno;
+            if(ms->rsize>total+DD_HIGHWATER){
+                ptr=realloc(ms->ptr,total+DD_LOWWATER);
+                if(ptr){
+                    ms->ptr=ptr;
+                    dd_stats.total_memory -= ms->rsize-(total+DD_LOWWATER);
+                    ms->rsize=total+DD_LOWWATER;
+                }
+            }
         }
     }
     return 0;
@@ -409,7 +445,7 @@ inline static void yfree(memslot_t slot)
     ms->ptr=(void*)0;
 }
 
-/* void init_temp_slot(memslot_t slot, int nno, int n, int bsize, char *title, char *type)
+/* void init_temp_slot(slot,nno,n,bsize,title,type)
 *    requests nno blocks, each of size n*bsize at the given slot.
 *    The memory is not cleared; should check OUT_OF_MEMORY
 *      slot:    memory slot to be initialized
@@ -438,6 +474,8 @@ static void init_temp_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
     }
     ms->rsize=total;
     dd_stats.total_memory += total;
+    if(dd_stats.total_memory>dd_stats.max_memory)
+          dd_stats.max_memory=dd_stats.total_memory;
     ms->ptr = malloc(total);
     if(!ms->ptr){
         report(R_fatal,"Out of memory for slot=%d (%s), blocksize=%zu, n=%zu\n",
@@ -447,17 +485,23 @@ static void init_temp_slot(memslot_t slot, size_t nno, size_t n, size_t bsize,
 }
 
 /* void talloc(type,slot,n,bsize)
-*    request initial memory for a temporary slot. There are n blocks,
-*    each block is an array of bsize elements of the given type.
-*    The allocated memory is not cleared.
+*    request initial memory for a temporary slot. The allocated memory
+*    is not cleared
+*        type:  storage type of an item
+*        slot:  memory slop
+*        n:     number of requested blockss
+*        bsize: size of an item in bytes
 *  void talloc2(type,slotname,slot,n,bsize)
 *    talloc() with explicit slot name */
 #define talloc(type,slot,n,bsize)	talloc2(type,slot,slot,n,bsize)
 #define talloc2(type,slotname,slot,n,bsize)	\
     init_temp_slot(slot,n,bsize,sizeof(type),T##slotname,mkstringof(type))
 
-/* void request_temp_mem(memslot_t slot,size_t nno)
-*    request more blocks for the initialized temporary memory slot */
+/* void request_temp_mem(slot,nno)
+*    request more blocks for the initialized temporary memory slot
+*       slot:  memory slot
+*       nno:   number of blocks required
+*/
 static inline void request_temp_mem(memslot_t slot,size_t nno)
 {size_t total; MEMSLOT *ms; void *ptr;
     ms=&memory_slots[slot];
@@ -468,6 +512,8 @@ static inline void request_temp_mem(memslot_t slot,size_t nno)
     ptr=realloc(ms->ptr,total);
     if(!ptr){ OUT_OF_MEMORY=1; return; }
     dd_stats.total_memory += total - ms->rsize;
+    if(dd_stats.total_memory>dd_stats.max_memory)
+          dd_stats.max_memory=dd_stats.total_memory;
     ms->rsize=total;
     ms->blockno=nno;
     ms->ptr=ptr;
@@ -847,59 +893,45 @@ inline static void intersect_VertexAdj_FacetLiving(int vno)
 * get_dd_facetno()
 *   computes the number of living and final facets.
 *
-* int bitcnt_mask, bitcnt_shift
-*    number of bits stored for the last bitcnt_shift many bits
-*
-* char bitcnt[0..bitcnt_mask]
-*    number of bits in the index. Used to speed up counting bits
-*    in a bitmap.
-*
-* int add_bitcount(BITMAP_t v, int *total)
-*    add the number of bits set in v to *total
+* int get_bitcount(BITMAP_t v)
+*    count the the number of bits in v
 */
 DD_STATS dd_stats;
 
-#define bitcnt_shift	10
-#define bitcnt_mask	((1u<<bitcnt_shift)-1u)
+#ifndef NO_ASM
+/* this routine uses the popcnt (population count) machine code
+   to get the number of bits in a word. */
+static inline int get_bitcount(BITMAP_t v)
+{register BITMAP_t res;
+    asm ("popcnt %[w], %[t]"
+         :[t] "=rm" (res)
+         :[w] "rm"  (v));
+    return (int)res;
+}
 
-/* how many bits are in 0..bitcnt_mask */
-static char bitcnt[] = {
-0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
-1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,
-1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,
-2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,
-3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,
-4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,
-4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8,5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,
-5,6,6,7,6,7,7,8,6,7,7,8,7,8,8,9,6,7,7,8,7,8,8,9,7,8,8,9,8,9,9,10
-};
+#else /* no assembler code */
+static int get_bitcount(BITMAP_t v)
+{
+//    these exceptional cases do not seem to help
+//    if(v==BITMAP0){ return 0; }
+//    if(v==~BITMAP0){ return 1<<packshift; }
+#   ifdef BITMAP_32	/* 32 bit bitmap */
+    v=(v&0x55555555u)+((v>>1)&0x55555555u);
+    v=(v&0x33333333u)+((v>>2)&0x33333333u);
+    v=(v&0x0F0F0F0Fu)+((v>>4)&0x0F0F0F0Fu);
+    v=(v&0x00FF00FFu)+((v>>8)&0x00FF00FFu);
+    return (int)((v&0x0000FFFF)+(v>>16));
+#   else		/* 64 bit bitmap */
+    v=(v&0x5555555555555555ul)+((v>>1)&0x5555555555555555ul);
+    v=(v&0x3333333333333333ul)+((v>>2)&0x3333333333333333ul);
+    v=(v&0x0F0F0F0F0F0F0F0Ful)+((v>>4)&0x0F0F0F0F0F0F0F0Ful);
+    v=(v&0x00FF00FF00FF00FFul)+((v>>8)&0x00FF00FF00FF00FFul);
+    v=(v&0x0000FFFF0000FFFFul)+((v>>16)&0x0000FFFF0000FFFFul);
+    return (int)((v&0xFFFF)+(v>>32));
+#   endif
+}
 
-#define add_bitcount(v,total)	\
-    while(v){ total += bitcnt[(v)&bitcnt_mask]; (v)>>=bitcnt_shift; }
+#endif /* NO_ASM */
 
 void get_dd_facetno(void) // get the number living and final facets
 {int i; BITMAP_t v;
@@ -907,14 +939,12 @@ void get_dd_facetno(void) // get the number living and final facets
     dd_stats.final_facets_no=-1;
     for(i=0;i<FacetBitmapBlockSize;i++){
         v=FacetLiving[i];
-        if(v==~BITMAP0){ dd_stats.living_facets_no+=(1<<packshift); }
-        else add_bitcount(v,dd_stats.living_facets_no);
+        dd_stats.living_facets_no+=get_bitcount(v);
         v=FacetFinal[i];
         if(v & ~FacetLiving[i]){ /* consistency checking */
              report(R_err,"Consistency error: final but not living facet around %d\n",i<<packshift);
         }
-        if(v==~BITMAP0){ dd_stats.final_facets_no +=(1<<packshift); }
-        else add_bitcount(v,dd_stats.final_facets_no);
+        dd_stats.final_facets_no+=get_bitcount(v);
     }
     if(dd_stats.final_facets_no<0) dd_stats.final_facets_no=0;
     if(dd_stats.living_facets_no<0) dd_stats.living_facets_no=0;
@@ -991,8 +1021,7 @@ int facet_num(void)
     total=-1;
     for(i=0;i<FacetBitmapBlockSize;i++){
         v=FacetLiving[i];
-        if(v==~BITMAP0){ total += (1<<packshift); }
-        else add_bitcount(v,total);
+        total += get_bitcount(v);
     }
     return total;
 }
@@ -1661,7 +1690,7 @@ inline static int facet_intersection(int f1, int f2)
     total=0; L1=FacetAdj(f1); L2=FacetAdj(f2);
     for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
         v=(*L1)&(*L2);
-        add_bitcount(v,total);
+        total += get_bitcount(v);
     }
     return total;
 }
@@ -1804,7 +1833,7 @@ inline static void search_ridges_DIM2(int f1)
         total=0; L1=FacetAdj(f1); L2=FacetAdj(j);
         for(i=0;i<VertexBitmapBlockSize;i++,L1++,L2++){
             v=(*L1)&(*L2);
-            add_bitcount(v,total);
+            total += get_bitcount(v);
         }
         // facets f1 and j intersect in a vertex
 #ifdef USETHREADS

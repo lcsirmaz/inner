@@ -3,7 +3,7 @@
 /***********************************************************************
  * This code is part of INNER, a linear multiobjective problem solver.
  *
- * Copyright (2016) Laszlo Csirmaz, Central European University, Budapest
+ * Copyright (C) 2016-2024 Laszlo Csirmaz, https://github.com/lcsirmaz/inner
  *
  * This program is free, open-source software. You may redistribute it
  * and/or modify under the terms of the GNU General Public License (GPL).
@@ -299,7 +299,7 @@ static void dump_config(void)
 */
 
 static void short_help(void) {printf(
-"This is " PROGNAME " " VERSION_STRING ", a multiobjective LP solver.\n"
+"This is '" PROGNAME "' " VERSION_STRING ", a multiobjective LP solver.\n"
 "Usage: " PROGNAME " [options] <vlp file>\n"
 "Some of the options are:\n"
 "  -h               display this short help\n"
@@ -314,7 +314,7 @@ COPYRIGHT "\n"
 );}
 
 static void long_help(void){ printf(
-"This is " PROGNAME " " VERSION_STRING ", a multiobjective LP solver.\n"
+"This is '" PROGNAME "' " VERSION_STRING ", a multiobjective LP solver.\n"
 "Usage: " PROGNAME " [options] <vlp file>\n"
 "Options are:\n"
 "  -h               display a short help\n"
@@ -438,7 +438,10 @@ static void out_help(void) {printf(
 );}
 
 static void exit_help(void) {printf(
-"Exit values:\n"
+"******************************\n"
+"***       Exit values      ***\n"
+"******************************\n"
+"\n"
 "  0   problem completed\n"
 "  1   data error (missing file, syntax error, etc.)\n"
 "  2   problem has no solution\n"
@@ -449,12 +452,16 @@ static void exit_help(void) {printf(
 );}
 
 static void signal_help(void) {printf(
-"Signals " mkstringof(INNER_SIGNAL) " and " mkstringof(DUMP_SIGNAL) " are processed:\n"
+"******************************\n"
+"***        Signals         ***\n"
+"******************************\n"
+"\n"
+"Only " mkstringof(INNER_SIGNAL) " and " mkstringof(DUMP_SIGNAL) " signals are processed:\n"
 "The " mkstringof(INNER_SIGNAL) " signal stops the algorithm. If ExtractAfterBreak=1 (default),\n"
 "  then continue extracting new vertices by asking the oracle about\n"
 "  every facet of the actual approximation, but don't process the newly\n"
 "  obtained vertices. This method might miss several extremal solutions.\n"
-"  Second " mkstringof(INNER_SIGNAL) " signal aborts this post-processing. The program's exit\n"
+"  A second " mkstringof(INNER_SIGNAL) " signal aborts this post-processing. The program's exit\n"
 "  value will be 5 indicating abnormal termination.\n"
 "When receiving a " mkstringof(DUMP_SIGNAL) " signal, a \"snapshot\" is created containing\n"
 "  the facets and vertices of the current approximation. Similarly to\n"
@@ -470,25 +477,31 @@ static void signal_help(void) {printf(
 );}
 
 static void checkpoint_help(void) {printf(
-"Creating checkpoint files:\n"
-"When the `-oc <filestub>' option is used, checkpoint files are created\n"
-"periodically. The frequency is determined by the value of the keyword\n"
-"CheckPoint, which defaults to 10000 seconds. The checkpoint file name\n"
-"is created from the filestub by appending `NNN.chk', where NNN starts\n"
-"at 000 and increases by one. Computation can be resumed by calling the\n"
+"******************************\n"
+"***   Checkpoint files     ***\n"
+"******************************\n"
+"\n"
+"The `-oc <filestub>' option forces creating checkpoint files periodically.\n"
+"The frequency is determined by the value of the keyword \"--CheckPoint\"\n"
+"which defaults to 10000 seconds. The checkpoint file name is created from\n"
+"the filestub by appending `NNN.chk', where NNN starts at 000 and increases\n"
+"by one for each iteration. Computation can be resumed by calling the\n"
 "program with the `--resume=<checkpoint-file>' option. See also the\n"
-"description of the CheckPoint keyword in the config file.\n"
+"description of the 'CheckPoint' keyword in the config file.\n"
 );}
 
 static void boot_help(void) {printf(
-"Start the algorithm with a given set of vertices:\n"
-"When a partial list of extremal vertices is known, the program can\n"
-"be instructed to use those vertices rather than calling the oracle.\n"
-"The file containing the vertices is specified as the `--boot=<file>'\n"
-"option. Vertices are specified one vertex per line; the format is\n"
-"the same as in the output. The first character on the line is upper\n"
-"case V followed by d (number of objectives) fractions or floating\n"
-"point numerals such as\n"
+"******************************\n"
+"***       Boot file        ***\n"
+"******************************\n"
+"\n"
+"Start the algorithm with a given set of vertices. When a partial list\n"
+"of extremal vertices is known, the program can be instructed to add them\n"
+"first before calling the oracle for other vertices. The file containing\n"
+"these vertices is specified as `--boot=<file>'. Vertices are specified\n"
+"one vertex per line; the format is the same as in the output. The first\n"
+"character in the line is an upper case V followed by d (number of\n"
+"objectives) fractions or floating point numerals such as\n"
 "    V 0 5/2 3/4 7.123456789 -1/2\n"
 "Lines not starting with upper case V are ignored. All vertices must\n"
 "be extremal solutions, this condition is not checked. In higher\n"
@@ -497,7 +510,10 @@ static void boot_help(void) {printf(
 );}
 
 static void resume_help(void) {printf(
-"Resuming computation:\n"
+"******************************\n"
+"***   Resume computation   ***\n"
+"******************************\n"
+"\n"
 "Computation can be resumed from the state saved in a checkpoint\n"
 "(see `--help=checkpoint') or a snapshot (see `--help=signal') file.\n"
 "Specify the file name after the `--resume=' option. The <vlp-file>\n"
@@ -508,12 +524,10 @@ static void resume_help(void) {printf(
 #include "glpk.h"
 
 static void version(void) {printf(
-"This is " PROGNAME " " VERSION_STRING ", a multiobjective linear program solver,\n"
+"This is '" PROGNAME "' " VERSION_STRING ", a multiobjective linear program solver,\n"
 "using a patched version of glpk " mkstringof( GLP_MAJOR_VERSION.GLP_MINOR_VERSION)
 " (GNU Linear Programming Kit).\n"
-"The algorithm is discussed in Laszlo Csirmaz: \"Inner approximation\n"
-"algorithm for solving linear multiobjective optimization problems\",\n"
-"available at https://arxiv.org/pdf/1808.01786\n"
+"The algorithm is discussed in https://arxiv.org/pdf/1808.01786\n"
 COPYRIGHT "\n"
 );}
 

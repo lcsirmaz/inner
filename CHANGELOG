@@ -1,3 +1,10 @@
+Version 2.15
+   - changing copyright information and greetings when no argument is given
+   - glp_oracle.c: correcting a bug
+   - params.c: improving help messages
+   - poly.c: improving documentation; speeding up counting bits in a word;
+      shrinking large unused memory blocks; reporting maximal used memory
+
 Version 2.14
    - poly.c: improving reporting: memory usage, additional messages for
       error conditions
