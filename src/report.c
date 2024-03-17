@@ -106,7 +106,7 @@ void report(report_type level, const char *fmt,...)
     y=0; flush=0;
     switch(level){
       case R_info: if(PARAMS(MessageLevel)>2){ y=1; flush=1; } break;
-      case R_fatal:
+      case R_fatal:flush=1; y=1; break;
       case R_txt:  y=1; break;
       case R_err:  if(PARAMS(MessageLevel)>0) y=1; break;
       case R_warn: if(PARAMS(MessageLevel)>1) y=1; break;

@@ -273,7 +273,7 @@ int check_consistency(void);
 *    Report the equation of all living facets of on the given channel
 *    using print_facet()
 *
-* void report_memory_usage(report_type ch, char *prompt)
+* void report_memory_usage(report_type ch, int force, char *prompt)
 *    report memory usage of the inner approximation algorithm.
 *
 * void make_checkpoint(void)
@@ -292,7 +292,7 @@ void print_facet(report_type channel,int facetno);
 void print_facets(report_type channel);
 
 /** report memory usage **/
-void report_memory_usage(report_type channel, const char *prompt);
+void report_memory_usage(report_type channel, int force, const char *prompt);
 
 /* create checkpoint files **/
 void make_checkpoint(void);

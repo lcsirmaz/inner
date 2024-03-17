@@ -119,7 +119,7 @@ inline static int ask_oracle_with_timer(void)
 *    when the last progress report was made
 *    minimum delay between two reports, in 0.01 seconds
 *
-* unsignel long chktime, chkdelay
+* unsigned long chktime, chkdelay
 *    when the last checkpoint was created, and the minimum delay
 *    between two checkpoints
 *
@@ -218,12 +218,12 @@ static void report_new_facet(int fno)
 
 inline static void report_memory(void)
 {static int last_memreport=0; char buff[50];
-    if(! PARAMS(MemoryReport) ||
+    if( PARAMS(MemoryReport)<2 ||
        last_memreport==dd_stats.memory_allocated_no ||
        dd_stats.out_of_memory ) return;
     last_memreport=dd_stats.memory_allocated_no;
     sprintf(buff,"I%8.2f] Memory allocation table", 0.01*(double)timenow);
-    report_memory_usage(R_txt,buff);
+    report_memory_usage(R_txt,0,buff);
     flush_report();
 }
 
@@ -333,12 +333,15 @@ static void dump_and_save(int how)
       readable(dd_stats.avg_facetsadded,0),readable(dd_stats.max_facetsadded,1),
       dd_stats.facets_compressed_no,
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
-    }
-    if(dd_stats.out_of_memory){
-        report_memory_usage(R_txt,"\n" DASHSEP "\nMemory allocation");
-    }
-    if(PARAMS(PrintParams)){
-        show_parameters(DASHSEP "\nParameters with non-default values\n");
+      if(PARAMS(MemoryReport)>0 || dd_stats.out_of_memory)
+         report_memory_usage(R_txt,1,"Memory allocation:");
+      if(PARAMS(PrintParams))
+         show_parameters("Parameters with non-default values:\n");
+    } else {
+        if(PARAMS(MemoryReport)>0 || dd_stats.out_of_memory)
+            report_memory_usage(R_txt,1,"\n" DASHSEP "\nMemory allocation");
+        if(PARAMS(PrintParams))
+            show_parameters(DASHSEP "\nParameters with non-default values\n");
     }
     partial = how<2 ? 0 : 1; // save data when consistent
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
@@ -645,7 +648,7 @@ static void report_error(int code)
     report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices: %d, facets: %d\n",
         dd_stats.out_of_memory?"Out of memory":"Numerical error",
         showtime(timenow), vertex_num(), facet_num());
-    if(dd_stats.out_of_memory) report_memory_usage(R_fatal,"Memory allocation table");
+    if(dd_stats.out_of_memory) report_memory_usage(R_fatal,1,"Memory allocation table");
 }
 
 /** the main loop was interrupted; return 5, 6, 7 **/

@@ -111,8 +111,8 @@ static inline int mrandom(int v)
 { return v<=1?0 : (random()&0x3fffffff)%v; }
 static inline void perm_array(int len, int arr[/* 1:len */])
 {int i,j,t;
-    for(i=1;i<len-1;i++){
-        j=i+mrandom(len-i);
+    for(i=1;i<len;i++){
+        j=i+mrandom(len+1-i);
         t=arr[i];arr[i]=arr[j];arr[j]=t;
     }
 }
@@ -376,7 +376,7 @@ void set_oracle_parameters(void)
 * Errors are reported as R_err.
 *
 * void round_to_int(double *v)
-*  v is expanded as a continued fraction using three iterations.
+*  v is expanded as a continued fraction using four iterations.
 *  If the error is smaller than PARAMS(RoundEps), then v is
 *  replaced by the value of the fraction.
 * char *glp_status_msg(int code)
@@ -391,17 +391,20 @@ static inline long intfloor(double d)
 }
 
 static inline void round_to_int(double *v)
-{double ip,iip,v2,ip2,ip3;
+{double ip,iip,v2,ip2,ip3,ip4;
     ip=intfloor(*v); iip=*v-ip;
 //*v  (-2.5,-1.5]  (-1.5,-0.5] (-0.5,0] [0,0.5) [0.5,1.5)  [1.5,2.5)
 //ip    -2          -1           0          0      1          2
 //iip (-0.5,0.5]   (-0.5,0.5]  (-0.5,0] [0.0.5] [-0.5,0.5) [-0.5,0.5)
+    if(iip<=-0.5 || iip >= 0.5) return;
     if(-ROUND_EPS<iip && iip<ROUND_EPS){ *v=ip; return; }
     // *v==ip+iip, -0.50<=iip<=0.5
     v2=1.0/iip; ip2=intfloor(v2); iip=v2-ip2;
-    if(-ROUND_EPS<iip && iip<ROUND_EPS){ *v=ip+1.0/ip2; return; }
+    if(-2.0*ROUND_EPS<iip && iip<2.0*ROUND_EPS){ *v=ip+1.0/ip2; return; }
     v2=1.0/iip; ip3=intfloor(v2); iip=v2-ip3;
-    if(-ROUND_EPS<iip && iip<ROUND_EPS){ *v=ip+1.0/(ip2+1.0/ip3); return; }
+    if(-4.0*ROUND_EPS<iip && iip<4.0*ROUND_EPS){ *v=ip+1.0/(ip2+1.0/ip3); return; }
+    v2=1.0/iip; ip4=intfloor(v2); iip=v2-ip4;
+    if(-8.0*ROUND_EPS<iip && iip<8.0*ROUND_EPS){ *v=ip+1.0/(ip2+1.0/(ip3+1.0/ip4)); return;}
 }
 
 static char *glp_status_msg(int stat)

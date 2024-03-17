@@ -212,7 +212,7 @@ CFG( VertexReport, BOOL) \
 CFG( FacetReport, BOOL) \
 "#    print out final facets immediately.\n"\
 "#\n"\
-CFG( MemoryReport, BOOL) \
+CFG( MemoryReport, "0 = never, 1 = at the end, 2 = always") \
 "#    report the size and location, whenever it changes, of memory\n"\
 "#    blocks storing the data structure.\n"\
 "#\n"\
@@ -319,8 +319,8 @@ static void long_help(void){ printf(
 "Options are:\n"
 "  -h               display a short help\n"
 "  --help           display all options\n"
-"  --help=<topic>   choose one of the following topics:\n"
-"                     input,output,exit,boot,checkpoint,resume,signal,vlp\n"
+"  --help=<topic>   choose one of the following topics: input,output,\n"
+"                     exit,config,boot,checkpoint,resume,signal,vlp\n"
 "  --version        version and copyright information\n"
 "  --dump           dump the default config file and quit\n"
 "  --config=<config-file>\n"
@@ -564,7 +564,7 @@ static struct char_params {
   CFG(VertexAsFraction,1),
   CFG(VertexReport,1),
   CFG(FacetReport,1),
-  CFG(MemoryReport,1),
+  CFG(MemoryReport,2),
   CFG(PrintVertices,2),
   CFG(PrintFacets,2),
   CFG(SaveVertices,2),
@@ -799,6 +799,7 @@ static int handle_options(int argc, const char *argv[])
     if(strncmp(argv[1],"--help=check",12)==0){ checkpoint_help(); return 1; }
     if(strcmp (argv[1],"--help=boot")==0){ boot_help(); return 1; }
     if(strncmp(argv[1],"--help=resume",11)==0){ resume_help(); return 1; }
+    if(strncmp(argv[1],"--help=config",11)==0){ dump_config(); return 1; }
     if(strcmp (argv[1],"--help")==0){ long_help(); return 1; }
     if(strcmp (argv[1],"-h")==0 || strcmp(argv[1],"-help")==0){ 
         short_help(); return 1; }

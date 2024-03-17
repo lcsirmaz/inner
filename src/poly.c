@@ -254,10 +254,10 @@ static MEMSLOT memory_slots[M_MSLOTSTOTAL]; /* memory slots */
 *      channel: report type channel
 *      prompt:  prompt for the first line
 */
-void report_memory_usage(report_type ch,const char *prompt)
+void report_memory_usage(report_type ch,int force,const char *prompt)
 {int i; MEMSLOT *ms; char buff[50];
     for(i=0,ms=&memory_slots[0];i<M_MSLOTSTOTAL;i++,ms++) 
-    if(ms->ptr && ms->rsize != ms->rreport && ms->bsize>0 ) {
+    if(ms->ptr && ms->bsize>0 && (force!=0 || ms->rsize != ms->rreport) ) {
         ms->rreport=ms->rsize;
         if(prompt){
             report(ch,"%s\n          ---slot----------+--size---+---blocks--+---blocksize---\n",prompt);
@@ -934,17 +934,19 @@ static int get_bitcount(BITMAP_t v)
 #endif /* NO_ASM */
 
 void get_dd_facetno(void) // get the number living and final facets
-{int i; BITMAP_t v;
+{int i,fno; BITMAP_t vl,vf;
     dd_stats.living_facets_no=-1;
     dd_stats.final_facets_no=-1;
     for(i=0;i<FacetBitmapBlockSize;i++){
-        v=FacetLiving[i];
-        dd_stats.living_facets_no+=get_bitcount(v);
-        v=FacetFinal[i];
-        if(v & ~FacetLiving[i]){ /* consistency checking */
-             report(R_err,"Consistency error: final but not living facet around %d\n",i<<packshift);
+        vl=FacetLiving[i];
+        dd_stats.living_facets_no+=get_bitcount(vl);
+        vf=FacetFinal[i];
+        dd_stats.final_facets_no+=get_bitcount(vf);
+        if(~vl & vf){ /* consistency checking */
+             fno=i<<packshift;
+             while(!((~vl & vf)&1)){ fno++; vl>>=1; vf>>=1; }
+             report(R_err,"Consistency error: final but not living facet %d\n",fno);
         }
-        dd_stats.final_facets_no+=get_bitcount(v);
     }
     if(dd_stats.final_facets_no<0) dd_stats.final_facets_no=0;
     if(dd_stats.living_facets_no<0) dd_stats.living_facets_no=0;
@@ -1392,8 +1394,8 @@ static void allocate_facet_block(int count)
     yrequest(BITMAP_t,M_FacetLiving,1,FacetBitmapBlockSize);
     yrequest(BITMAP_t,M_FacetFinal,1,FacetBitmapBlockSize);
     if(reallocmem()){ // out of memory
-        FacetBitmapBlockSize -= (MaxFacets+packmask)>>packshift;
         MaxFacets -= total;
+        FacetBitmapBlockSize = (MaxFacets+packmask)>>packshift;
     }
 }
 
@@ -1499,7 +1501,7 @@ static void recalculate_facet_eq(int fno,BITMAP_t *facetadj, double *facetcoords
     }
     // all vertices are collected, compute facet equation
     if(an<DIM){
-        report(R_err,"recalculate_facet: facet %d has only %d(<DIM=%d) adjacent vertices\n",fno,vno,DIM);
+        report(R_err,"recalculate_facet: facet %d has only %d(<DIM=%d) adjacent vertices\n",fno,an,DIM);
         dd_stats.numerical_error++;
         return;
     }
@@ -1912,22 +1914,14 @@ static void *extra_thread(void *arg)
 }
 #endif /* USETHREADS */
 
-/* void compress_facets(void)
-*    if facet numbers decreased, decrease storage as well */
-void compress_facets(void)
-{int i,fno;
-    if(MaxFacets <= facet_num()+2*(DD_FACET_ADDBLOCK<<packshift)) return;
-    dd_stats.facets_compressed_no++;
-    // clear the adjacency list of vertices
-    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
-        intersect_VertexAdj_FacetLiving(i);
-    }
-    // find the first free facet
-    for(i=fno=0;fno<NextFacet && (~FacetLiving[i])==0;i++,fno+=(1<<packshift));
+/* void compress_from(int fno)
+*    move living facets from the end to the holes starting from fno */
+static void compress_from(int fno)
+{int i;
  fill_holes:
     while(fno<NextFacet && is_livingFacet(fno) ) fno++;
-    while(NextFacet>fno && !is_livingFacet(NextFacet-1) ) NextFacet--;
-    if(fno < NextFacet){
+    while(fno<NextFacet  && !is_livingFacet(NextFacet-1) ) NextFacet--;
+    if(fno < NextFacet){ // fno is empty, NextFacet-1 is used
         NextFacet--;
         move_newfacet_to(FacetCoords(NextFacet),FacetAdj(NextFacet),fno);
         make_facet_living(fno);
@@ -1941,7 +1935,22 @@ void compress_facets(void)
     for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
         intersect_VertexAdj_FacetLiving(i);
     }
-    // compute the new limit
+}
+
+/* void compress_facets(void)
+*    if facet numbers decreased, decrease storage as well */
+static void compress_facets(void)
+{int i,fno;
+    if(MaxFacets <= facet_num()+2*(DD_FACET_ADDBLOCK<<packshift)) return;
+    dd_stats.facets_compressed_no++;
+    // clear the adjacency list of vertices
+    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
+        intersect_VertexAdj_FacetLiving(i);
+    }
+    // find the first free facet
+    for(i=fno=0;fno<NextFacet && (~FacetLiving[i])==0;i++,fno+=(1<<packshift));
+    compress_from(fno);
+    // compute new limits
     while(MaxFacets > NextFacet+2*(DD_FACET_ADDBLOCK<<packshift)){
         MaxFacets -= DD_FACET_ADDBLOCK<<packshift;
     }
@@ -1952,7 +1961,8 @@ void compress_facets(void)
     yrequest(BITMAP_t,M_FacetLiving,1,FacetBitmapBlockSize);
     yrequest(BITMAP_t,M_FacetFinal,1,FacetBitmapBlockSize);
     if(reallocmem()){ // fatal error
-        printf("Compress facets error\n"); exit(99);
+        report(R_fatal,"Compress facets error, problem aborted\n");
+        exit(4);      // unrecoverable error
     }
 }
 
@@ -2021,11 +2031,6 @@ void add_new_vertex(double *coords)
                 clear_in_FacetFinal(fno);
                 --NegIdx; *NegIdx=fno;
                 dd_stats.facet_neg++;
-//                set_VertexAdj(ThisVertex,fno);
-//                set_FacetAdj(fno,ThisVertex);
-//                dd_stats.facet_zero++;
-                // should we abort?
-                // dd_stats.numerical_error++;
             } else {
                 --NegIdx; *NegIdx=fno;
                 dd_stats.facet_neg++;
@@ -2039,7 +2044,8 @@ void add_new_vertex(double *coords)
     if(dd_stats.facet_neg==0){
         dd_stats.facet_new=0;
         if(dd_stats.facet_zero<DIM){
-            report(R_err,"Vertex %d is inside the approximation (on: %d, pos: %d, neg: %d)\n", ThisVertex-DIM+1, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
+            report(R_err,"Vertex %d is inside the approximation (zero: %d, "
+            "pos: %d, neg: %d)\n", ThisVertex-DIM+1, dd_stats.facet_zero, dd_stats.facet_pos,dd_stats.facet_neg);
             dd_stats.numerical_error++;
         } else { // check whether this is a duplicate vertex
             for(j=ThisVertex-1; j>=DIM && j>ThisVertex-100; j--){
@@ -2053,7 +2059,13 @@ void add_new_vertex(double *coords)
                   return;
               }
             }
+            report(R_warn,"Vertex %d might be duplicate\n",ThisVertex-DIM+1);
         }
+        return;
+    }
+    if(dd_stats.facet_pos+dd_stats.facet_neg>=MaxFacets){
+        report(R_fatal,"Positive and negative facets colluded, program aborted\n");
+        dd_stats.numerical_error++;
         return;
     }
     *PosIdx = -1; --NegIdx; *NegIdx=-1;
@@ -2190,23 +2202,7 @@ void add_new_vertex(double *coords)
         return;
     }
 #endif
-  fill_holes:
-    while( fno<NextFacet && is_livingFacet(fno) ) fno++;
-    while( NextFacet > fno && !is_livingFacet(NextFacet-1) ) NextFacet--;
-    if(fno < NextFacet){
-        NextFacet--;
-        move_newfacet_to(FacetCoords(NextFacet),FacetAdj(NextFacet),fno);
-        make_facet_living(fno);
-        clear_in_FacetLiving(NextFacet);
-        if(is_finalFacet(NextFacet)) set_in_FacetFinal(fno);
-        fno++; goto fill_holes;
-    }
-    // clear FacetFinal
-    for(i=0;i<FacetBitmapBlockSize;i++) FacetFinal[i] &= FacetLiving[i];
-    // clear the adjacency list of vertices
-    for(i=0;i<NextVertex;i++){ // clear the adjacency list of vertices
-        intersect_VertexAdj_FacetLiving(i);
-    }
+    compress_from(fno);
 }
 
 /*=====================================================================*/
@@ -2237,8 +2233,7 @@ int check_consistency(void)
             w += (*f); if(w<-DD_EPS_EQ){ 
                report(R_err,"Consistency error 3: vertex %d is on the negative side of facet %d (%lg)\n",vno-DIM+1,fno,w);
                errno++;
-            }
-            if(w>DD_EPS_EQ){ // not adjacent
+            } else if(w>DD_EPS_EQ){ // not adjacent
                 if(1&(FacetAdj(fno)[vno>>packshift]>>(vno&packmask))){
                     report(R_err,"Consistency error 4: vertex %d and facet %d are NOT adjacent\n",vno-DIM+1,fno);
                     errno++;
