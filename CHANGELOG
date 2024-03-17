@@ -1,3 +1,13 @@
+Version 2.16
+   - glp_oracle.c: correcting random permutation; rounding algorithm now
+       uses four level continued fraction, and takes care of too large
+       values
+   - inner.c: MemoryReport has three levels (report only at the end)
+   - params.c: new --help=configure topic
+   - poly.c: improving error messages; correcting bugs; moving identical
+       content to a separate routine (compressing facets); checking for
+       the rare condiition when there is no zero facet
+
 Version 2.15
    - changing copyright information and greetings when no argument is given
    - glp_oracle.c: correcting a bug
