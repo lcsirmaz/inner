@@ -1,3 +1,10 @@
+Version 3.0
+   Rounding routines moved to round.h. Oracle initialization generates the
+   first extremal vertex, also checking that the problem has feasible
+   solution and the polytope is bounded. Polytope routines are rewritted
+   to handle single and multiple threads similarly. Main routines are cleared
+   and rearranged. Few bug fixes. Support for glpk-5.0 is added.
+
 Version 2.16
    - glp_oracle.c: correcting random permutation; rounding algorithm now
        uses four level continued fraction, and takes care of too large

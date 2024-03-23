@@ -23,10 +23,11 @@
 #include "glp_oracle.h"
 
 /*********************************************************************
-* Initialize random; get elapsed time in 0.01 seconds, nice printing
+* Miscellaneous: initialize random; get elapsed time, nice printing
 *
 * void initialize_random()
 *    initialize random by asking the time and the pid of the process
+*    the random() function returns an integer in the range 0 .. 2^{31}-1
 *
 * unsigned long timenow
 *    elapsed time in 0.01 seconds, set by gettime100()
@@ -91,28 +92,6 @@ static char* readable(double w, int slot)
 }
 
 /*******************************************************************
-* Timing the oracle calls
-*
-* unsigned long oracletime
-*    total time required by the oracle in 0.01 seconds
-* int oraclecalls
-*    number of times the oracle was called
-* int ask_oracle_with_timer()
-*    ask oracle, measure the elapsed time, print error messages
-*/
-static unsigned long oracletime=0;
-static int oraclecalls=0;
-
-inline static int ask_oracle_with_timer(void)
-{unsigned long thistime; int res;
-    oraclecalls++;
-    thistime=gettime100();
-    res=ask_oracle();
-    oracletime += gettime100()-thistime;
-    return res;
-}
-
-/*******************************************************************
 * Progress report
 *
 * unsigned long progresstime, progressdelay
@@ -132,8 +111,8 @@ inline static int ask_oracle_with_timer(void)
 * void progress_stat(void)
 *    show progress report, save the report time
 *
-* void progress_stat_if_expired(int ask_time)
-*    show progress report when expired
+* void progress_stat_if_expired(void)
+*    show progress report if expired
 *
 * void report_new_vertex(int ask_time)
 *    report coordinates of the new vertex when requested; give 
@@ -173,9 +152,8 @@ static void progress_stat(void)
     report(R_txt,"\n");
 }
 
-static void progress_stat_if_expired(int ask_time)
+static void progress_stat_if_expired(void)
 {   if(PARAMS(ProgressReport)==0) return;
-    if(ask_time) gettime100();
     if(timenow-progresstime < progressdelay) return;
     progress_stat();
     flush_report();
@@ -183,7 +161,6 @@ static void progress_stat_if_expired(int ask_time)
 
 static void report_new_vertex(int ask_time)
 {int flush=0;
-    if(PARAMS(ProgressReport)==0 && !PARAMS(VertexReport)) return;
     if(PARAMS(ProgressReport)){
       if(ask_time){ gettime100(); ask_time=0; }
       if(timenow-progresstime >= progressdelay){
@@ -194,7 +171,7 @@ static void report_new_vertex(int ask_time)
     if(PARAMS(VertexReport)){
       if(ask_time) gettime100();
       report(R_txt,"[%8.2f] ",0.01*(double)timenow);
-      print_vertex(R_txt,(PARAMS(Direction) ? -1.0 : +1.0),VertexOracleData.overtex);
+      print_vertex(R_txt,OracleData.overtex);
       flush=1;
     }
     if(flush) flush_report();
@@ -264,7 +241,7 @@ static void dump_and_save(int how)
         if(partial) report(R_txt,"Partial list of vertices:\n");
         report(R_txt, "\n" DASHSEP "\n");
         print_vertices(R_txt);
-        if(partial && PARAMS(VertexPoolSize)>=5 ){
+        if(partial && PARAMS(VertexPoolSize) ){
             print_vertexpool_content(R_txt,"Additional vertices in the pool:");
         }
     }
@@ -274,6 +251,8 @@ static void dump_and_save(int how)
         print_facets(R_txt);
     }
     if(PARAMS(PrintStatistics)){ /* statistics, only if not quiet */
+      int oraclecalls,oraclerounds; unsigned long oracletime;
+      get_oracle_stat(&oraclecalls,&oraclerounds,&oracletime);
       report(R_txt,"\n" DASHSEP "\n"
       "Problem %s\n"
       " name                    %s\n"
@@ -293,7 +272,7 @@ static void dump_and_save(int how)
       PARAMS(SaveFacetFile) ? PARAMS(SaveFacetFile) : "",
       PARAMS(SaveFacetFile) ? "\n" : "",
       PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
-      vertex_num(), facet_num());
+      get_vertexnum(), get_facetnum());
       report(R_txt, " total time              %s\n",
          showtime(endtime)); 
       report(R_txt, DASHSEP "\nStatistics\n"
@@ -301,7 +280,7 @@ static void dump_and_save(int how)
       " oracle calls            %d\n"
       "   avg iterations/call   %s\n"
       " total oracle time       %s\n",
-      oraclecalls, readable((0.0001+get_oracle_rounds())/(0.0001+oraclecalls),0),
+      oraclecalls, readable((0.0001+oraclerounds)/(0.0001+oraclecalls),0),
       showtime(oracletime));
       report(R_txt,
       "Combinatorics\n"
@@ -334,14 +313,14 @@ static void dump_and_save(int how)
       dd_stats.facets_compressed_no,
       readable(dd_stats.avg_tests,2),readable(dd_stats.max_tests,3));
       if(PARAMS(MemoryReport)>0 || dd_stats.out_of_memory)
-         report_memory_usage(R_txt,1,"Memory allocation:");
+         report_memory_usage(R_txt,1,"Memory allocation");
       if(PARAMS(PrintParams))
-         show_parameters("Parameters with non-default values:\n");
+         show_parameters("Parameters with non-default values\n");
     } else {
         if(PARAMS(MemoryReport)>0 || dd_stats.out_of_memory)
-            report_memory_usage(R_txt,1,"\n" DASHSEP "\nMemory allocation:");
+            report_memory_usage(R_txt,1,"\n" DASHSEP "\nMemory allocation");
         if(PARAMS(PrintParams))
-            show_parameters(DASHSEP "\nParameters with non-default values:\n");
+            show_parameters(DASHSEP "\nParameters with non-default values\n");
     }
     partial = how<2 ? 0 : 1; // save data when consistent
     if(PARAMS(SaveVertices)>partial || (partial==0 && PARAMS(SaveVertexFile))){
@@ -349,10 +328,10 @@ static void dump_and_save(int how)
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
-          vertex_num(), facet_num());
+          get_vertexnum(), get_facetnum());
         if(how) report(R_savevertex,"C *** Partial list of vertices ***\n");
         print_vertices(R_savevertex);
-        if(how && PARAMS(VertexPoolSize)>=5 ){
+        if(how && PARAMS(VertexPoolSize) ){
             print_vertexpool_content(R_savevertex,"C *** Additional vertices in the pool ***");
         }
         report(R_savevertex,"\n");
@@ -362,7 +341,7 @@ static void dump_and_save(int how)
           "C vertices=%d, facets=%d\n\n",
           PARAMS(ProblemName), 
           PARAMS(ProblemRows), PARAMS(ProblemColumns), PARAMS(ProblemObjects),
-          vertex_num(), facet_num());
+          get_vertexnum(), get_facetnum());
         if(how) report(R_savefacet,"C *** Partial list of facets ***\n");
         print_facets(R_savefacet);
         report(R_savefacet,"\n");
@@ -380,6 +359,8 @@ static void dump_and_save(int how)
 *   
 * vertexpool_t vertexpool[VertexPoolSize]
 *   vertices known but not added yet to the approximation.
+*
+* int DIM  problem dimension
 *
 * int facets_recalculated
 *   TRUE just after calling recalculate_facets(); and set to FALSE
@@ -403,18 +384,16 @@ static void dump_and_save(int how)
 *   Return value:
 *     0:  there are no more facets
 *     1:  algorithm interrupted
-*     2:  unbounded
 *     4:  some error (oracle failed, computational error, etc)
-*     5:  facet was encountered before
-*     6:  next vertex is VertexOracleData.overtex[]
+*     5:  facet was encountered before (only when checkVertexPool=1)
+*     6:  next vertex found, it is in OracleData.overtex
 *     7:  memory or time limit exceeded
 *
-* int fill_vertexpool(int limit)
-*   fill the vertex pool, limiting unsuccessful oracle calles to limit.
-*   Return value:
+* int fill_vertexpool()
+*   fill the vertex pool limiting unsuccessful oracle calls. Return
+*   values:
 *     0:  pool is filled (maybe empty if no more vertex)
 *     1:  interrupt
-*     2:  problem unbounded
 *     4:  numerical error
 *     7:  memory or time limit exceeded
 *
@@ -422,7 +401,7 @@ static void dump_and_save(int how)
 *   finds the next vertex to be added to the approximating polytope.
 *   Without the vertex pool it returns next_vertex_coords().
 *   Otherwise returns the vertex with the largest probe_vertex(v)
-*   value. Returned values are the same as for next_vertex_coords().
+*   value. Returned value: 0,1,4,6,7; as for next_vertex_coords().
 */
 
 #define VertexPoolAfter	20  /* use vertexpool only after that many vertices */
@@ -436,20 +415,21 @@ typedef struct {
 
 static vertexpool_t *vertexpool=NULL;
 
-#define DIM	PARAMS(ProblemObjects) /* problem dimension */
-
 static int facets_recalculated=0;
 
-static int init_vertexpool(void) /* call only when DIM has been set */
+#define DIM		PARAMS(ProblemObjects) /* problem dimension */
+#define VERTEXPOOLSIZE	PARAMS(VertexPoolSize) /* size, =0 or >= 5 */
+
+static int init_vertexpool(void)
 {int i; double *pool;
-    if(PARAMS(VertexPoolSize)<5) return 0; // don't use it
-    vertexpool=malloc(PARAMS(VertexPoolSize)*sizeof(vertexpool_t));
-    pool=malloc(PARAMS(VertexPoolSize)*2*DIM*sizeof(double));
+    if(VERTEXPOOLSIZE==0) return 0; // don't use it
+    vertexpool=malloc(VERTEXPOOLSIZE*sizeof(vertexpool_t));
+    pool=malloc(VERTEXPOOLSIZE*2*DIM*sizeof(double));
     if(!vertexpool || !pool){
         report(R_fatal,"init_vertexpool: out of memory\n");
         return 1;
     }
-    for(i=0;i<PARAMS(VertexPoolSize);i++){
+    for(i=0;i<VERTEXPOOLSIZE;i++){
         vertexpool[i].occupied=0;
         vertexpool[i].coords=pool; pool+=DIM;
         vertexpool[i].facet=pool;  pool+=DIM;
@@ -458,12 +438,11 @@ static int init_vertexpool(void) /* call only when DIM has been set */
 }
 
 static void print_vertexpool_content(report_type where, const char *prompt)
-{int i; double dir;
-    dir= PARAMS(Direction) ? -1.0 : 1.0;
-    for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied){
+{int i;
+    for(i=0;i<VERTEXPOOLSIZE;i++) if(vertexpool[i].occupied){
         if(prompt){report(where,"\n%s\n",prompt); prompt=NULL; }
         report(where,"v ");
-        print_vertex(where,dir,vertexpool[i].coords);
+        print_vertex(where,vertexpool[i].coords);
     }
 }
 
@@ -484,28 +463,25 @@ again:
     if(limit_reached()) return 7; /* memory or time limit */
     // boot file
     while(nextline(&boottype)) if(boottype==1){ // V line
-        if(parseline(PARAMS(ProblemObjects),VertexOracleData.overtex)){
-            return 4; // error
+        if(parseline(DIM,OracleData.overtex)){
+            return 4; // data error
         }
-        memset(VertexOracleData.ofacet,0,DIM*sizeof(double));
-        return 6;
+        memset(OracleData.ofacet,0,DIM*sizeof(double));
+        return 6; // done
     }
-    j=get_next_facet(-1);
-    if(j<0) return 0; /* terminated successfully */
-    get_facet_into(j,VertexOracleData.ofacet);
-    if(checkVertexPool){ /* ask oracle only when not asked before */
-        for(i=0;i<PARAMS(VertexPoolSize);i++) if(vertexpool[i].occupied
-           && same_vec(vertexpool[i].facet,VertexOracleData.ofacet)){
+    j=get_next_facet(-1,OracleData.ofacet);
+    if(j<0) return 0; /* no more facets, thus no more vertices */
+    if(checkVertexPool){ /* check if the question is there */
+        for(i=0;i<VERTEXPOOLSIZE;i++) if(vertexpool[i].occupied
+           && same_vec(vertexpool[i].facet,OracleData.ofacet)){
             return 5;
         }
     }
-    if((i=ask_oracle_with_timer())!=0){ // error
-        return i==ORACLE_UNBND ? 2 : 4;
-    }
-    d=VertexOracleData.ofacet[DIM]; dd=0.0;
+    if(ask_oracle()) return 4; // oracle error
+    d=OracleData.ofacet[DIM]; dd=0.0;
     for(i=0;i<DIM;i++){
-        dd+= VertexOracleData.ofacet[i];
-        d+= VertexOracleData.ofacet[i]*VertexOracleData.overtex[i];
+        dd+= OracleData.ofacet[i];
+        d+= OracleData.ofacet[i]*OracleData.overtex[i];
     }
     d /= dd; // sum of facet coeffs is 1.0 
     if(PARAMS(PolytopeEps) < d){ /* numerical error */
@@ -513,14 +489,17 @@ again:
         if(facets_recalculated){
             pos_facet++;
             if(pos_facet<3){
-                report(R_warn,"New vertex is on positive side of facet %d (d=%lg), trying another facet ...\n",j,d);
+                report(R_warn,"New vertex is on positive side of facet %d (d=%lg), "
+                   "trying another facet ...\n",j,d);
                 dd_stats.instability_warning++;
                 goto again;
             }
-            report(R_fatal,"Numerical error: new vertex is on the positive side of facet %d (d=%lg)\n",j,d);
+            report(R_fatal,"Numerical error: new vertex is on the positive side of "
+                "facet %d (d=%lg)\n",j,d);
             return 4;
         }
-        report(R_warn,"New vertex is on the positive side of facet %d (d=%lg), recalculating facets ...\n",j,d);
+        report(R_warn,"New vertex is on the positive side of facet %d (d=%lg), reca"
+            "lculating facets ...\n",j,d);
         dd_stats.instability_warning++;
         recalculate_facets();
         if(dd_stats.out_of_memory || dd_stats.numerical_error){
@@ -531,52 +510,52 @@ again:
     }
     if(-PARAMS(PolytopeEps) < d){ /* vertex is on the facet */
         mark_facet_as_final(j);
-        report_new_facet(j);// progress_stat_if_expired(1);
+        report_new_facet(j); // calls progress_stat();
         goto again;
     }
-    return 6;
+    return 6;  // next vertex found
 }
 
-static int fill_vertexpool(int limit)
+static int fill_vertexpool(void)
 {int i,ii; int oracle_calls=0;
-    for(i=0;i<PARAMS(VertexPoolSize);i++)if(!vertexpool[i].occupied){
+    for(i=0;i<VERTEXPOOLSIZE;i++)if(!vertexpool[i].occupied){
         switch(next_vertex_coords(1)){
-      case 0: return 0; /* no more vertices, done */
-      case 1: return 1; /* break */
-      case 2: return 2; /* unbounded */
-      case 4: return 4; /* error */
-      case 7: return 7; /* memory or time limit */
-      case 5: break;    /* same facet encountered again, skip it */
-      default:
-              for(ii=0;ii<PARAMS(VertexPoolSize);ii++) if(vertexpool[ii].occupied
-                 && same_vec(VertexOracleData.overtex,vertexpool[ii].coords)) break;
-              if(ii==PARAMS(VertexPoolSize)){
-                  memcpy(vertexpool[i].coords,VertexOracleData.overtex,DIM*sizeof(double));
-                  memcpy(vertexpool[i].facet,VertexOracleData.ofacet,DIM*sizeof(double));
+      case 0:  return 0; /* no more vertices, done */
+      case 1:  return 1; /* break */
+      default: return 4; /* error */
+      case 5:  break;    /* query facet encountered again, skip it */
+      case 7:  return 7; /* memory or time limit */
+      case 6:            /* next vertex is in OracleData.overtex */
+              for(ii=0;ii<VERTEXPOOLSIZE;ii++) if(vertexpool[ii].occupied
+                 && same_vec(OracleData.overtex,vertexpool[ii].coords)) break;
+              if(ii==VERTEXPOOLSIZE){
+                  memcpy(vertexpool[i].coords,OracleData.overtex,DIM*sizeof(double));
+                  memcpy(vertexpool[i].facet,OracleData.ofacet,DIM*sizeof(double));
                   vertexpool[i].occupied=1;
-              } else { // got the same vertex; save the newer values
-                  memcpy(vertexpool[ii].coords,VertexOracleData.overtex,DIM*sizeof(double));
-                  memcpy(vertexpool[ii].facet,VertexOracleData.ofacet,DIM*sizeof(double));
+              } else { // got the same vertex; update to the newer value
+                  memcpy(vertexpool[ii].coords,OracleData.overtex,DIM*sizeof(double));
+                  memcpy(vertexpool[ii].facet,OracleData.ofacet,DIM*sizeof(double));
                   // and check how many unsuccessful calls we have made
                   oracle_calls++;
-                  if(limit && oracle_calls>=limit) return 0; // done
+                  if(PARAMS(OracleCallLimit)  && 
+                     oracle_calls>=PARAMS(OracleCallLimit)) return 0; // done
               }
-    }}
+        }
+    }
     return 0;
 }
 
 static int find_next_vertex(void)
 {int i,maxi,cnt; int w,maxw;
-    if(PARAMS(VertexPoolSize)<5 || ( dd_stats.vertexno < VertexPoolAfter &&
+    if(VERTEXPOOLSIZE==0 || ( dd_stats.vertexno < VertexPoolAfter &&
          dd_stats.facet_zero+dd_stats.facet_pos+dd_stats.facet_new < VertexPoolMinFacets)
-       )
-        return next_vertex_coords(0);
+      ) return next_vertex_coords(0);
     // fill the vertex pool
-    i=fill_vertexpool(PARAMS(OracleCallLimit));
+    i=fill_vertexpool();
     if(i) return i; // break or numerical error
-    /* find the weight of stored vertices */
+    /* find the score of stored vertices */
     maxi=-1; maxw=0; cnt=0;
-    for(i=0;i<PARAMS(VertexPoolSize);i++)if(vertexpool[i].occupied){
+    for(i=0;i<VERTEXPOOLSIZE;i++)if(vertexpool[i].occupied){
         cnt++;
         w=probe_vertex(vertexpool[i].coords);
         if(maxi<0 || maxw<w){ maxi=i; maxw=w; }
@@ -584,16 +563,15 @@ static int find_next_vertex(void)
     poolstat=cnt;
     if(maxi<0) return 0; // no more vertices
     vertexpool[maxi].occupied=0;
-    memcpy(VertexOracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
-    return 6; // next vertex is in VertexOracleData.overtex
+    memcpy(OracleData.overtex,vertexpool[maxi].coords,DIM*sizeof(double));
+    return 6; // next vertex is in OracleData.overtex
 }
 
-#undef DIM
 /**************************************************************************
 * The main loop of the algorithm
 * int inner(void)
 *   when it starts, all parameters in PARAMS have been set. The steps are
-*   o  read_vlp() reads in the the MOLP problem form a vlp file
+*   o  load_vlp() reads in the the MOLP problem form a vlp file
 *   o  check that output files are writable
 *   o  set_oracle_parameters() sets the oracle parameters
 *   o  the first direction to probe has all coordinates set to 1.0
@@ -612,13 +590,13 @@ static int find_next_vertex(void)
 *   Return values:
 *     0:  done
 *     1:  data error before start (no input/output file, syntax error)
-*     2:  problem unbounded
-*     3:  no solution
+*     2:  no solution
+*     3:  problem unbounded
 *     4:  computational error (filling vertex pool, initial data, out of memory)
 *     5-7: from break_inner()
 *
-* void report_error(int code)
-*   report error, code=2: problem unbounded, code=4: other error
+* void report_error(void)
+*   report out of memory or numerical error
 *
 * int break_inner(int how)
 *   when the inner routine is interrupted by the signal, this procedure
@@ -630,7 +608,7 @@ static int find_next_vertex(void)
 *     7:  postprocessing aborted
 *
 * int handle_new_vertex(void)
-*   the new vertex is in VertexOracleData.overtex; make reports, add as
+*   the new vertex is in OracleData.overtex; make reports, add as
 *   a new vertex by calling add_new_vertex(), take care of timed actions
 *   such as reports and checkpoints.
 *   Return values:
@@ -639,27 +617,26 @@ static int find_next_vertex(void)
 */
 
 /** Error report **/
-static void report_error(int code)
-{   if(code==2 && vertex_num()<1){ // initial error
-        report(R_fatal,"The MOLP problem is unbounded\n");
-        return;
-    }
-    gettime100();
+static void report_error(void)
+{   gettime100();
     report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices: %d, facets: %d\n",
         dd_stats.out_of_memory?"Out of memory":"Numerical error",
-        showtime(timenow), vertex_num(), facet_num());
-    if(dd_stats.out_of_memory) report_memory_usage(R_fatal,1,"Memory allocation table");
+        showtime(timenow), get_vertexnum(), get_facetnum());
+    if(dd_stats.out_of_memory) 
+        report_memory_usage(R_fatal,1,"Memory allocation table");
 }
 
 /** the main loop was interrupted; return 5, 6, 7 **/
 static int break_inner(int how)
 {int i,j; unsigned long aborttime; double d, dd;
     aborttime=gettime100(); dobreak=0;
-    if(how>0 && PARAMS(TimeLimit)>=60 && aborttime > 100ul*(unsigned long)PARAMS(TimeLimit))
+    if(how>0 && PARAMS(TimeLimit)>=60 && 
+                aborttime > 100ul*(unsigned long)PARAMS(TimeLimit))
       how=2;
     report(R_fatal,"\n\n" EQSEP "\n%s after %s, vertices: %d, facets: %d\n",
-      how==0 ? "Program run was interrupted" : how==1 ? "Memory limit reached" : "Time limit reached",
-      showtime(aborttime), vertex_num(), facet_num());
+      how==0 ? "Program run was interrupted" : 
+      how==1 ? "Memory limit reached" : "Time limit reached",
+      showtime(aborttime), get_vertexnum(), get_facetnum());
     if(!PARAMS(ExtractAfterBreak)) return 5; // normal termination
     // don't do if no need to extract data
     if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2 &&
@@ -672,51 +649,43 @@ static int break_inner(int how)
     // at least one of PrintVertices and SaveVertices should be set
     if(PARAMS(PrintVertices)<2 && PARAMS(SaveVertices)<2)
         PARAMS(PrintVertices)=2;
-    /* release adjacency lists */
+    /* release adjacency lists to save memory */
     free_adjacency_lists();
     /* get vertices from the pool */
-    if(PARAMS(VertexPoolSize)>=5){
-        for(j=0;j<PARAMS(VertexPoolSize);j++) if(vertexpool[j].occupied){
-            vertexpool[j].occupied=0;
-            if(store_vertex(vertexpool[j].coords)){
-                memcpy(VertexOracleData.overtex,vertexpool[j].coords,PARAMS(ProblemObjects)*sizeof(double));
-                report_new_vertex(1);
-            }
-        }
+    for(j=0;j<VERTEXPOOLSIZE;j++) if(vertexpool[j].occupied){
+        vertexpool[j].occupied=0;
+        memcpy(OracleData.overtex,vertexpool[j].coords,DIM*sizeof(double));
+        if(store_vertex(OracleData.overtex)) report_new_vertex(1);
     }
     /* search for new vertices by calling the oracle for all facets */
     j=-1;
-    while((j=get_next_facet(j+1))>=0){
+    while((j=get_next_facet(j+1,OracleData.ofacet))>=0){
+        gettime100();
         if(dobreak){
             dobreak=0;
-            if(gettime100()-aborttime>50){
+            if(timenow-aborttime>50){
                 report(R_fatal,"\n" EQSEP "\n"
                   "Post-processing was interrupted after %s\n",
                   showtime(timenow-aborttime));
                 return 7; // postprocess aborted
             }
         }
-        get_facet_into(j,VertexOracleData.ofacet);
-        if(ask_oracle_with_timer()){ // error
-            return 6; // error during postprocess
-        }
+        if(ask_oracle()) return 6; // error during postprocess
         // determine if this is a final facet or not
-#define DIM	PARAMS(ProblemObjects) /* problem dimension */
-        d=VertexOracleData.ofacet[DIM]; dd=0.0;
+        d=OracleData.ofacet[DIM]; dd=0.0;
         for(i=0;i<DIM;i++){
-            dd+= VertexOracleData.ofacet[i];
-            d+= VertexOracleData.ofacet[i]*VertexOracleData.overtex[i];
+            dd+= OracleData.ofacet[i];
+            d+= OracleData.ofacet[i]*OracleData.overtex[i];
         }
         d /= dd;
-#undef DIM
         if(-PARAMS(PolytopeEps) < d && d < PARAMS(PolytopeEps) )
             mark_facet_as_final(j);
         else
             clear_facet_as_living(j);
-        if(store_vertex(VertexOracleData.overtex))
+        if(store_vertex(OracleData.overtex))
             report_new_vertex(0);
         else
-            progress_stat_if_expired(0);
+            progress_stat_if_expired();
         if(dd_stats.out_of_memory && !PARAMS(VertexReport)){
             return 6; // error in postprocess
         }
@@ -727,9 +696,9 @@ static int break_inner(int how)
 static int handle_new_vertex(void)
 {   // progress report plus info about the new vertex
     report_new_vertex(0);
-    add_new_vertex(VertexOracleData.overtex);
+    add_new_vertex(OracleData.overtex);
     gettime100(); 
-    facetstat=1; progress_stat_if_expired(0);
+    facetstat=1; progress_stat_if_expired();
     if(dd_stats.out_of_memory || dd_stats.numerical_error){
         return 0; // error during computation
     }
@@ -771,14 +740,18 @@ inp_resume	/* vertices and facets form --resume */
 } input_type_t;
 
 int inner(void)
-{int i; int retvalue=0; input_type_t inp_type=inp_none;
+{int retvalue=0; input_type_t inp_type=inp_none;
     initialize_random(); // initialize random numbers
-    if(read_vlp()){ return 1; } // data error before start
+    if(load_vlp()){ return 1; } // data error before start
     if(check_outfiles()){ return 1;}
     if(PARAMS(BootFile)){ // we have a bootfile
         if(init_reading(PARAMS(BootFile))){ return 1; } // error
         inp_type=inp_boot;
     } else if(PARAMS(ResumeFile)){ // we have a resume file
+        if(DIM<2){
+            report(R_fatal,"Argument --resume on a 1-objective problem\n");
+            return 1;
+        }
         if(init_reading(PARAMS(ResumeFile))){ return 1; }
         inp_type=inp_resume;
     }
@@ -786,95 +759,85 @@ int inner(void)
        "C rows=%d, columns=%d, objectives=%d\n",
        PARAMS(ProblemName),PARAMS(Direction)?"maximize":"minimize",
        PARAMS(ProblemRows),PARAMS(ProblemColumns),PARAMS(ProblemObjects));
-    set_oracle_parameters();
     gettime100(); // initialize elapsed time, reading vlp not included
-    if(init_vertexpool()){ return 1; } // fatal error
-#ifdef USETHREADS
-    if(create_threads()) return 1; // error
-#endif
-    progressdelay = 100*(unsigned long)PARAMS(ProgressReport);
-    chkdelay = 100*(unsigned long)PARAMS(CheckPoint);
-#define DIM	PARAMS(ProblemObjects) /* problem dimension */
-    if(inp_type==inp_boot){ // read first vertex from bootfile
+    if(init_vertexpool()) return 1; // fatal error
+    progressdelay = 100ul*(unsigned long)PARAMS(ProgressReport);
+    chkdelay = 100ul*(unsigned long)PARAMS(CheckPoint);
+    switch(initialize_oracle()){
+      case ORACLE_OK:    break;     // OK, a vertex is in OracleData.overtex
+      case ORACLE_UNBND: return 3;  // problem unbounded
+      case ORACLE_EMPTY: return 2;  // no feasible solution
+      default:           return 4;  // other oracle error, message given
+    }
+    if(inp_type==inp_boot){ // read vertices from the bootfile
        int linetype=0;
        while(nextline(&linetype) && linetype!=1); // next V line
        if(linetype!=1){ // error
            report(R_fatal,"No vertex line was found in boot file %s\n",PARAMS(BootFile));
-           retvalue=1; goto leave;
+           return 1;
        }
-       if(parseline(DIM,VertexOracleData.overtex)){
-           retvalue=1; goto leave; // error
-       }
-       report_new_vertex(1); // take care of reporting
-       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=1; goto leave; }
-    } else if(inp_type==inp_resume){ // resume an earlier computation
+       if(parseline(DIM,OracleData.overtex)) return 1; // error
+       if(init_dd_structure(0,0)) return 1;
+       report_new_vertex(0); // report the first vertex read
+       init_dd(OracleData.overtex);
+    } else if(inp_type==inp_resume){ // read a complete polytope
        int linetype=0; double args[5];
        if(! nextline(&linetype) || linetype!= 4 || parseline(5,&args[0]) ){
-           report(R_fatal,"Argument line is missing from the resume file %s\n",PARAMS(ResumeFile));
-           retvalue=1; goto leave;
+           report(R_fatal,"Resume file \"%s\": missing N argument line\n",
+               PARAMS(ResumeFile));
+           return 1;
        }
        // rows, columns, objects
        if(args[2]!=(double)PARAMS(ProblemRows) ||
           args[3]!=(double)PARAMS(ProblemColumns) ||
           args[4]!=(double)PARAMS(ProblemObjects)) {
-           report(R_fatal,"Resume file %s belongs to a different MOLP problem\n",PARAMS(ResumeFile));
-           retvalue=1; goto leave; 
+           report(R_fatal,"Resume file \"%s\" belongs to a different MOLP problem\n",
+               PARAMS(ResumeFile));
+           return 1;
        }
-       if(init_dd_structure(DIM,(int)args[0],(int)args[1])){
-           retvalue=1; goto leave;
-       }
-       // read the resume file
-       while(nextline(&linetype)) switch(linetype){
+       if(init_dd_structure((int)args[0],(int)args[1])) return 1;
+       // read the initial approximation
+       while(nextline(&linetype)){ switch(linetype){
          case 1:   // V line
-            if(parseline(DIM,VertexOracleData.overtex) || 
-               initial_vertex(VertexOracleData.overtex)){
-                retvalue=1; goto leave; // error
-            }
+            if(parseline(DIM,OracleData.overtex) || 
+               add_initial_vertex(OracleData.overtex)) return 1;
             break;
          case 2:   // F line
-            if(parseline(DIM+1,VertexOracleData.ofacet) ||
-               initial_facet(1,VertexOracleData.ofacet)){
-                retvalue=1; goto leave; // error
-            }
+            if(parseline(DIM+1,OracleData.ofacet) ||
+               add_initial_facet(1,OracleData.ofacet)) return 1;
             break;
          case 3:   // f line
-            if(parseline(DIM+1,VertexOracleData.ofacet) ||
-               initial_facet(0,VertexOracleData.ofacet)){
-                retvalue=1; goto leave; // error
-            }
+            if(parseline(DIM+1,OracleData.ofacet) ||
+               add_initial_facet(0,OracleData.ofacet)) return 1;
             break;
          default:  // ignore
             break;
+       }}
+       if(check_bitmap_consistency()){
+           report(R_fatal,"Resume file \"%s\": inconsistent data\n",PARAMS(ResumeFile));
+           return 1;
        }
-       gettime100(); // set elapsed time
-       if(PARAMS(ProgressReport)){ progress_stat(); flush_report(); }
-       if(PARAMS(VertexPoolSize)>=5 && fill_vertexpool(0)){
-          report(R_fatal,"Error while filling the vertex pool\n");
-          retvalue=4; goto leave;
-       }
-    } else { // inp_type==inp_none
-       // first vertex, all directions are 1.0
-       for(i=0;i<DIM;i++) VertexOracleData.ofacet[i]=1.0;
-       if((i=ask_oracle_with_timer())!=0){
-           report(R_fatal,"Error getting the first optimal solution.\n");
-           retvalue= i==ORACLE_UNBND ? 2:
-                     i==ORACLE_EMPTY ? 3: 4;
-           goto leave;
-       }
+    } else { // create initial approximation
+       if(init_dd_structure(0,0)) return 1;
+       // first vertex in OracleData.overtex was created by initialize_oracle()
        report_new_vertex(0); // take care of reporting
-       if(init_dd(DIM,VertexOracleData.overtex)){ retvalue=4; goto leave; }
+       init_dd(OracleData.overtex);
     }
     if(DIM<2){
+        /* if inp_type=inp_resume, a polytope = half line was read.
+           we should take the minimum of this and OracleData.overtex */
         PARAMS(PrintFacets)=0;
         PARAMS(SaveFacets)=0;
         dump_and_save(0); // done
-        retvalue=0;
-        goto leave;
+        return 0;
     }
+#ifdef USETHREADS
+    if(create_threads()) return 1; // error
+#endif
     chktime=gettime100(); // last checktime
 again:
     gettime100(); // set elapsed time
-    if(dodump){ // the data is consistent, request for a dump
+    if(dodump){ // request for a dump
         dodump=0;
         report(R_info,"I%08.2f] Dumping vertices and facets\n",0.01*(double)timenow);
         make_dump();
@@ -882,35 +845,27 @@ again:
     // make checkpoint if expired
     if(PARAMS(CheckPointStub) && chktime+chkdelay<=timenow){
         chktime=timenow;
-        report(R_info,"I%08.2f] Checkpoint: dumping vertices and facets\n",0.01*(double)chktime);
+        report(R_info,"I%08.2f] Checkpoint: dumping vertices and facets\n",
+            0.01*(double)chktime);
         make_checkpoint(); 
     }
     switch(find_next_vertex()){
       case 0: // no more vertices
-        dump_and_save(0); // done
-        retvalue=0; goto leave; // terminated normally
+        dump_and_save(0); retvalue=0; goto leave; // terminated normally
       case 1: // break
         retvalue=break_inner(0);
-        dump_and_save(3);
-        goto leave;
-      case 2: // problem unbounded, can be numerical error as well
-        report_error(2);
-        dump_and_save(2);
-        retvalue=2; goto leave;
+        dump_and_save(3); goto leave;
       case 4: // numerical error
-        report_error(4);
-        dump_and_save(2);
-        retvalue=4; goto leave; // error during computation
+        report_error();
+        dump_and_save(2); retvalue=4; goto leave;
       case 7: // memory or time limit
         retvalue=break_inner(1);
-        dump_and_save(3);
-        goto leave;
+        dump_and_save(3); goto leave;
       default: // next vertex returned
         if(handle_new_vertex()) goto again;
         dump_and_save(dd_stats.data_is_consistent? 1 : 2);
         retvalue=4; goto leave;
     }
-#undef DIM
 leave:
 #ifdef USETHREADS
     stop_threads();

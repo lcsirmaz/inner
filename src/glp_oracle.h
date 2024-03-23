@@ -22,68 +22,60 @@
 
 /**********************************************************************
 * 
-* VertexOracleData: struct containing problem dimensions, the question
-*    to be asked from the oracle, and the answer it returns. The structure
-*    is allocated by read_vlp(), and never released.
+* struct OracleData
+*    contains the question to be asked from the oracle and the answer
+*    returned. It is allocated by load_vlp(), and never released.
+*
+* int load_vlp()
+*    read the polytope description from a vlp file, store problem
+*    dimensions in PARAMS(), create the glpk LP problem instance.
+*    Return values:
+*      0: file read, memory allocated, glpk LP object initialized
+*      1: some error (syntax error, out of bound values, no memory);
+*         errors are reported as R_fatal. The vlp file might be left
+*         open. The program should abort, no way to recover
 */
 
 typedef struct {
     double *ofacet;		/* ofacet[0..objs-1] the request */
     double *overtex;		/* overtex[0..objs-1] the response */
-} VertexOracle_t;
+} OracleData_t;
 
-extern VertexOracle_t VertexOracleData;
-
-/**********************************************************************
-* read_vlp: read the polytope description from a vlp file. Store 
-*   dimensions in VertexOracleData. Create the LP problem instance.
-* int read_vlp(void)
-*  Return value:
-*    0: file read, memory allocated, glpk LP object initialized
-*    1: some error (syntax error, out of bound values, no memory);
-*      errors are reported as R_fatal. The vlp file might be left
-*      open. The program should abort, no way to recover.
-*
-* set_oracle_parameters: set the parameters of the LP solver from
-*   the configuration (primal/dual, time bound, verbosity, etc)
-* void set_oracle_parameters(void)
-*
-*/
-int read_vlp(void);
-
-void set_oracle_parameters(void);
+extern OracleData_t OracleData;
+int load_vlp(void);
 
 /**********************************************************************
-* Ask the oracle
+* Oracle manipulation
+*
+* int initialize_oracle(void)
+*    check the consistency of the vlp problem; compute an initial
+*    vertex to OracleData.overtex. Return values:
+*      ORACLE_OK     success
+*      ORACLE_UNBND  problem is unbounded in some object direction
+*      ORACLE_EMPTY  no feasible soultion
+*      ORACLE_FAIL   other error condition (limit reached, solver failed)
 *
 * int ask_oracle(void)
-*    the question and the answer is provided in VertexOracleData.
-*
-* Return values:
-*   ORACLE_OK     the minimal vertex is stored in VertexOracleData,
-*                 coordinates are rounded to the nearest rational value
-*                 when "RoundVertices" is set.
-*   ORACLE_UNBND  the polytope is not bounded from below
-*   ORACLE_EMPTY  the polytope is empty (no feasible solution)
-*   ORACLE_LIMIT  either time or iteration limit is reached
-*   ORACLE_FAIL   the LP solver failed to solve the problem
+*    the question and the answer is provided in OracleData. Return:
+*      ORACLE_OK     success
+*      other         some error (limit reached, error, etc)
 */
 #define ORACLE_OK	0
 #define ORACLE_UNBND	1	/* the projection is unbounded */
 #define ORACLE_EMPTY	2	/* the polytope is empty */
-#define ORACLE_LIMIT	3	/* iteration or time limit reached */
-#define ORACLE_FAIL	4	/* the oracle failed */
+#define ORACLE_FAIL	3	/* the oracle failed */
 
+int initialize_oracle(void);
 int ask_oracle(void);
 
 /**********************************************************************
-* Get LP solver iterations
+* Get oracle statistics
 *
-* int get_oracle_rounds()
-*    how many iterations (rounds) the LP solver did to solve this
-*    particular problem. 
+* void get_oracle_stat(&callno, &roundno, &time)
+*    return the number of oracle calls, total number of iterations,
+*    and the used time in 0.01 seconds.
 */
-int get_oracle_rounds(void);
+void get_oracle_stat(int *callno,int *roundno,unsigned long *time);
 
 /* EOF */
 

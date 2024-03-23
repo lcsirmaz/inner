@@ -82,6 +82,9 @@ struct params_t GlobalParams;
 *    dump a config file with the default values
 */
 
+static void dump_config(void)
+{
+
 #define CFG(x,y)   " " #x " = " mkstringof(DEF_##x) "   # " y "\n"
 
 #define BOOL	"0 = no, 1 = yes"
@@ -90,191 +93,189 @@ struct params_t GlobalParams;
 #define POSINT	"positive integer"
 #define REAL	"positive real number"
 
-
-#define DEFAULT_CONFIG_FILE	\
-"# " PROGNAME ".cfg -- configuration file for the program " PROGNAME "\n"\
-"\n"\
-"# This file defines different parameters of the MOLP solver. Values\n"\
-"# defined here are superseded by command line options. Unspecified\n"\
-"# keywords take their default values.\n"\
-"# In this file everything after a # symbol is ignored.\n"\
-"\n"\
-"##########################\n"\
-"#  ALGORITHM parameters  #\n"\
-"##########################\n"\
-"#\n"\
-CFG( RandomFacet, BOOL)  \
-"#    pick the next facet to be asked the oracle about randomly.\n"\
-"#\n"\
-CFG( ExactFacetEq, BOOL) \
-"#    when a facet is created, recompute its equation immediately\n"\
-"#    from the set of adjacent vertices.\n"\
-"#\n"\
-CFG( RecalculateFacets, INTEGER) \
-"#    after that many iterations recalculate all facet equations\n"\
-"#    from the set of adjacent vertices. Should be zero (never),\n"\
-"#    or at least 5.\n"\
-"#\n"\
-CFG( CheckConsistency, INTEGER) \
-"#    after that many iterations check the consistency of the data\n"\
-"#    structure against numerical errors. Should be zero (never),\n"\
-"#    or at least 5.\n"\
-"#\n"\
-CFG( ExtractAfterBreak, BOOL) \
-"#    when the program receives a " mkstringof(INNER_SIGNAL) " signal, continue extracting\n"\
-"#    new vertices by asking the oracle about every facet of the\n"\
-"#    actual approximating polyhedron. Can be very time consuming.\n"\
-"#    Second signal aborts post-processing.\n"\
-"#\n"\
-CFG( MemoryLimit, INTEGER) \
-"#    upper limit for memory allocation, in Mbytes. When reaching this limit,\n"\
-"#    stop processing as if received a "  mkstringof(INNER_SIGNAL) " signal. Zero means\n"\
-"#    unlimited; otherwise it must be at least 100.\n"\
-"#\n"\
-CFG( TimeLimit, INTEGER ) \
-"#    upper limit for running time in seconds. When reaching this limit, stop\n"\
-"#    processing as if received a " mkstringof(INNER_SIGNAL) " signal. Zero means unlimited,\n"\
-"#    otherwise should be at least 60.\n"\
-"#\n"\
-CFG( VertexPoolSize, INTEGER) \
-"#    size of the vertex pool; add the vertex to the approximation\n"\
-"#    which discards the largest number of existing facets. Should\n"\
-"#    be zero (don't use it) or at least 5. Using vertex pool makes\n"\
-"#    additional oracle calls, but can simplify the approximating\n"\
-"#    polytopes. See OracleCallLimit. Should be less than " mkstringof(MAX_VERTEX_POOL) ".\n"\
-"#\n"\
-CFG( CheckPoint, POSINT ", at least 500" ) \
-"#    frequency (in seconds) for creating checkpoint files when the\n"\
-"#    option -oc <filestub> is given. The filename is got by appending\n"\
-"#    NNN.chk to the filestub, where NNN starts as 000 and increases\n"\
-"#    by one. The computation can be resumed from a checkpoint file by\n"\
-"#    calling the program with the --resume=<checkpoint-file> option.\n"\
-"#\n"\
-CFG( OracleCallLimit, INTEGER ) \
-"#    the maximal number of unsuccessful oracle calls during an\n"\
-"#    iteration when filling the vertex pool. Zero means no limit;\n"\
-"#    otherwise should be less than " mkstringof(MAX_OCALL_LIMIT)  ".\n"\
-"#\n"\
-CFG( Threads, INTEGER) \
-"#    number of threads to use; should be less than " mkstringof(MAX_THREADS) ". Zero means\n"\
-"#    use as many as are available; 1 means don't use threads.\n"\
-"#\n"\
-"##########################\n"\
-"#   ORACLE parameters    #\n"\
-"##########################\n"\
-"#\n"\
-CFG( OracleMessage, "0 = quiet, 1 = error, 2 = on, 3 = verbose") \
-"#    oracle (glpk) message level.\n"\
-"#\n"\
-CFG( OracleMethod, "0 = primal, 1 = dual") \
-"#    the LP method used by the oracle.\n"\
-"#\n"\
-CFG( OraclePricing, "0 = standard, 1 = steepest edge") \
-"#    the LP pricing method.\n"\
-"#\n"\
-CFG( OracleRatioTest, "0 = standard, 1 = Harris' two pass") \
-"#    the LP ratio test.\n"\
-"#\n"\
-CFG( OracleTimeLimit, INTEGER) \
-"#    time limit for each oracle call in seconds, 0 = unlimited.\n"\
-"#\n"\
-CFG( OracleItLimit, INTEGER) \
-"#    iteration limit for each oracle call, 0 = unlimited.\n"\
-"#\n"\
-CFG( OracleScale, BOOL) \
-"#    scale the constraint matrix; helps numerical stability.\n"\
-"#\n"\
-CFG( ShuffleMatrix, BOOL) \
-"#    shuffle the rows and columns of the constraint matrix randomly.\n"\
-"#\n"\
-CFG( RoundVertices, BOOL) \
-"#    when the oracle reports a result vertex, round its coordinates\n"\
-"#    to the nearest rational with small denominator.\n"\
-"#\n"\
-"##########################\n"\
-"#       REPORTING        #\n"\
-"##########################\n"\
-"#\n"\
-CFG( MessageLevel, "0 = quiet, 1 = error, 2 = all, 3 = verbose")\
-"#    report level, quiet means no messages at all. Command line\n"\
-"#    option -m[0..3] overrides this value.\n"\
-"#\n"\
-CFG( ProgressReport, INTEGER) \
-"#    minimum time between two progress reports (in seconds). Should\n"\
-"#    be zero (no progress report), or at least 5. Use command line\n"\
-"#    option -p <seconds> to override this value.\n"\
-"#\n"\
-CFG( VertexReport, BOOL) \
-"#    print out each vertex (extremal solution) immediately as it is\n"\
-"#    found. Use command line option -y+ (yes) or -y- (no) to override\n"\
-"#    the value defined here.\n"\
-"#\n"\
-CFG( FacetReport, BOOL) \
-"#    print out final facets immediately.\n"\
-"#\n"\
-CFG( MemoryReport, "0 = never, 1 = at the end, 2 = always") \
-"#    report the size and location, whenever it changes, of memory\n"\
-"#    blocks storing the data structure.\n"\
-"#\n"\
-CFG( VertexAsFraction, BOOL) \
-"#    if possible, print (and save) vertex coordinates as fractions\n"\
-"#    rather than floating point numerals.\n"\
-"#\n"\
-CFG( PrintStatistics, BOOL) \
-"#    print out resources used (number of iterations, ridge tests, etc.)\n"\
-"#\n"\
-CFG( PrintParams, BOOL) \
-"#    print out parameter values which are not the default ones.\n"\
-"#\n"\
-CFG( PrintVertices, BOOL2) \
-"#    print out all known vertices when the program terminates.\n"\
-"#\n"\
-CFG( PrintFacets, BOOL2) \
-"#    print out all known facets when the program terminates.\n"\
-"#\n"\
-CFG( SaveVertices, BOOL2) \
-"#    when the program terminates save known vertices to the file\n"\
-"#    specified after the command line option '-o'. For the file\n"\
-"#    specified after '-ov' both 0 and 1 means \"save on normal\n"\
-"#    exit only\".\n"\
-"#\n"\
-CFG( SaveFacets, BOOL2) \
-"#    when the program terminates save known facets to the file\n"\
-"#    specified after command line options '-o'. For the file\n"\
-"#    specified after '-of' both 0 and 1 means \"save on normal\n"\
-"#    exit only\".\n"\
-"#\n"\
-"##########################\n"\
-"#       TOLERANCES       #\n"\
-"##########################\n"\
-"#\n"\
-"#  >>> Change these values with great care ...      <<<\n"\
-"#  >>> ... and don't forget to delete the leading # <<<\n"\
-"#\n"\
-"#" CFG( PolytopeEps, REAL) \
-"#    a facet and a vertex are considered adjacent if their distance\n"\
-"#    is smaller than this value.\n"\
-"#\n"\
-"#" CFG( ScaleEps, REAL) \
-"#    coefficients in the scaled facet equation are rounded to the\n"\
-"#    nearest integer if they are closer to it than this value.\n"\
-"#\n"\
-"#" CFG( LineqEps, REAL) \
-"#    when solving a system of linear equations for a facet equation,\n"\
-"#    a coefficient smaller than this is considered to be zero.\n"\
-"#\n"\
-"#" CFG( RoundEps, REAL) \
-"#    if Oracle vertex reports are rounded (RoundVertices=1), the\n"\
-"#    tolerance in the rounding algorithm.\n"\
-"#\n"\
-"#" CFG( FacetRecalcEps, REAL) \
-"#    when recalculating facet equations, report numerical instability\n"\
-"#    if the new and old coordinates differ at least that much.\n"\
-"#\n"\
-"# *** end of " PROGNAME ".cfg ***\n\n"
-
-static void dump_config(void)
-{     printf("%s", DEFAULT_CONFIG_FILE); }
+static const char *default_config_file=
+"# " PROGNAME ".cfg -- configuration file for the program " PROGNAME "\n"
+"\n"
+"# This file defines different parameters of the MOLP solver. Values\n"
+"# defined here are superseded by command line options. Unspecified\n"
+"# keywords take their default values.\n"
+"# In this file everything after a # symbol is ignored.\n"
+"\n"
+"##########################\n"
+"#  ALGORITHM parameters  #\n"
+"##########################\n"
+"#\n"
+CFG( RandomFacet, BOOL)
+"#    pick the next facet to be asked the oracle about randomly.\n"
+"#\n"
+CFG( ExactFacetEq, BOOL)
+"#    when a facet is created, recompute its equation immediately\n"
+"#    from the set of adjacent vertices.\n"
+"#\n"
+CFG( RecalculateFacets, INTEGER)
+"#    after that many iterations recalculate all facet equations\n"
+"#    from the set of adjacent vertices. Should be zero (never),\n"
+"#    or at least 5.\n"
+"#\n"
+CFG( CheckConsistency, INTEGER)
+"#    after that many iterations check the consistency of the data\n"
+"#    structure against numerical errors. Should be zero (never),\n"
+"#    or at least 5.\n"
+"#\n"
+CFG( ExtractAfterBreak, BOOL)
+"#    when the program receives a " mkstringof(INNER_SIGNAL) " signal, continue extracting\n"
+"#    new vertices by asking the oracle about every facet of the\n"
+"#    actual approximating polyhedron. Can be very time consuming.\n"
+"#    Second signal aborts this post-processing.\n"
+"#\n"
+CFG( MemoryLimit, INTEGER)
+"#    upper limit for memory allocation, in Mbytes. When reaching this limit,\n"
+"#    stop processing as if received a "  mkstringof(INNER_SIGNAL) " signal. Zero\n"
+"#    means unlimited; otherwise it must be at least 100.\n"
+"#\n"
+CFG( TimeLimit, INTEGER )
+"#    upper limit for running time in seconds. When reaching this limit, stop\n"
+"#    processing as if received a " mkstringof(INNER_SIGNAL) " signal. Zero means\n"
+"#    unlimited, otherwise should be at least 60.\n"
+"#\n"
+CFG( VertexPoolSize, INTEGER)
+"#    size of the vertex pool; add the vertex to the approximation\n"
+"#    which discards the largest number of existing facets. Should\n"
+"#    be zero (don't use it) or at least 5. Using vertex pool makes\n"
+"#    additional oracle calls, but can simplify the approximating\n"
+"#    polytopes. See OracleCallLimit. Should be less than " mkstringof(MAX_VERTEX_POOL) ".\n"
+"#\n"
+CFG( CheckPoint, POSINT ", at least 500" )
+"#    frequency (in seconds) for creating checkpoint files when the\n"
+"#    option -oc <filestub> is given. The filename is got by appending\n"
+"#    NNN.chk to the filestub, where NNN starts as 000 and increases\n"
+"#    by one. The computation can be resumed from a checkpoint file by\n"
+"#    calling the program with the --resume=<checkpoint-file> option.\n"
+"#\n"
+CFG( OracleCallLimit, INTEGER )
+"#    the maximal number of unsuccessful oracle calls during an\n"
+"#    iteration when filling the vertex pool. Zero means no limit;\n"
+"#    otherwise should be less than " mkstringof(MAX_OCALL_LIMIT)  ".\n"
+"#\n"
+#ifdef USETHREADS
+CFG( Threads, INTEGER)
+"#    number of threads to use; should be less than " mkstringof(MAX_THREADS) ". Zero means\n"
+"#    use as many as are available; 1 means don't use threads.\n"
+"#\n"
+#endif
+"##########################\n"
+"#   ORACLE parameters    #\n"
+"##########################\n"
+"#\n"
+CFG( OracleMessage, "0 = quiet, 1 = error, 2 = on, 3 = verbose")
+"#    oracle (glpk) message level.\n"
+"#\n"
+CFG( OracleMethod, "0 = primal, 1 = dual")
+"#    the LP method used by the oracle.\n"
+"#\n"
+CFG( OraclePricing, "0 = standard, 1 = steepest edge")
+"#    the LP pricing method.\n"
+"#\n"
+CFG( OracleRatioTest, "0 = standard, 1 = Harris' two pass")
+"#    the LP ratio test.\n"
+"#\n"
+CFG( OracleTimeLimit, INTEGER)
+"#    time limit for each oracle call in seconds, 0 = unlimited.\n"
+"#\n"
+CFG( OracleItLimit, INTEGER)
+"#    iteration limit for each oracle call, 0 = unlimited.\n"
+"#\n"
+CFG( OracleScale, BOOL)
+"#    scale the constraint matrix; helps numerical stability.\n"
+"#\n"
+CFG( ShuffleMatrix, BOOL)
+"#    shuffle the rows and columns of the constraint matrix randomly.\n"
+"#\n"
+CFG( RoundVertices, BOOL)
+"#    when the oracle reports a result vertex, round its coordinates\n"
+"#    to the nearest rational with small denominator.\n"
+"#\n"
+"##########################\n"
+"#       REPORTING        #\n"
+"##########################\n"
+"#\n"
+CFG( MessageLevel, "0 = quiet, 1 = error, 2 = all, 3 = verbose")
+"#    report level, quiet means no messages at all. Command line\n"
+"#    option -m[0..3] overrides this value.\n"
+"#\n"
+CFG( ProgressReport, INTEGER)
+"#    minimum time between two progress reports (in seconds). Should\n"
+"#    be zero (no progress report), or at least 5. Use command line\n"
+"#    option -p <seconds> to override this value.\n"
+"#\n"
+CFG( VertexReport, BOOL)
+"#    print out each vertex (extremal solution) immediately as it is\n"
+"#    found. Use command line option -y+ (yes) or -y- (no) to override\n"
+"#    the value defined here.\n"
+"#\n"
+CFG( FacetReport, BOOL)
+"#    print out final facets immediately.\n"
+"#\n"
+CFG( MemoryReport, "0 = never, 1 = at the end, 2 = always")
+"#    report the size and location, whenever it changes, of memory\n"
+"#    blocks storing the data structure.\n"
+"#\n"
+CFG( VertexAsFraction, BOOL)
+"#    if possible, print (and save) vertex coordinates as fractions\n"
+"#    rather than floating point numerals.\n"
+"#\n"
+CFG( PrintStatistics, BOOL)
+"#    print out resources used (number of iterations, ridge tests, etc.)\n"
+"#\n"
+CFG( PrintParams, BOOL)
+"#    print out parameter values which are not the default ones.\n"
+"#\n"
+CFG( PrintVertices, BOOL2)
+"#    print out all known vertices when the program terminates.\n"
+"#\n"
+CFG( PrintFacets, BOOL2)
+"#    print out all known facets when the program terminates.\n"
+"#\n"
+CFG( SaveVertices, BOOL2)
+"#    when the program terminates save known vertices to the file\n"
+"#    specified after the command line option '-o'. For the file\n"
+"#    specified after '-ov' both 0 and 1 means \"save on normal\n"
+"#    exit only\".\n"
+"#\n"
+CFG( SaveFacets, BOOL2)
+"#    when the program terminates save known facets to the file\n"
+"#    specified after command line options '-o'. For the file\n"
+"#    specified after '-of' both 0 and 1 means \"save on normal\n"
+"#    exit only\".\n"
+"#\n"
+"##########################\n"
+"#       TOLERANCES       #\n"
+"##########################\n"
+"#\n"
+"#  >>> Change these values with great care ...      <<<\n"
+"#  >>> ... and don't forget to delete the leading # <<<\n"
+"#\n"
+"#" CFG( PolytopeEps, REAL)
+"#    a facet and a vertex are considered adjacent if their distance\n"
+"#    is smaller than this value.\n"
+"#\n"
+"#" CFG( ScaleEps, REAL)
+"#    coefficients in the scaled facet equation are rounded to the\n"
+"#    nearest integer if they are closer to it than this value.\n"
+"#\n"
+"#" CFG( LineqEps, REAL)
+"#    when solving a system of linear equations for a facet equation,\n"
+"#    a coefficient smaller than this is considered to be zero.\n"
+"#\n"
+"#" CFG( RoundEps, REAL)
+"#    if Oracle vertex reports are rounded (RoundVertices=1), the\n"
+"#    tolerance in the rounding algorithm.\n"
+"#\n"
+"#" CFG( FacetRecalcEps, REAL)
+"#    when recalculating facet equations, report numerical instability\n"
+"#    if the new and old coordinates differ at least that much.\n"
+"#\n"
+"# *** end of " PROGNAME ".cfg ***\n\n";
 
 #undef CFG
 #undef BOOL
@@ -282,7 +283,9 @@ static void dump_config(void)
 #undef INTEGER
 #undef POSINT
 #undef REAL
-#undef DEFAULT_CONFIG_FILE
+
+     printf("%s", default_config_file); }
+
 
 /***********************************************************************
 * Help routines
@@ -351,6 +354,7 @@ static void topic_help(void) {printf(
 "  input      MOLP problem description\n"
 "  output     how to interpret the results\n"
 "  exit       exit values\n"
+"  config     the default config file\n"
 "  signal     create snapshot file; stop the algorithm\n"
 "  checkpoint create checkpoint files regularly\n"
 "  resume     resume computation from a checkpoint or snapshot\n"
@@ -527,7 +531,7 @@ static void version(void) {printf(
 "This is '" PROGNAME "' " VERSION_STRING ", a multiobjective linear program solver,\n"
 "using a patched version of glpk " mkstringof( GLP_MAJOR_VERSION.GLP_MINOR_VERSION)
 " (GNU Linear Programming Kit).\n"
-"The algorithm is discussed in https://arxiv.org/pdf/1808.01786\n"
+"The algorithm is described in https://arxiv.org/pdf/1808.01786\n"
 COPYRIGHT "\n"
 );}
 
@@ -604,7 +608,7 @@ static struct int_params {
   CFG(Threads,0,MAX_THREADS),
   CFG(OracleCallLimit,0,MAX_OCALL_LIMIT),
   CFG(OracleItLimit,10,10000000),
-  CFG(OracleTimeLimit,1,1000000),
+  CFG(OracleTimeLimit,0,1000000),
   {NULL,NULL,0,0,0,0}
 };
 
@@ -650,7 +654,7 @@ static int treat_keyword(const char *line)
  }{struct int_params *p; int val; char c;// integer params
     for(p=&INT_PARAMS[0];p->format;p++){
         if(sscanf(line,p->format,&val,&c)==1){
-            if(val<p->min || val > p->max) return -1;
+            if(val!=0 && ( val<p->min || val > p->max)) return -1;
             if(!p->filled){ p->filled=1; *(p->ptr)=val; }
             return 1;
         }
@@ -790,7 +794,6 @@ static int handle_options(int argc, const char *argv[])
     }
     if(strcmp (argv[1],"--version")==0){version(); return 1;}
     if(strcmp (argv[1],"--dump")==0){ dump_config(); return 1;}
-    if(strcmp (argv[1],"--help=")==0) { topic_help(); return 1; }
     if(strcmp (argv[1],"--help=vlp")==0){ vlp_help(); return 1; }
     if(strncmp(argv[1],"--help=in",9)==0){ vlp_help(); return 1; }
     if(strncmp(argv[1],"--help=out",10)==0){ out_help(); return 1; }
@@ -818,6 +821,8 @@ static int handle_options(int argc, const char *argv[])
             PARAMS(BootFile)=argv[c]+7;
         } else if(strncmp(argv[c],"--resume=",9)==0){
             PARAMS(ResumeFile)=argv[c]+9;
+        } else if(strncmp(argv[c],"--help=",7)==0){
+            topic_help(); return 1;
         } else { // --KEYWORD=value
             int r=treat_keyword(argv[c]+2);
             if(r==-1){

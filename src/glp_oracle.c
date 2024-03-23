@@ -16,7 +16,7 @@
 * "patched" version of glpk (Gnu Linear Program Kit), which allows to 
 * specify an "ordering cone", and the solution to the LP returned is 
 * the minimal one with respect to this cone.
-* The VertexOracleData structure is used to communicate with the
+* The OracleData structure is used to communicate with the
 * calling routine.
 */
 
@@ -24,24 +24,24 @@
 #include "report.h"
 #include "params.h"
 
-VertexOracle_t VertexOracleData;
+OracleData_t OracleData;
 
 /**********************************************************************
 * The problem dimensions, question and answer space
 *   int vcols   number of columns in the constraint matrix
 *   int vrows   number of rows in the constraint matrix
 *   int vobjs   dimension of the objective space: number of objectives
-*   double vfacet[vobjs]
-*               the question direction
-*   double vvertex[vobjs]
+*   double vfacet[1:vobjs]
+*               the question direction (no constant, >=0 coeffs)
+*   double vvertex[1"vobjs]
 *               the answer vertex which minimizes the facet direction
 */
 
 #define vcols	PARAMS(ProblemColumns)
 #define vrows	PARAMS(ProblemRows)
 #define vobjs	PARAMS(ProblemObjects)
-#define vfacet	VertexOracleData.ofacet
-#define vvertex VertexOracleData.overtex
+#define vfacet	OracleData.ofacet
+#define vvertex OracleData.overtex
 
 /*==================================================================*/
 #include <stdio.h>
@@ -60,13 +60,36 @@ static glp_prob *P=NULL;
 static glp_smcp parm; /* glp parameter structure */
 
 /**********************************************************************
-* Storage for the constraint matrix, the objectives and the shuffle
-*   arrays. The matrix and the shuffle arrays will be freed after
-*   loading the problem into 'P'.
+* Read the constraint matrix and objectives from a vlp file
 *
-* double M(row,col)    temporary storage for the constraint matrix;
-*                      indices go from 1
-* double OBJ(obj,col)  the objective matrix; indices go from 1
+* int load_vlp()
+*   open and read the problem from the vlp file. Return value:
+*     0: file read, memory allocated, dimensions stored,
+*        glpk LP object P is initialized and ready to use.
+*     1: some error; errors are reported as R_fatal. The vlp file
+*        is not necessarily closed; the program should abort.
+*/
+
+/* void perm_array(int len,int array[1..len]
+*   make a random permutation of the elements of the array
+*/
+static inline int mrandom(int v)
+{ return v<=1?0 : (random()&0x3fffffff)%v; }
+static inline void perm_array(int len, int arr[/* 1:len */])
+{int i,j,t;
+    for(i=1;i<len;i++){
+        j=i+mrandom(len+1-i);
+        t=arr[i];arr[i]=arr[j];arr[j]=t;
+    }
+}
+
+/* Temporal storage for the constraint matrix, the objectives and 
+*   the shuffle arrays. The matrix and the shuffle arrays will be 
+*   freed after loading the problem into 'P'.
+*
+* double M(row,col)      temporary storage for the constraint
+*                        matrix; indices go from 1
+* double OBJ(obj,col)    the objective matrix; indices go from 1
 * int vlp_rowidx[1:rows] shuffling rows, temporary
 * int vlp_colidx[1:cols] shuffling columns, temporary
 * int vlp_objidx[1:objs] shuffling objectives, temporary
@@ -89,7 +112,8 @@ static int *vlp_objidx;		/* object permutation */
     (ptr=(type*)calloc(size,sizeof(type)))==NULL
 
 static int allocate_vlp(int rows, int cols, int objs)
-{   vrows=rows; vcols=cols; vobjs=objs;
+{int i;
+    vrows=rows; vcols=cols; vobjs=objs;
     if(xalloc(vfacet,double,objs+1) ||
        xalloc(vvertex,double,objs+1) ||
        xalloc(vlp_OBJ,double,objs*cols) ||
@@ -98,28 +122,18 @@ static int allocate_vlp(int rows, int cols, int objs)
        xalloc(vlp_colidx,int,cols+1) ||
        xalloc(vlp_objidx,int,objs+1))
          return -1; // out of memory
+       for(i=0;i<=rows;i++) vlp_rowidx[i]=i;
+       for(i=0;i<=cols;i++) vlp_colidx[i]=i;
+       for(i=0;i<=objs;i++) vlp_objidx[i]=i;
+       if(PARAMS(ShuffleMatrix)){
+           perm_array(rows,vlp_rowidx);
+           perm_array(cols,vlp_colidx);
+           perm_array(objs,vlp_objidx);
+       }
     return 0;
 }
 
-/**********************************************************************
-* Make a random permutation of an array
-*
-* void perm_array(int len, int array[1..len])
-*   make a random permutation of the array
-*/
-static inline int mrandom(int v)
-{ return v<=1?0 : (random()&0x3fffffff)%v; }
-static inline void perm_array(int len, int arr[/* 1:len */])
-{int i,j,t;
-    for(i=1;i<len;i++){
-        j=i+mrandom(len+1-i);
-        t=arr[i];arr[i]=arr[j];arr[j]=t;
-    }
-}
-
-/**********************************************************************
-* Read the constraint matrix and objectives from a vlp file
-*
+/* Character input from the vlp file
 * int MAX_LINELEN = 80
 *   maximum line length expected in a vlp file
 * char inpline[MAX_LINELEN]
@@ -140,22 +154,13 @@ static inline void perm_array(int len, int arr[/* 1:len */])
 *
 * int glp_type(char ctrl)
 *   returns the glpk version of the ctrl char, or -1 if error.
-*
-* int read_vlp()
-*   open and read the problem from the vlp file. Return value:
-*     0: file read, memory allocated, dimensions stored,
-*        glpk LP object P is initialized and ready to use.
-*     1: some error; errors are reported as R_fatal. The vlp file
-*        is not necessarily closed; the program should abort.
 */
 
-/*------------------------------------------------------------------*/
-/* read a single line from a VLP file */
-#define MAX_LINELEN	80 /* maximal length of a file */
+#define MAX_LINELEN	80 /* maximal length of a line */
 
 static char inpline[MAX_LINELEN+1]; /* contains the next vlp line */
 
-/** read the next vlp line to inpline **/
+/* read the next vlp line to inpline **/
 static int nextline(FILE *f)
 {int i,sp,ch;
     i=0;sp=0; memset(inpline,0,MAX_LINELEN+1);
@@ -171,6 +176,7 @@ static int nextline(FILE *f)
     return i>0?1:0;
 }
 
+/* direction character and the number of following real numbers */
 static int vlp_type_ok(char ctrl, int parno)
 {   switch(ctrl){
   case 'f': return parno==2;
@@ -179,6 +185,7 @@ static int vlp_type_ok(char ctrl, int parno)
     }
     return 0;
 }
+/* glpk version of directions */
 static int glp_type(char ctrl)
 {   switch(ctrl){
   case 'f': return GLP_FR;
@@ -189,8 +196,8 @@ static int glp_type(char ctrl)
     }
     return -1;
 }
-/* read a vlp problem from a file */
-int read_vlp(void)
+/* read a vlp problem from a file as an LP instance */
+int load_vlp(void)
 {FILE *f; int rows,cols,objs; int i,j,cnt; double p,b1,b2; char ctrl;
  double dir=1.0;
     f=fopen(PARAMS(VlpFile),"r");
@@ -226,12 +233,6 @@ int read_vlp(void)
                      report(R_fatal,"read_vlp: out of memory for %s:\n   %s\n",
                                PARAMS(VlpFile),inpline); return 1;
                  }
-                 for(i=0;i<=rows;i++) vlp_rowidx[i]=i;
-                 for(j=0;j<=cols;j++) vlp_colidx[j]=j;
-                 if(PARAMS(ShuffleMatrix)){
-                     perm_array(rows,vlp_rowidx);
-                     perm_array(cols,vlp_colidx);
-                 }
 		 glp_add_cols(P,cols); glp_add_rows(P,rows);
                  glp_set_multiobj_number(P,objs);
                  continue;
@@ -240,7 +241,7 @@ int read_vlp(void)
                     report(R_fatal,"read_vlp: j line before p in %s\n  %s\n",
                                PARAMS(VlpFile),inpline); return  1;
                  }
-                 b1=b2=0.0; 
+                 b1=b2=0.0;
                  cnt=sscanf(inpline,"j %d %c %lg %lg",&j,&ctrl,&b1,&b2);
                  if(cnt<2 || cols<j || j<1 || !vlp_type_ok(ctrl,cnt)){
                     report(R_fatal,"read_vlp: wrong j line in %s\n   %s\n",
@@ -283,7 +284,8 @@ int read_vlp(void)
                     report(R_fatal,"read_vlp: wrong o line in %s\n   %s\n",
                                 PARAMS(VlpFile),inpline); return 1;
                  }
-                 OBJ(i,vlp_colidx[j])=dir*p; // store it
+                 glp_set_multiobj_coef(P,vlp_objidx[i],vlp_colidx[j],dir*p);
+                 OBJ(i,vlp_colidx[j])=dir*p; // and store it
                  continue;
        default: report(R_fatal,"read_vlp: unknown line in %s\n  %s\n",
                            PARAMS(VlpFile),inpline); return 1;
@@ -292,22 +294,12 @@ int read_vlp(void)
     if(rows==0){
        report(R_fatal,"read_vlp: no 'p' line in %s\n",PARAMS(VlpFile)); return 1; 
     }
-    free(vlp_colidx);
     // upload constraints into P
     for(i=0;i<=rows;i++) vlp_rowidx[i]=i;
     for(j=1;j<=cols;j++){
         glp_set_mat_col(P,j,rows,vlp_rowidx,&M(1,j)-1);
     }
-    free(vlp_M); free(vlp_rowidx);
-    // upload objectives into P
-    for(i=1;i<=objs;i++) vlp_objidx[i]=i;
-    if(PARAMS(ShuffleMatrix)) perm_array(objs,vlp_objidx);
-    for(i=1;i<=objs;i++){
-        for(j=1;j<=cols;j++){
-           glp_set_multiobj_coef(P,i,j,OBJ(vlp_objidx[i],j));
-        }
-    }
-    free(vlp_objidx);
+    free(vlp_objidx); free(vlp_colidx); free(vlp_rowidx); free(vlp_M);
     glp_set_obj_dir(P,GLP_MIN); // minimize
     // suppress glpk message if not verbose ...
     if(PARAMS(OracleMessage)<2) glp_term_out(GLP_OFF);
@@ -315,13 +307,10 @@ int read_vlp(void)
     if(PARAMS(OracleScale)) glp_scale_prob(P,GLP_SF_AUTO);
     glp_adv_basis(P,0);		// make this optimization
     glp_term_out(GLP_ON);
-//    set_oracle_parameters(); will be set on the main program
     return 0;
 }
 
 /**********************************************************************
-* Set the LP solver parameters from the configuration.
-*
 * void set_oracle_parameters(void)
 *   verbosity: 0: no, 1: error; 2: normal, 3: verbose
 *   output frequency: indicate that the LP solver is working
@@ -330,9 +319,14 @@ int read_vlp(void)
 *   ratio test: standard of Harris
 *   iteration limit
 *   time limit (in seconds)
+*
+* char *glp_status_msg(int code)
+* char *glp_return_msg(int code)
+*   return the verbatim error message corresponding to the glpk
+*   code (to be printed out).
 */
 
-void set_oracle_parameters(void)
+static void set_oracle_parameters(void)
 {   glp_init_smcp(&parm);
     // multiobjective
     if(PARAMS(ProblemObjects)>1) parm.mobj=GLP_ON;
@@ -357,54 +351,6 @@ void set_oracle_parameters(void)
     parm.tm_lim = 10000;	// time limit in milliseconds
     if(PARAMS(OracleTimeLimit)>=5) parm.tm_lim=1000*PARAMS(OracleTimeLimit);
     if(PARAMS(OracleTimeLimit)==0) parm.tm_lim=0; // no limit
-}
-
-/**********************************************************************
-* Ask the oracle
-*
-* int ask_oracle(void)
-*    the question and the answer is provided in VertexOracleData.
-*
-* Return values:
-*   ORACLE_OK     the minimal vertex is stored in VertexOracleData.
-*                 coordinates are rounded to the nearest rational value
-*                 when "RoundVertices" is set.
-*   ORACLE_UNBND  the polytope is not bounded from below
-*   ORACLE_EMPTY  the polytope is empty (no feasible solution)
-*   ORACLE_LIMIT  either time or iteration limit is reached
-*   ORACLE_FAIL   the LP solver failed to solve the problem
-* Errors are reported as R_err.
-*
-* void round_to_int(double *v)
-*  v is expanded as a continued fraction using four iterations.
-*  If the error is smaller than PARAMS(RoundEps), then v is
-*  replaced by the value of the fraction.
-* char *glp_status_msg(int code)
-* char *glp_return_msg(int code)
-*  return the verbatim error message corresponding to the glpk
-*  code (to be printed out).
-*/
-#define ROUND_EPS	PARAMS(RoundEps)
-
-static inline long intfloor(double d)
-{ return d<0.0 ? (long)(d-0.5) : (long)(d+0.5); 
-}
-
-static inline void round_to_int(double *v)
-{double ip,iip,v2,ip2,ip3,ip4;
-    ip=intfloor(*v); iip=*v-ip;
-//*v  (-2.5,-1.5]  (-1.5,-0.5] (-0.5,0] [0,0.5) [0.5,1.5)  [1.5,2.5)
-//ip    -2          -1           0          0      1          2
-//iip (-0.5,0.5]   (-0.5,0.5]  (-0.5,0] [0.0.5] [-0.5,0.5) [-0.5,0.5)
-    if(iip<=-0.5 || iip >= 0.5) return;
-    if(-ROUND_EPS<iip && iip<ROUND_EPS){ *v=ip; return; }
-    // *v==ip+iip, -0.50<=iip<=0.5
-    v2=1.0/iip; ip2=intfloor(v2); iip=v2-ip2;
-    if(-2.0*ROUND_EPS<iip && iip<2.0*ROUND_EPS){ *v=ip+1.0/ip2; return; }
-    v2=1.0/iip; ip3=intfloor(v2); iip=v2-ip3;
-    if(-4.0*ROUND_EPS<iip && iip<4.0*ROUND_EPS){ *v=ip+1.0/(ip2+1.0/ip3); return; }
-    v2=1.0/iip; ip4=intfloor(v2); iip=v2-ip4;
-    if(-8.0*ROUND_EPS<iip && iip<8.0*ROUND_EPS){ *v=ip+1.0/(ip2+1.0/(ip3+1.0/ip4)); return;}
 }
 
 static char *glp_status_msg(int stat)
@@ -446,13 +392,67 @@ static char *glp_return_msg(int retval)
     return "unknown error";
 }
 
-/** the question is in VertexOracleData.ofacet;
-    the answer goes to VertexOracleData.overtex
-    return value: 
-      ORACLE_OK    : OK
-      ORACLE_LIMIT : resource limit reached
-      ORACLE_FAIL  : some problem,
-**/
+/**********************************************************************
+* Ask the oracle
+*
+* initialize_oracle(void)
+*    check the problem; compute the first vertex Returns:
+*   ORACLE_OK     vertex is in OracleData.overtex
+*   ORACLE_EMPTY  no feasible solution
+*   ORACLE_UNBND  the polytope is unbounded from below
+*   ORACLE_FAIL   the LP failed (limit reached, or other failure)
+
+* int ask_oracle(void)
+*    the question and the answer is provided in OracleData.
+*   ORACLE_OK     OK
+*   other         some error
+*/
+
+/* measure the time spent by the oracle, give error messages */
+static int oracle_calls=0;
+static unsigned long oracle_time=0ul;
+
+#include <sys/time.h> /* gettimeofday() */
+
+static int call_glp(void)
+{int ret; struct timeval tv; unsigned long starttime;
+    oracle_calls++;
+    if(gettimeofday(&tv,NULL)==0){
+        starttime=tv.tv_sec*1000 + (tv.tv_usec+500u)/1000u;
+    } else { starttime = 0ul; }
+    ret=glp_simplex(P,&parm);
+    if(ret==GLP_EFAIL){ // give it a second change
+        if(PARAMS(OracleMessage)<2) glp_term_out(GLP_OFF);
+        glp_adv_basis(P,0);
+        glp_term_out(GLP_ON);
+        ret=glp_simplex(P,&parm);
+    }
+    if(gettimeofday(&tv,NULL)==0)
+        oracle_time += (tv.tv_sec*1000 + (tv.tv_usec+500u)/1000u)-starttime;
+    if(ret){
+        report(R_fatal,"The oracle says: %s (%d)\n",glp_return_msg(ret),ret);
+        return ORACLE_FAIL;
+    }
+    ret=glp_get_status(P);
+    if(ret!=GLP_OPT){
+        report(R_fatal,"The oracle says: %s (%d)\n",glp_status_msg(ret),ret);
+        return ret==GLP_NOFEAS? ORACLE_EMPTY :
+               ret==GLP_UNBND ? ORACLE_UNBND : ORACLE_FAIL;
+    }
+    return ORACLE_OK;
+}
+
+/* first call to the oracle; check loaded vlp problem */
+int initialize_oracle(void)
+{int i;
+    set_oracle_parameters();
+    for(i=0;i<vobjs;i++) vfacet[i]=1.0;
+    return ask_oracle();
+}
+
+#include "round.h" /* round_to( &v) */
+
+/* ask the oracle */
 int ask_oracle(void)
 {int i,j,ret; double d;
     /* set up the problem to be minimized */
@@ -461,29 +461,13 @@ int ask_oracle(void)
         for(i=1;i<=vobjs;i++) d += OBJ(i,j)*vfacet[i-1];
         glp_set_obj_coef(P,j,d);
     }
-    ret=glp_simplex(P,&parm);
-    if(ret==GLP_EFAIL){ /* give it another change */
-        if(PARAMS(OracleMessage)<2) glp_term_out(GLP_OFF);
-        glp_adv_basis(P,0);
-        glp_term_out(GLP_ON);
-        ret=glp_simplex(P,&parm);
-    }
-    if(ret){
-        report(R_fatal,"The oracle says: %s (%d)\n",glp_return_msg(ret),ret);
-        // one can continue if  ret==GLP_EITLIM || ret==GLP_ETMLIM
-        return (ret==GLP_EITLIM || ret==GLP_ETMLIM)? ORACLE_LIMIT : ORACLE_FAIL; 
-    }
-    ret=glp_get_status(P);
-    if(ret != GLP_OPT){
-        report(R_fatal,"The oracle says: %s (%d)\n",glp_status_msg(ret),ret);
-        return ret==GLP_NOFEAS? ORACLE_EMPTY : 
-               ret==GLP_UNBND ? ORACLE_UNBND : ORACLE_FAIL;
-    }
+    ret=call_glp();
+    if(ret!=ORACLE_OK) return ret;
     /* recover the solution vertex */
     for(i=1;i<=vobjs;i++){
         d=0.0;
         for(j=1;j<=vcols;j++) d+=OBJ(i,j)*glp_get_col_prim(P,j);
-        if(PARAMS(RoundVertices))round_to_int(&d);
+        if(PARAMS(RoundVertices))round_to(&d);
         vvertex[i-1]=d;
     }
     return ORACLE_OK;
@@ -492,13 +476,14 @@ int ask_oracle(void)
 /**********************************************************************
 * Get oracle iteration count
 *
-* int get_oracle_rounds(void)
-*   use the undocumented glpk call to get the number of iterations.
-*   Used in statistics.
+* void get_oracle_stat(int *callno, int *roundno, unsigned long *time)
+*   number of LP calls, iterations, total time spent by LP 
 */
 
-int get_oracle_rounds(void)
-{   return glp_get_it_cnt(P); }
+void get_oracle_stat(int *callno,int *roundno,unsigned long *time)
+{   *callno=oracle_calls; *roundno=glp_get_it_cnt(P);
+    *time=(oracle_time+5ul)/10ul; // in 0.01 seconds
+}
 
 /* EOF */
 

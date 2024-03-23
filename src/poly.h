@@ -18,30 +18,29 @@
 *    bitmaps use either 64 (default) or 32 bit wide words. Use
 *    -DBITMAP32 as compiler argument to use 32 bits in bitmaps.
 *
-* int MAXIMAL_ALLOWED_DIMENSION
+* int MAXIMAL_ALLOWED_DIMENSION = 100
 *    the maximal dimension we are willing to handle.
 *
-* int DD_INITIAL_VERTEXNO
-* int DD_INITIAL_FACETNO
+* int DD_INITIAL_VERTEXNO	= 124
+* int DD_INITIAL_FACETNO	= 4092
 *    initial number of vertices and facets.
 *
-* int DD_VERTEX_ADDBLOCK
-* int DD_FACET_ADDBLOCK
+* int DD_VERTEX_ADDBLOCK	= 2
+* int DD_FACET_ADDBLOCK		= 64
 *    space for vertices and facets are allocated in large blocks.
 *    These values multiplied by bitmap word size (64 or 32) determine
 *    how many new vertices and facets will be added.
 *
-* size_t DD_HIGHWATER
-* size_t DD_LOWWATER
-*    when a block has DD_WIGHWATER more bytes allocated, it is
-*    reduced back to DD_LOWWATER
+* size_t DD_HIGHWATER		= 50M
+* size_t DD_LOWWATER		= 10M
+*    when a block has DD_WIGHWATER more bytes allocated than required,
+*    it is reduced back to an excess of DD_LOWWATER
 */
 
 /** maximal dimension we are willing to handle **/
 #define MAXIMAL_ALLOWED_DIMENSION	100
 
 /** initial number of vertices/facets. **/
-
 #define DD_INITIAL_VERTEXNO	124
 #define DD_INITIAL_FACETNO	4092
 
@@ -64,7 +63,6 @@
 *
 * int create_threads(void)
 *    initialize all threads. Return non-zero in case of an error.
-*
 * void stop_threads(void)
 *    clear up threads
 */
@@ -81,10 +79,10 @@ void stop_threads(void);
 *   as inconsistency, or out of memory, are also indicated here.
 *
 * void get_dd_facetno(void)
-*   computes the number of facets of the most recent approximation as
+*   compute the number of facets of the most recent approximation as
 *   well as how many of them is known to be a facet of the final
 *   polyhedron. Keeping these values up-to-date at each iteration
-*   would be too expensive.
+*   would be too expensive, so we get them when needed.
 */
 typedef struct {
 /** statistics **/
@@ -101,7 +99,7 @@ int facets_compressed_no;   /* times facet compression is called */
 int facet_pos;              /* last number of positive facets */
 int facet_zero;             /* facets adjacent to this vertex */
 int facet_neg;              /* negative facets to be dropped */
-int facet_new;              /* facets added */
+int facet_new;              /* new facets added */
 int max_facets;		    /* maximal number of intermediate facets */
 int max_facetsadded;	    /* maximal number of facets added in an iteration */
 double avg_facetsadded;	    /* average number of facets added */
@@ -126,24 +124,16 @@ void get_dd_facetno(void);
 /************************************************************************
 * Iterations of the double description algorithm
 *
-* int init_dd_structure(int dim, int maxvertex, int maxfacet)
+* int init_dd_structure(int maxvertex, int maxfacet)
 *    initialize DD algorithm structure allocating space to accomodate
 *    the given number of vertices and facets.
 *    Return value:
 *     0:  initialization is succesful
 *     1:  either dimension is too large, or out of memory.
 *
-* int init_dd(int dim, double v[0:dim-1])
-*    initialize the DD algorithm, supplying the very first vertex 
-*    allocation the initial number of vertices and facets.
-*    The algorithms is tailored to MOLP minimization; the positive
-*    endpoints of coordinate axes (the *ideal* vertices) are assumed
-*    to be feasible solutions. Arguments:
-*      dim:         the dimension of the space.
-*      v[0:dim-1]:  coordinates of the very first extremal solution.
-*    Return value:
-*     0:  initialization is successful
-*     1:  either the dimension is too large, or out of memory.
+* void init_dd(double v[0:dim-1])
+*    Add the very first vertex, and create the first inner polytope
+*    connecting the vertex with the positive ideal points.
 *
 * int initial_vertex(double coords[0..dim-1])
 * int initial_facet(int final, double coords[0..dim])
@@ -155,7 +145,7 @@ void get_dd_facetno(void);
 *     0:  OK
 *     1:  some error, error message issued.
 *
-* int get_next_facet(int from)
+* int get_next_facet(int from, double to[0:DIM])
 *    Get the index of a facet of the actual approximation which is
 *    not marked as facet of the final polytope. When 'from' is non-
 *    negative, return only facets which have index >= from. If
@@ -169,66 +159,59 @@ void get_dd_facetno(void);
 * void clear_facet_as_living(fno)
 *    This is not a facet in the final polytope
 *
-* void get_facet_into(int fno, double eq[0:dim])
-*    Retrieve the equation of the facet with index fno. In the
-*    internal representation all coefficients in eq[0:dim-1] are
-*    non-negative and sum to 1.0. When returning the equation it
-*    is scaled and after scaling values closer to and integer than
-*    ScaleEps are rounded up to that integer.
-*
 * void add_new_vertex(double v[0:dim-1])
-*    Specify the vertex which enlarges the inner approximation. When
+*    the main routine, the argument is a new vertex which is to be
+*    added to the approximation. Perform all computations. When
 *    the routine returns, check error conditions in dd_stats.
 */
 
 /** initialize data structures with the first vertex **/
-int init_dd_structure(int dim, int maxvertex, int maxfacet);
-int init_dd(int dim, double *coords);
+int init_dd_structure(int maxvertex, int maxfacet);
+void init_dd(const double *coords);
 
 /** add initial vertex and facet **/
-int initial_vertex(double coords[]);
-int initial_facet(int final, double coords[]);
-
-/** release vertex and facet adjacency lists **/
-void free_adjacency_lists(void);
+int add_initial_vertex(const double coords[]);
+int add_initial_facet(int final,const double coords[]);
 
 /** index of the next living but not final facet **/
-int get_next_facet(int from);
+int get_next_facet(int from,double *to);
 
 /** mark the facet as final **/
-void mark_facet_as_final(int facetno);
+void mark_facet_as_final(int fno);
 /** this facet is not living anymore **/
-void clear_facet_as_living(int facetno);
-/** retrieve facet equation **/
-void get_facet_into(int facetno, double *faceteq);
+void clear_facet_as_living(int fno);
 
 /** add a new vertex **/
-void add_new_vertex(double *coords);
+void add_new_vertex(const double *coords);
 
 /************************************************************************
 * Retrieving data, checking, recalculating
 *
-* int vertex_num()
-* int facet_num()
+* int get_vertexnum()
+* int get_facetnum()
 *    Return the number of non-ideal vertices and facets.
 *
+* void free_adjacency_lists()
+*    After interrupt adjacency lists are not used anymore. Release
+*    them to save memory.
+*
 * int store_vertex(double v[0:dim-1])
-*    If the algorithm is stopped (it runs for too long time), 
-*    extremal solutions to the MOLP can still be generated by
-*    asking the Oracle all facets of the last approximation.
-*    the returned vertex is then stored as a final vertex.
-*    Return 1 if this is a new vertex not seen before, so it
-*    can be reported. Error conditions should be checked
-*    after the routine returns.
+*    Called after an interrupt. Check if the argument is among the
+*    vertices stored, and add if it was not there. Check memory
+*    overflow after return.
 *
 * int probe_vertex(double v[0:dim-1])
-*    Return the number of facets which would be thrown away if this 
-*    vertex were added to the approximation.
+*    Return a score; the vertex with the highest score will be added
+*    to the approximation.
 *
 * void recalculate_facets(void)
 *    Go over all facets and recalculate their equations from the list
 *    of vertices it is adjacent to. When the routine returns, error
 *    conditions should be checked.
+*
+* int check_bitmap_consistency(void)
+*    Check that all facets and vertices have at least DIM adjacent 
+*    elements.
 *
 * int check_consistency(void)
 *    Check consistency of the data structure. Return zero if all is
@@ -236,24 +219,28 @@ void add_new_vertex(double *coords);
 */
 
 /** number of vertices and facets **/
-int vertex_num(void); int facet_num(void);
+int get_vertexnum(void); int get_facetnum(void);
+
+/** release vertex and facet adjacency lists **/
+void free_adjacency_lists(void);
 
 /** store a vertex; tell if this is a new one **/
 int store_vertex(double *coords);
 
-/** return the number of negative facets **/
+/** return vertex score **/
 int probe_vertex(double *coords);
 
 /** recalculate facet equations **/
 void recalculate_facets(void);
 
 /** checking data structure consistency **/
+int check_bitmap_consistency(void);
 int check_consistency(void);
 
 /************************************************************************
 * Report the facets and vertices of the solution
 *
-* void print_vertex(report_type channel, double dir, double coords[])
+* void print_vertex(report_type channel, double coords[])
 *    Report the coordinates of a vertex on the given channel. Use
 *    fractional format if VertexAsFraction is set, otherwise a floating
 *    number. Coordinates are separated by a space, and a terminating
@@ -284,7 +271,7 @@ int check_consistency(void);
 */
 
 /** reporting vertices **/
-void print_vertex(report_type channel, double dir, const double coords[]);
+void print_vertex(report_type channel, const double coords[]);
 void print_vertices(report_type channel); 
 
 /** reporting facets **/

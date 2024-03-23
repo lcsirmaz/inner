@@ -67,8 +67,8 @@ int main(int argc, const char *argv[])
     switch(inner()){ // execute the algorithm
       case 0:  return 0; /* job done */
       case 1:  return 1; /* data error before algorithm started */
-      case 2:  return 3; /* problem unbounded */
-      case 3:  return 2; /* no solution */
+      case 2:  return 2; /* no solution */
+      case 3:  return 3; /* problem unbounded */
       case 4:  return 4; /* error in the algorithm */
       default: break;    /* interrupted, OK, error, aborted */
     }
