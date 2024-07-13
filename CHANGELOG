@@ -1,3 +1,8 @@
+Version 3.1
+   - poly.c: improving the ridge checking routine. The intersection with
+     FacetLiving is computed on the fly, saving the FacetWork slot. Storing
+     pointers to the adjacency list instead of their indices.
+
 Version 3.0
    Rounding routines moved to round.h. Oracle initialization generates the
    first extremal vertex, also checking that the problem has feasible

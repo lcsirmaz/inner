@@ -13,7 +13,7 @@
 
 /* Version and copyright */
 #define VERSION_MAJOR	3
-#define VERSION_MINOR	0
+#define VERSION_MINOR	1
 #ifdef USETHREADS
 #define VERSION_STRING	"threaded version " mkstringof(VERSION_MAJOR.VERSION_MINOR) "T"
 #else

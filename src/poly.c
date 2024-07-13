@@ -239,8 +239,8 @@ M_FacetDistStore=M_MAINSLOTS,	/* facet distances; FacetDistStore */
 M_FacetPosnegList,		/* indices of positive/negative facets; FacetPosnegList */
 		/* threads write these */
 M_THREAD_SLOTS,
-M_VertexList=M_THREAD_SLOTS,	/* vertex indices in the intersection of two facets */
-M_FacetWork,			/* facet bitmap; FacetWork */
+M_VertexList=M_THREAD_SLOTS,	/* adjacency list of vertices in the intersection of two facets */
+//M_FacetWork,			/* facet bitmap; FacetWork */
 M_VertexArray,			/* calculating facet equations; VertexArray */
 M_NewFacetCoordStore,		/* new facet coordinates */
 M_NewFacetAdjStore,		/* adjacency list of new facets */
@@ -270,7 +270,7 @@ M_MSLOTSTOTAL			/* total number of managed memory */
 #define TM_FacetDistStore	"FacetDist"
 #define TM_FacetPosnegList	"FacetSign"
 #define TM_VertexList		"VertexList"
-#define TM_FacetWork		"FacetWork"
+//#define TM_FacetWork		"FacetWork"
 #define TM_VertexArray		"VertexArray"
 #define TM_NewFacetCoordStore	"NewFacetCoord"
 #define TM_NewFacetAdjStore	"NewFacetAdj"
@@ -634,6 +634,7 @@ typedef uint64_t BITMAP_t;
 
 #define packsize	(1<<packsizelog)	/* 4 or 8 bytes */
 #define packshift	(packsizelog+3) 	/* in bits (5 or 6 )*/
+#define bitsperword	(1<<packshift)		/* 32 or 64 */
 #define packmask	((1<<packshift)-1)	/* 31 or 63 */
 #define BITMAP1		((BITMAP_t)1u)    	/* BITMAP_t unsigned 1 */
 #define BITMAP0		((BITMAP_t)0u)		/* BITMAP_t unsigned zero */
@@ -992,10 +993,8 @@ static void get_facet_into(int fno, double *v)
 * is populated by facet numbers: those with positive distance go the the
 * front, those with negative distance go to the end. Then for each 
 * positive / negative pair (fp,fn) the following are computed by threads:
-*    int      *VertexList(thId)
-* vertex numbers adjacent to both (fp,fn);
-*    BITMAP_t *FacetWork(thId)
-* bitmap of facets adjacent to vertices in VertexList. If (fp,fn) is a
+*    BITMAP_t **VertexList(thId)
+* adjacency list of vertices adjacent to both (fp,fn). If (fp,fn) is a
 * ridge, it gives a new facet together with ThisVertex
 *    double   *NewFacetCoords(thId,fno)
 *    BITMAP_t *NewFacetAdj(thId,fno)
@@ -1003,9 +1002,7 @@ static void get_facet_into(int fno, double *v)
 * When there are no threads, then thId=0. */
 
 #define VertexList(thId)		\
-    get_memory_ptr(int,M_thread(M_VertexList,thId))
-#define FacetWork(thId)			\
-    get_memory_ptr(BITMAP_t,M_thread(M_FacetWork,thId))
+    get_memory_ptr(BITMAP_t*,M_thread(M_VertexList,thId))
 #define NewFacetCoords(thId,fno)	\
     (get_memory_ptr(double,M_thread(M_NewFacetCoordStore,thId))+\
           ((fno)*FacetSize))
@@ -1428,8 +1425,8 @@ void recalculate_facets(void)
 * int is_ridge(f1,f2,threadId)
 *    combinatorial test to check whether the intersection of f1 and
 *    f2 forms a ridge. If there are <DIM-1 vertices both in f1 and
-*    f2 then it is not a ridge. Otherwise store indices adjacent to both
-*    f1 and f2 in VertexList, then take the intersection of living facets
+*    f2 then it is not a ridge. Otherwise store adjacency list of verteces on
+*    both f1 and f2 in VertexList, then take the intersection of living facets
 *    and the facet adjacency lists in VertexList. (f1,f2) is a ridge if
 *    and only if the intersection contains f1 and f2 only.
 * void create_new_facet(f1,f2,threadId)
@@ -1448,34 +1445,32 @@ void recalculate_facets(void)
 */
 
 inline static int is_ridge(int f1,int f2,int threadId)
-{int vertexno,i,j,vlistlen; BITMAP_t v,*va0,*va1;
-    if(facet_intersection(f1,f2) < DIM-1)
-         return 0; // no - happens oftern
-    /* all living facets except for f1 and f2 */
-    copy_FacetLiving_to(FacetWork(threadId));
-    clear_bit(FacetWork(threadId),f1); clear_bit(FacetWork(threadId),f2);
-    /* store vertex indices adjacent to both f1 and f2 in VertexList */
-    vertexno=0; vlistlen=0;
-    for(i=0;i<VertexBitmapBlockSize;i++){
-        if((v=FacetAdj(f1)[i] & FacetAdj(f2)[i])){
-            j=vertexno;
-            while(v){
-                while((v&7)==0){ j+=3; v>>=3; }
-                if(v&1){ VertexList(threadId)[vlistlen]=j; vlistlen++; }
-                j++; v>>=1;
-            }
-        }
-        vertexno += (1<<packshift);
+{int vlistlen; int idx1,idx2; BITMAP_t **VLID;
+ BITMAP_t *va0,*va1;
+    VLID=&(VertexList(threadId)[0]);
+    if(facet_intersection(f1,f2) < DIM-1) return 0; // fast checking, happens oftern
+    /* store in VertexList the adjacency list of vertices both on f1 and f2 */
+    vlistlen=0; va0=FacetAdj(f1); va1=FacetAdj(f2);
+    for(int i=0;i<MaxVertices;i+=bitsperword,va0++,va1++){
+       int idx=i;
+       register BITMAP_t w=(*va0)&(*va1);
+       while(w){
+           while((w&7)==0){ idx+=3; w>>=3; }
+           if(w&1){VLID[vlistlen]=VertexAdj(idx); vlistlen++; }
+           idx++; w>>=1;
+       }
     }
-    /* now we have all vertices adjacent to f1 and f2 in VertexList
-       check if the intersection of the adjacency lists of these vertices
-       contain only f1 and f2 and nothing else */
-    va0=VertexAdj(VertexList(threadId)[0]);
-    va1=VertexAdj(VertexList(threadId)[1]);
-    for(i=0;i<FacetBitmapBlockSize;i++) if(
-       (v=FacetWork(threadId)[i] & va0[i]) && (v &=va1[i])){
-          for(j=2;j<vlistlen;j++) v &= VertexAdj(VertexList(threadId)[j])[i];
-          if(v) return 0; // no
+    // prepare the intersection of adjacency lists; f1 and f2 are exceptions
+    idx1=f1>>packshift; idx2=f2>>packshift; // bitmap indices of f1 and f2
+    va0=FacetLiving; va1=VLID[0];
+    /* we have the adjacency list of vertices both on f1 and f2 in VertexList
+       check if the intersection contains only f1 and f2 and nothing else */
+    for(int i=0;i<FacetBitmapBlockSize;i++,va0++,va1++){
+        register BITMAP_t w=(*va0)&(*va1);
+        if(i==idx1) w &= ~(BITMAP1<<(f1&packmask));
+        if(i==idx2) w &= ~(BITMAP1<<(f2&packmask));
+        for(int j=1;w!=0 && j<vlistlen;j++) w &= VLID[j][i];
+        if(w!=0) return 0; // no
     }
     return 1; // yes
 }
@@ -1543,8 +1538,7 @@ static void search_ridges(void)
 *    if facet numbers decreased, decrease the storage as well
 * void reaquest_main_loop_memory(threadId)
 *    allocate temporary memory used by a thread in the main loop
-*    VertexList:      list of vertices adjacent to facets f1 and f2
-*    FacetWork:       bitmap of facets adjacent to all vertices in VertexList
+*    VertexList:      adjacency list of vertices on both facets f1 and f2
 *    NewFacetCoord:   coordinates of new facet
 *    NewFacetAdj:     adjacency bitmap of the new facet 
 * void add_new_vertex(double vertex[0:dim-1])
@@ -1619,8 +1613,8 @@ static void compress_facets(void)
 
 /* void request main loop memory(threadId) */
 inline static void request_main_loop_memory(int threadId)
-{   talloc2(int,M_VertexList,threadId,MaxVertices,1);
-    talloc2(BITMAP_t,M_FacetWork,threadId,1,FacetBitmapBlockSize);
+{   talloc2(BITMAP_t*,M_VertexList,threadId,MaxVertices,1);
+//    talloc2(BITMAP_t,M_FacetWork,threadId,1,FacetBitmapBlockSize);
     talloc2(double,M_NewFacetCoordStore,threadId,DD_INITIAL_FACETNO,FacetSize);
     talloc2(BITMAP_t,M_NewFacetAdjStore,threadId,DD_INITIAL_FACETNO,VertexBitmapBlockSize);
     NewFacet[threadId]=0;
